@@ -45,6 +45,8 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
@@ -222,10 +224,12 @@ public class ThumbCell extends StackPane {
                         LOG.trace("Resolution queue size: {}", ThumbOverviewTab.queue.size());
                         final int w = resolution[1];
                         Platform.runLater(() -> {
-                            resolutionTag.setText(Integer.toString(w));
+                            String _res = Integer.toString(w);
+                            resolutionTag.setText(_res);
                             resolutionTag.setVisible(true);
                             resolutionBackground.setVisible(true);
                             resolutionBackground.setWidth(resolutionTag.getBoundsInLocal().getWidth() + 4);
+                            model.setStreamResolution(w);
                         });
                     }
                 } catch (IOException | ParseException | PlaylistException | InterruptedException e) {
@@ -236,8 +240,10 @@ public class ThumbCell extends StackPane {
             });
         } else {
             ThumbOverviewTab.resolutionProcessing.remove(model);
+            String _res = Integer.toString(res[1]);
+            model.setStreamResolution(res[1]);
             Platform.runLater(() -> {
-                resolutionTag.setText(Integer.toString(res[1]));
+                resolutionTag.setText(_res);
                 resolutionTag.setVisible(true);
                 resolutionBackground.setVisible(true);
                 resolutionBackground.setWidth(resolutionTag.getBoundsInLocal().getWidth() + 4);
@@ -246,7 +252,7 @@ public class ThumbCell extends StackPane {
     }
 
     private void setImage(String url) {
-        if(!Objects.equals(System.getenv("CTBREC_THUMBS"), "0")) {
+        if(!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
             Image img = new Image(url, true);
 
             // wait for the image to load, otherwise the ImageView replaces the current image with an "empty" image,
@@ -277,12 +283,20 @@ public class ThumbCell extends StackPane {
         MenuItem unfollow = new MenuItem("Unfollow");
         unfollow.setOnAction((e) -> follow(false));
 
+        MenuItem copyUrl = new MenuItem("Copy URL");
+        copyUrl.setOnAction((e) -> {
+            final Clipboard clipboard = Clipboard.getSystemClipboard();
+            final ClipboardContent content = new ClipboardContent();
+            content.putString(model.getUrl());
+            clipboard.setContent(content);
+        });
+
         ContextMenu contextMenu = new ContextMenu();
         contextMenu.setAutoHide(true);
         contextMenu.setHideOnEscape(true);
         contextMenu.setAutoFix(true);
         MenuItem followOrUnFollow = parent instanceof FollowedTab ? unfollow : follow;
-        contextMenu.getItems().addAll(openInPlayer, startStop , followOrUnFollow);
+        contextMenu.getItems().addAll(openInPlayer, startStop , followOrUnFollow, copyUrl);
         return contextMenu;
     }
 

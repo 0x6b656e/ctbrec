@@ -85,7 +85,12 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         search.setPromptText("Filter");
         search.textProperty().addListener( (observableValue, oldValue, newValue) -> {
             filter = search.getText();
-            filter();
+            gridLock.lock();
+            try {
+                filter();
+            } finally {
+                gridLock.unlock();
+            }
         });
         BorderPane.setMargin(search, new Insets(5));
 
@@ -238,38 +243,32 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
             }
         });
 
-
-        gridLock.lock();
-        try {
-            if (filter == null || filter.isEmpty()) {
-                for (ThumbCell thumbCell : filteredThumbCells) {
-                    insert(thumbCell);
-                }
-                return;
+        if (filter == null || filter.isEmpty()) {
+            for (ThumbCell thumbCell : filteredThumbCells) {
+                insert(thumbCell);
             }
+            return;
+        }
 
-            // remove the ones from grid, which don't match
-            for (Iterator<Node> iterator = grid.getChildren().iterator(); iterator.hasNext();) {
-                Node node = iterator.next();
-                ThumbCell cell = (ThumbCell) node;
-                Model m = cell.getModel();
-                if(!matches(m, filter)) {
-                    iterator.remove();
-                    filteredThumbCells.add(cell);
-                }
+        // remove the ones from grid, which don't match
+        for (Iterator<Node> iterator = grid.getChildren().iterator(); iterator.hasNext();) {
+            Node node = iterator.next();
+            ThumbCell cell = (ThumbCell) node;
+            Model m = cell.getModel();
+            if(!matches(m, filter)) {
+                iterator.remove();
+                filteredThumbCells.add(cell);
             }
+        }
 
-            // add the ones, which might have been filtered before, but now match
-            for (Iterator<ThumbCell> iterator = filteredThumbCells.iterator(); iterator.hasNext();) {
-                ThumbCell thumbCell = iterator.next();
-                Model m = thumbCell.getModel();
-                if(matches(m, filter)) {
-                    iterator.remove();
-                    insert(thumbCell);
-                }
+        // add the ones, which might have been filtered before, but now match
+        for (Iterator<ThumbCell> iterator = filteredThumbCells.iterator(); iterator.hasNext();) {
+            ThumbCell thumbCell = iterator.next();
+            Model m = thumbCell.getModel();
+            if(matches(m, filter)) {
+                iterator.remove();
+                insert(thumbCell);
             }
-        } finally {
-            gridLock.unlock();
         }
     }
 
@@ -305,7 +304,9 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         for (String tag : m.getTags()) {
             searchTextBuilder.append(tag).append(' ');
         }
+        searchTextBuilder.append(m.getStreamResolution());
         String searchText = searchTextBuilder.toString().trim();
+        LOG.debug("{} -> {}", m.getName(), searchText);
         boolean tokensMissing = false;
         for (String token : tokens) {
             if(!searchText.contains(token)) {

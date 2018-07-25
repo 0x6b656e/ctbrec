@@ -11,6 +11,7 @@ public class Model {
     private List<String> tags = new ArrayList<>();
     private boolean online = false;
     private int streamUrlIndex = -1;
+    private int streamResolution = -1;
 
     public String getUrl() {
         return url;
@@ -66,6 +67,14 @@ public class Model {
 
     public void setStreamUrlIndex(int streamUrlIndex) {
         this.streamUrlIndex = streamUrlIndex;
+    }
+
+    public int getStreamResolution() {
+        return streamResolution;
+    }
+
+    public void setStreamResolution(int streamResolution) {
+        this.streamResolution = streamResolution;
     }
 
     @Override

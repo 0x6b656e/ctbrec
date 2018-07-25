@@ -38,18 +38,21 @@ public class Chaturbate {
                 .addHeader("X-Requested-With", "XMLHttpRequest")
                 .build();
         Response response = client.execute(req);
-        if(response.isSuccessful()) {
-            String content = response.body().string();
-            LOG.debug("Raw stream info: {}", content);
-            Moshi moshi = new Moshi.Builder().build();
-            JsonAdapter<StreamInfo> adapter = moshi.adapter(StreamInfo.class);
-            StreamInfo streamInfo = adapter.fromJson(content);
-            return streamInfo;
-        } else {
-            int code = response.code();
-            String message = response.message();
+        try {
+            if(response.isSuccessful()) {
+                String content = response.body().string();
+                LOG.debug("Raw stream info: {}", content);
+                Moshi moshi = new Moshi.Builder().build();
+                JsonAdapter<StreamInfo> adapter = moshi.adapter(StreamInfo.class);
+                StreamInfo streamInfo = adapter.fromJson(content);
+                return streamInfo;
+            } else {
+                int code = response.code();
+                String message = response.message();
+                throw new IOException("Server responded with " + code + " - " + message + " headers: [" + response.headers() + "]");
+            }
+        } finally {
             response.close();
-            throw new IOException("Server responded with " + code + " - " + message + " headers: [" + response.headers() + "]");
         }
     }
 
@@ -83,10 +86,14 @@ public class Chaturbate {
         LOG.trace("Loading master playlist {}", streamInfo.url);
         Request req = new Request.Builder().url(streamInfo.url).build();
         Response response = client.execute(req);
-        InputStream inputStream = response.body().byteStream();
-        PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
-        Playlist playlist = parser.parse();
-        MasterPlaylist master = playlist.getMasterPlaylist();
-        return master;
+        try {
+            InputStream inputStream = response.body().byteStream();
+            PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
+            Playlist playlist = parser.parse();
+            MasterPlaylist master = playlist.getMasterPlaylist();
+            return master;
+        } finally {
+            response.close();
+        }
     }
 }

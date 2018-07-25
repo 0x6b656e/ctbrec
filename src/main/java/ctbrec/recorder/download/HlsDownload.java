@@ -146,55 +146,63 @@ public class HlsDownload implements Download {
         URL segmentsUrl = new URL(segments);
         Request request = new Request.Builder().url(segmentsUrl).addHeader("connection", "keep-alive").build();
         Response response = client.execute(request);
-        InputStream inputStream = response.body().byteStream();
-        PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
-        Playlist playlist = parser.parse();
-        if(playlist.hasMediaPlaylist()) {
-            MediaPlaylist mediaPlaylist = playlist.getMediaPlaylist();
-            LiveStreamingPlaylist lsp = new LiveStreamingPlaylist();
-            lsp.seq = mediaPlaylist.getMediaSequenceNumber();
-            lsp.targetDuration = mediaPlaylist.getTargetDuration();
-            List<TrackData> tracks = mediaPlaylist.getTracks();
-            for (TrackData trackData : tracks) {
-                String uri = trackData.getUri();
-                if(!uri.startsWith("http")) {
-                    String _url = segmentsUrl.toString();
-                    _url = _url.substring(0, _url.lastIndexOf('/') + 1);
-                    String segmentUri = _url + uri;
-                    lsp.totalDuration += trackData.getTrackInfo().duration;
-                    lsp.lastSegDuration = trackData.getTrackInfo().duration;
-                    lsp.segments.add(segmentUri);
+        try {
+            InputStream inputStream = response.body().byteStream();
+            PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
+            Playlist playlist = parser.parse();
+            if(playlist.hasMediaPlaylist()) {
+                MediaPlaylist mediaPlaylist = playlist.getMediaPlaylist();
+                LiveStreamingPlaylist lsp = new LiveStreamingPlaylist();
+                lsp.seq = mediaPlaylist.getMediaSequenceNumber();
+                lsp.targetDuration = mediaPlaylist.getTargetDuration();
+                List<TrackData> tracks = mediaPlaylist.getTracks();
+                for (TrackData trackData : tracks) {
+                    String uri = trackData.getUri();
+                    if(!uri.startsWith("http")) {
+                        String _url = segmentsUrl.toString();
+                        _url = _url.substring(0, _url.lastIndexOf('/') + 1);
+                        String segmentUri = _url + uri;
+                        lsp.totalDuration += trackData.getTrackInfo().duration;
+                        lsp.lastSegDuration = trackData.getTrackInfo().duration;
+                        lsp.segments.add(segmentUri);
+                    }
                 }
+                return lsp;
             }
-            return lsp;
+            return null;
+        } finally {
+            response.close();
         }
-        return null;
     }
 
     private String parseMaster(String url, int streamUrlIndex) throws IOException, ParseException, PlaylistException {
         Request request = new Request.Builder().url(url).addHeader("connection", "keep-alive").build();
         Response response = client.execute(request);
-        InputStream inputStream = response.body().byteStream();
+        try {
+            InputStream inputStream = response.body().byteStream();
 
-        PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
-        Playlist playlist = parser.parse();
-        if(playlist.hasMasterPlaylist()) {
-            MasterPlaylist master = playlist.getMasterPlaylist();
-            PlaylistData bestQuality = null;
-            if(streamUrlIndex >= 0 && streamUrlIndex < master.getPlaylists().size()) {
-                bestQuality = master.getPlaylists().get(streamUrlIndex);
-            } else {
-                bestQuality = master.getPlaylists().get(master.getPlaylists().size()-1);
+            PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
+            Playlist playlist = parser.parse();
+            if(playlist.hasMasterPlaylist()) {
+                MasterPlaylist master = playlist.getMasterPlaylist();
+                PlaylistData bestQuality = null;
+                if(streamUrlIndex >= 0 && streamUrlIndex < master.getPlaylists().size()) {
+                    bestQuality = master.getPlaylists().get(streamUrlIndex);
+                } else {
+                    bestQuality = master.getPlaylists().get(master.getPlaylists().size()-1);
+                }
+                String uri = bestQuality.getUri();
+                if(!uri.startsWith("http")) {
+                    String masterUrl = url;
+                    String baseUri = masterUrl.substring(0, masterUrl.lastIndexOf('/') + 1);
+                    String segmentUri = baseUri + uri;
+                    return segmentUri;
+                }
             }
-            String uri = bestQuality.getUri();
-            if(!uri.startsWith("http")) {
-                String masterUrl = url;
-                String baseUri = masterUrl.substring(0, masterUrl.lastIndexOf('/') + 1);
-                String segmentUri = baseUri + uri;
-                return segmentUri;
-            }
+            return null;
+        } finally {
+            response.close();
         }
-        return null;
     }
 
     public static class LiveStreamingPlaylist {
@@ -238,6 +246,8 @@ public class HlsDownload implements Download {
                     break;
                 } catch(Exception e) {
                     LOG.error("Error while downloading segment. Retrying " + i, e);
+                } finally {
+                    response.close();
                 }
             }
             return false;

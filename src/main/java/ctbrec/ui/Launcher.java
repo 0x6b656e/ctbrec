@@ -2,6 +2,7 @@ package ctbrec.ui;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,12 +57,13 @@ public class Launcher extends Application {
             new Thread() {
                 @Override
                 public void run() {
-                    // TODO enable this again
-                    //                    try {
-                    //                        client.login();
-                    //                    } catch (IOException e1) {
-                    //                        LOG.warn("Initial login failed" , e1);
-                    //                    }
+                    if(!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
+                        try {
+                            client.login();
+                        } catch (IOException e1) {
+                            LOG.warn("Initial login failed" , e1);
+                        }
+                    }
                 };
             }.start();
         }

@@ -248,6 +248,13 @@ public class ThumbCell extends StackPane {
                 resolutionBackground.setVisible(true);
                 resolutionBackground.setWidth(resolutionTag.getBoundsInLocal().getWidth() + 4);
             });
+
+            // the model is online, but the resolution is 0. probably something went wrong
+            // when we first requested the stream info, so we remove this invalid value from the "cache"
+            // so that it is requested again
+            if(model.isOnline() && res[1] == 0) {
+                resolutions.remove(model.getName());
+            }
         }
     }
 
@@ -524,6 +531,8 @@ public class ThumbCell extends StackPane {
         setRecording(recorder.isRecording(model));
         setImage(model.getPreview());
         topic.setText(model.getDescription());
+        //Tooltip t = new Tooltip(model.getDescription());
+        //Tooltip.install(this, t);
         if(Config.getInstance().getSettings().determineResolution) {
             determineResolution();
         } else {

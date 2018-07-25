@@ -306,7 +306,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         }
         searchTextBuilder.append(m.getStreamResolution());
         String searchText = searchTextBuilder.toString().trim();
-        LOG.debug("{} -> {}", m.getName(), searchText);
+        //LOG.debug("{} -> {}", m.getName(), searchText);
         boolean tokensMissing = false;
         for (String token : tokens) {
             if(!searchText.contains(token)) {

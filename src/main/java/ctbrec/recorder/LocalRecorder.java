@@ -346,7 +346,7 @@ public class LocalRecorder implements Recorder {
                         if(!recordingProcesses.containsKey(model)) {
                             try {
                                 boolean isOnline = checkIfOnline(model);
-                                LOG.trace("Checking online state for {}. is online:{}", model, isOnline);
+                                LOG.trace("Checking online state for {}: {}", model, (isOnline ? "online" : "offline"));
                                 if(isOnline) {
                                     LOG.info("Model {}'s room back to public. Starting recording", model);
                                     startRecordingProcess(model);

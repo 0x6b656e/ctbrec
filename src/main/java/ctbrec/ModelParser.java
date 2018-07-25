@@ -4,6 +4,7 @@ import static ctbrec.ui.Launcher.BASE_URI;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -26,6 +27,7 @@ public class ModelParser {
                 model.setPreview(HtmlParser.getTag(cellHtml, "a img").attr("src"));
                 model.setUrl(BASE_URI + HtmlParser.getTag(cellHtml, "a").attr("href"));
                 model.setDescription(HtmlParser.getText(cellHtml, "div.details ul.subject"));
+                model.setOnline(!Objects.equals("offline", HtmlParser.getText(cellHtml, "div.details li.cams")));
                 Elements tags = HtmlParser.getTags(cellHtml, "div.details ul.subject li a");
                 if(tags != null) {
                     for (Element tag : tags) {

@@ -208,7 +208,7 @@ public class ThumbCell extends StackPane {
 
     private void determineResolution() {
         if(ThumbOverviewTab.resolutionProcessing.contains(model)) {
-            LOG.trace("Already fetching resolution for model {}", model.getName());
+            LOG.debug("Already fetching resolution for model {}. Queue size {}", model.getName(), ThumbOverviewTab.resolutionProcessing.size());
             return;
         }
 
@@ -254,8 +254,17 @@ public class ThumbCell extends StackPane {
             // when we first requested the stream info, so we remove this invalid value from the "cache"
             // so that it is requested again
             if(model.isOnline() && res[1] == 0) {
-                LOG.debug("Removing invalid resolution value for {}", model.getName());
-                resolutions.remove(model.getName());
+                ThumbOverviewTab.threadPool.submit(() -> {
+                    try {
+                        Chaturbate.getStreamInfo(model, client);
+                        if(model.isOnline()) {
+                            LOG.debug("Removing invalid resolution value for {}", model.getName());
+                            resolutions.remove(model.getName());
+                        }
+                    } catch (IOException e) {
+                        LOG.error("Coulnd't get resolution for model {}", model, e);
+                    }
+                });
             }
         }
     }
@@ -517,7 +526,16 @@ public class ThumbCell extends StackPane {
     }
 
     public void setModel(Model model) {
-        this.model = model;
+        //this.model = model;
+        this.model.setName(model.getName());
+        this.model.setDescription(model.getDescription());
+        this.model.setOnline(model.isOnline());
+        this.model.setPreview(model.getPreview());
+        this.model.setStreamResolution(model.getStreamResolution());
+        this.model.setStreamUrlIndex(model.getStreamUrlIndex());
+        this.model.setTags(model.getTags());
+        this.model.setUrl(model.getUrl());
+
         update();
     }
 

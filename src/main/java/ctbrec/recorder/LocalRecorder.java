@@ -192,7 +192,9 @@ public class LocalRecorder implements Recorder {
 
     private boolean checkIfOnline(Model model) throws IOException {
         StreamInfo streamInfo = Chaturbate.getStreamInfo(model, client);
-        return Objects.equals(streamInfo.room_status, "public");
+        boolean online = Objects.equals(streamInfo.room_status, "public");
+        model.setOnline(online);
+        return online;
     }
 
     private void tryRestartRecording(Model model) {

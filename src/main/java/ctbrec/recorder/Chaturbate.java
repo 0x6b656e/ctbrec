@@ -2,6 +2,7 @@ package ctbrec.recorder;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +46,7 @@ public class Chaturbate {
                 Moshi moshi = new Moshi.Builder().build();
                 JsonAdapter<StreamInfo> adapter = moshi.adapter(StreamInfo.class);
                 StreamInfo streamInfo = adapter.fromJson(content);
+                model.setOnline(Objects.equals(streamInfo.room_status, "public"));
                 return streamInfo;
             } else {
                 int code = response.code();

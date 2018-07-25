@@ -208,6 +208,7 @@ public class ThumbCell extends StackPane {
 
     private void determineResolution() {
         if(ThumbOverviewTab.resolutionProcessing.contains(model)) {
+            LOG.trace("Already fetching resolution for model {}", model.getName());
             return;
         }
 
@@ -253,6 +254,7 @@ public class ThumbCell extends StackPane {
             // when we first requested the stream info, so we remove this invalid value from the "cache"
             // so that it is requested again
             if(model.isOnline() && res[1] == 0) {
+                LOG.debug("Removing invalid resolution value for {}", model.getName());
                 resolutions.remove(model.getName());
             }
         }
@@ -351,13 +353,13 @@ public class ThumbCell extends StackPane {
 
     private void setRecording(boolean recording) {
         if(recording) {
-            recordingAnimation.playFromStart();
+            //recordingAnimation.playFromStart();
             colorNormal = colorRecording;
             nameBackground.setFill(colorNormal);
         } else {
             colorNormal = Color.BLACK;
             nameBackground.setFill(colorNormal);
-            recordingAnimation.stop();
+            //recordingAnimation.stop();
         }
         recordingIndicator.setVisible(recording);
     }
@@ -429,7 +431,6 @@ public class ThumbCell extends StackPane {
             public void run() {
                 try {
                     if(start) {
-                        // start the recording
                         recorder.startRecording(model);
                     } else {
                         recorder.stopRecording(model);
@@ -486,6 +487,7 @@ public class ThumbCell extends StackPane {
                             LOG.debug(msg);
                             throw new IOException("Response was " + msg.substring(0, Math.min(msg.length(), 500)));
                         } else {
+                            LOG.debug("Follow/Unfollow -> {}", msg);
                             if(!follow) {
                                 Platform.runLater(() -> thumbCellList.remove(ThumbCell.this));
                             }

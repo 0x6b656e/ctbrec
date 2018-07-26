@@ -23,6 +23,7 @@ import javafx.scene.control.RadioButton;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.control.TitledPane;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.Border;
@@ -55,6 +56,7 @@ public class SettingsTab extends Tab {
     private RadioButton recordLocal;
     private RadioButton recordRemote;
     private ToggleGroup recordLocation;
+    private TitledPane mergePane;
 
     public SettingsTab() {
         setText("Settings");
@@ -63,42 +65,45 @@ public class SettingsTab extends Tab {
     }
 
     private void createGui() {
-        GridPane layout = new GridPane();
-        layout.setOpacity(1);
-        layout.setPadding(new Insets(5));
-        layout.setHgap(5);
-        layout.setVgap(5);
-        setContent(layout);
+        GridPane mainLayout = createGridLayout();
+        mainLayout.setHgap(15);
+        mainLayout.setVgap(15);
+        mainLayout.setPadding(new Insets(15));
+        setContent(mainLayout);
 
-        int row = 0;
-        layout.add(new Label("Recordings Directory"), 0, row);
+        GridPane layout = createGridLayout();
+        layout.add(new Label("Recordings Directory"), 0, 0);
         recordingsDirectory = new TextField(Config.getInstance().getSettings().recordingsDir);
         recordingsDirectory.focusedProperty().addListener(createRecordingsDirectoryFocusListener());
         recordingsDirectory.setPrefWidth(400);
         GridPane.setFillWidth(recordingsDirectory, true);
         GridPane.setHgrow(recordingsDirectory, Priority.ALWAYS);
         GridPane.setColumnSpan(recordingsDirectory, 2);
-        layout.add(recordingsDirectory, 1, row);
-        layout.add(createRecordingsBrowseButton(), 3, row);
+        layout.add(recordingsDirectory, 1, 0);
+        layout.add(createRecordingsBrowseButton(), 3, 0);
 
-        layout.add(new Label("Player"), 0, ++row);
+        layout.add(new Label("Player"), 0, 1);
         mediaPlayer = new TextField(Config.getInstance().getSettings().mediaPlayer);
         mediaPlayer.focusedProperty().addListener(createMpvFocusListener());
         GridPane.setFillWidth(mediaPlayer, true);
         GridPane.setHgrow(mediaPlayer, Priority.ALWAYS);
         GridPane.setColumnSpan(mediaPlayer, 2);
-        layout.add(mediaPlayer, 1, row);
-        layout.add(createMpvBrowseButton(), 3, row);
+        layout.add(mediaPlayer, 1, 1);
+        layout.add(createMpvBrowseButton(), 3, 1);
+        TitledPane locations = new TitledPane("Locations", layout);
+        locations.setCollapsible(false);
+        mainLayout.add(locations, 0, 0);
 
-        layout.add(new Label("Chaturbate User"), 0, ++row);
+        layout = createGridLayout();
+        layout.add(new Label("Chaturbate User"), 0, 0);
         username = new TextField(Config.getInstance().getSettings().username);
         username.focusedProperty().addListener((e) -> Config.getInstance().getSettings().username = username.getText());
         GridPane.setFillWidth(username, true);
         GridPane.setHgrow(username, Priority.ALWAYS);
         GridPane.setColumnSpan(username, 2);
-        layout.add(username, 1, row);
+        layout.add(username, 1, 0);
 
-        layout.add(new Label("Chaturbate Password"), 0, ++row);
+        layout.add(new Label("Chaturbate Password"), 0, 1);
         password = new PasswordField();
         password.setText(Config.getInstance().getSettings().password);
         password.focusedProperty().addListener((e) -> {
@@ -109,10 +114,14 @@ public class SettingsTab extends Tab {
         GridPane.setFillWidth(password, true);
         GridPane.setHgrow(password, Priority.ALWAYS);
         GridPane.setColumnSpan(password, 2);
-        layout.add(password, 1, row);
+        layout.add(password, 1, 1);
+        TitledPane ctb = new TitledPane("Chaturbate", layout);
+        ctb.setCollapsible(false);
+        mainLayout.add(ctb, 0, 1);
 
+        layout = createGridLayout();
         Label l = new Label("Display stream resolution in overview");
-        layout.add(l, 0, ++row);
+        layout.add(l, 0, 0);
         loadResolution = new CheckBox();
         loadResolution.setSelected(Config.getInstance().getSettings().determineResolution);
         loadResolution.setOnAction((e) -> {
@@ -121,32 +130,43 @@ public class SettingsTab extends Tab {
                 ThumbOverviewTab.queue.clear();
             }
         });
-        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
-        GridPane.setMargin(loadResolution, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
-        layout.add(loadResolution, 1, row);
+        //GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+        GridPane.setMargin(loadResolution, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        layout.add(loadResolution, 1, 0);
 
         l = new Label("Manually select stream quality");
-        layout.add(l, 0, ++row);
+        layout.add(l, 0, 1);
         chooseStreamQuality.setSelected(Config.getInstance().getSettings().chooseStreamQuality);
         chooseStreamQuality.setOnAction((e) -> Config.getInstance().getSettings().chooseStreamQuality = chooseStreamQuality.isSelected());
         GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
-        GridPane.setMargin(chooseStreamQuality, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
-        layout.add(chooseStreamQuality, 1, row);
+        GridPane.setMargin(chooseStreamQuality, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
+        layout.add(chooseStreamQuality, 1, 1);
+        TitledPane quality = new TitledPane("Stream Quality", layout);
+        quality.setCollapsible(false);
+        mainLayout.add(quality, 0, 2);
 
+        GridPane mergeLayout = createGridLayout();
         l = new Label("Auto-merge recordings");
-        layout.add(l, 0, ++row);
+        mergeLayout.add(l, 0, 0);
         automerge.setSelected(Config.getInstance().getSettings().automerge);
         automerge.setOnAction((e) -> Config.getInstance().getSettings().automerge = automerge.isSelected());
-        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
-        GridPane.setMargin(automerge, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
-        layout.add(automerge, 1, row);
+        GridPane.setMargin(automerge, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        mergeLayout.add(automerge, 1, 0);
 
-        automergeKeepSegments.setText("Keep segments");
+        l = new Label("Keep segments");
+        mergeLayout.add(l, 0, 1);
         automergeKeepSegments.setOnAction((e) -> Config.getInstance().getSettings().automergeKeepSegments = automergeKeepSegments.isSelected());
-        GridPane.setMargin(automergeKeepSegments, new Insets(CHECKBOX_MARGIN, 0, 30, 0));
-        layout.add(automergeKeepSegments, 1, ++row);
+        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+        GridPane.setMargin(automergeKeepSegments, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
+        mergeLayout.add(automergeKeepSegments, 1, 1);
 
-        layout.add(new Label("Record Location"), 0, ++row);
+        mergePane = new TitledPane("Auto-merge", mergeLayout);
+        mergePane.setCollapsible(false);
+        mainLayout.add(mergePane, 0, 3);
+
+        layout = createGridLayout();
+        l = new Label("Record Location");
+        layout.add(l, 0, 0);
         recordLocation = new ToggleGroup();
         recordLocal = new RadioButton("Local");
         recordRemote = new RadioButton("Remote");
@@ -154,8 +174,8 @@ public class SettingsTab extends Tab {
         recordRemote.setToggleGroup(recordLocation);
         recordLocal.setSelected(Config.getInstance().getSettings().localRecording);
         recordRemote.setSelected(!recordLocal.isSelected());
-        layout.add(recordLocal, 1, row);
-        layout.add(recordRemote, 2, row);
+        layout.add(recordLocal, 1, 0);
+        layout.add(recordRemote, 2, 0);
         recordLocation.selectedToggleProperty().addListener((e) -> {
             Config.getInstance().getSettings().localRecording = recordLocal.isSelected();
             setRecordingMode(recordLocal.isSelected());
@@ -165,8 +185,11 @@ public class SettingsTab extends Tab {
             restart.setContentText("Changes get applied after a restart of the application");
             restart.show();
         });
+        GridPane.setMargin(l, new Insets(0, 0, CHECKBOX_MARGIN, 0));
+        GridPane.setMargin(recordLocal, new Insets(0, 0, CHECKBOX_MARGIN, 0));
+        GridPane.setMargin(recordRemote, new Insets(0, 0, CHECKBOX_MARGIN, 0));
 
-        layout.add(new Label("Server"), 0, ++row);
+        layout.add(new Label("Server"), 0, 1);
         server = new TextField(Config.getInstance().getSettings().httpServer);
         server.focusedProperty().addListener((e) -> {
             if(!server.getText().isEmpty()) {
@@ -176,9 +199,9 @@ public class SettingsTab extends Tab {
         GridPane.setFillWidth(server, true);
         GridPane.setHgrow(server, Priority.ALWAYS);
         GridPane.setColumnSpan(server, 2);
-        layout.add(server, 1, row);
+        layout.add(server, 1, 1);
 
-        layout.add(new Label("Port"), 0, ++row);
+        layout.add(new Label("Port"), 0, 2);
         port = new TextField(Integer.toString(Config.getInstance().getSettings().httpPort));
         port.focusedProperty().addListener((e) -> {
             if(!port.getText().isEmpty()) {
@@ -195,10 +218,10 @@ public class SettingsTab extends Tab {
         GridPane.setFillWidth(port, true);
         GridPane.setHgrow(port, Priority.ALWAYS);
         GridPane.setColumnSpan(port, 2);
-        layout.add(port, 1, row);
+        layout.add(port, 1, 2);
 
         l = new Label("Require authentication");
-        layout.add(l, 0, ++row);
+        layout.add(l, 0, 3);
         secureCommunication.setSelected(Config.getInstance().getSettings().requireAuthentication);
         secureCommunication.setOnAction((e) -> {
             Config.getInstance().getSettings().requireAuthentication = secureCommunication.isSelected();
@@ -220,11 +243,23 @@ public class SettingsTab extends Tab {
                 keyDialog.show();
             }
         });
-        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, CHECKBOX_MARGIN, 0, 0));
         GridPane.setMargin(secureCommunication, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
-        layout.add(secureCommunication, 1, row);
+        layout.add(secureCommunication, 1, 3);
+
+        TitledPane recordLocation = new TitledPane("Record Location", layout);
+        recordLocation.setCollapsible(false);
+        mainLayout.add(recordLocation, 0, 4);
 
         setRecordingMode(recordLocal.isSelected());
+    }
+
+    private GridPane createGridLayout() {
+        GridPane layout = new GridPane();
+        layout.setPadding(new Insets(10));
+        layout.setHgap(5);
+        layout.setVgap(5);
+        return layout;
     }
 
     private void setRecordingMode(boolean local) {
@@ -233,6 +268,7 @@ public class SettingsTab extends Tab {
         secureCommunication.setDisable(local);
         automerge.setDisable(!local);
         automergeKeepSegments.setDisable(!local);
+        mergePane.setDisable(!local);
     }
 
     private ChangeListener<? super Boolean> createRecordingsDirectoryFocusListener() {

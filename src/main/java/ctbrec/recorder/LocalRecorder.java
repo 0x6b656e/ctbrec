@@ -102,35 +102,29 @@ public class LocalRecorder implements Recorder {
     }
 
     private void startRecordingProcess(Model model) throws IOException {
-        lock.lock();
-        LOG.debug("Waiting for lock to restart recording for {}", model.getName());
-        try {
-            LOG.debug("Restart recording for model {}", model.getName());
-            if(recordingProcesses.containsKey(model)) {
-                LOG.error("A recording for model {} is already running", model);
-                return;
-            }
-
-            if(!models.contains(model)) {
-                LOG.info("Model {} has been removed. Restarting of recording cancelled.", model);
-                return;
-            }
-
-            Download download = new HlsDownload(client);
-            recordingProcesses.put(model, download);
-            new Thread() {
-                @Override
-                public void run() {
-                    try {
-                        download.start(model, config);
-                    } catch (IOException e) {
-                        LOG.error("Download failed. Download alive: {}", download.isAlive(), e);
-                    }
-                }
-            }.start();
-        } finally {
-            lock.unlock();
+        LOG.debug("Restart recording for model {}", model.getName());
+        if (recordingProcesses.containsKey(model)) {
+            LOG.error("A recording for model {} is already running", model);
+            return;
         }
+
+        if (!models.contains(model)) {
+            LOG.info("Model {} has been removed. Restarting of recording cancelled.", model);
+            return;
+        }
+
+        Download download = new HlsDownload(client);
+        recordingProcesses.put(model, download);
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    download.start(model, config);
+                } catch (IOException e) {
+                    LOG.error("Download failed. Download alive: {}", download.isAlive(), e);
+                }
+            }
+        }.start();
     }
 
     private void stopRecordingProcess(Model model) throws IOException {
@@ -204,7 +198,6 @@ public class LocalRecorder implements Recorder {
         }
 
         try {
-            lock.lock();
             boolean modelInRecordingList = models.contains(model);
             boolean online = checkIfOnline(model);
             if(modelInRecordingList && online) {
@@ -214,8 +207,6 @@ public class LocalRecorder implements Recorder {
             }
         } catch (Exception e) {
             LOG.error("Couldn't restart recording for model {}", model);
-        } finally {
-            lock.unlock();
         }
     }
 

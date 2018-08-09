@@ -1,5 +1,6 @@
 package ctbrec.recorder.download;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -128,6 +129,9 @@ public class HlsDownload implements Download {
             throw new IOException("Couldn't parse stream information", e);
         } catch(PlaylistException e) {
             throw new IOException("Couldn't parse HLS playlist", e);
+        } catch(EOFException e) {
+            // end of playlist reached
+            LOG.debug("Reached end of playlist for model {}", model);
         } catch(Exception e) {
             throw new IOException("Couldn't download segment", e);
         } finally {
@@ -228,7 +232,8 @@ public class HlsDownload implements Download {
         @Override
         public Boolean call() throws Exception {
             LOG.trace("Downloading segment to " + file);
-            for (int i = 0; i < 3; i++) {
+            int maxTries = 3;
+            for (int i = 1; i <= maxTries; i++) {
                 Request request = new Request.Builder().url(url).addHeader("connection", "keep-alive").build();
                 Response response = client.execute(request);
                 try (
@@ -245,7 +250,11 @@ public class HlsDownload implements Download {
                     LOG.debug("Segment does not exist {}", url.getFile());
                     break;
                 } catch(Exception e) {
-                    LOG.error("Error while downloading segment. Retrying " + i, e);
+                    if (i == maxTries) {
+                        LOG.warn("Error while downloading segment. Segment finally {} failed", file.toFile().getName());
+                    } else {
+                        LOG.warn("Error while downloading segment on try {}", i);
+                    }
                 } finally {
                     response.close();
                 }

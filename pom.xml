@@ -44,6 +44,7 @@
 							<descriptors>
 								<descriptor>src/assembly/win64.xml</descriptor>
 								<descriptor>src/assembly/win64-jre.xml</descriptor>
+                                <descriptor>src/assembly/win32-jre.xml</descriptor>
 								<descriptor>src/assembly/linux.xml</descriptor>
 							</descriptors>
 						</configuration>

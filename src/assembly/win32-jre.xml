@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <assembly>
-	<id>win64-jre</id>
+	<id>win32-jre</id>
 	<formats>
 		<format>zip</format>
 	</formats>
@@ -22,7 +22,7 @@
 	</files>
 	<fileSets>
 		<fileSet>
-			<directory>jre/jre1.8.0_181_win64</directory>
+			<directory>jre/jre1.8.0_181_win32</directory>
 			<includes>
 				<include>**/*</include>
 			</includes>

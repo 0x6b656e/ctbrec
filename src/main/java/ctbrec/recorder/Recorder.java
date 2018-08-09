@@ -1,5 +1,6 @@
 package ctbrec.recorder;
 
+import java.io.File;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -23,7 +24,7 @@ public interface Recorder {
 
     public List<Recording> getRecordings() throws IOException, InvalidKeyException, NoSuchAlgorithmException, IllegalStateException;
 
-    public void merge(Recording recording, boolean keepSegments) throws IOException;
+    public File merge(Recording recording, boolean keepSegments) throws IOException;
 
     public void delete(Recording recording) throws IOException, InvalidKeyException, NoSuchAlgorithmException, IllegalStateException;
 

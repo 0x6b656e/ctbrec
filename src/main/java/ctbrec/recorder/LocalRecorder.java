@@ -6,6 +6,7 @@ import static ctbrec.Recording.STATUS.RECORDING;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -73,7 +74,7 @@ public class LocalRecorder implements Recorder {
     }
 
     @Override
-    public void startRecording(Model model) throws IOException {
+    public void startRecording(Model model) {
         lock.lock();
         if(!models.contains(model)) {
             LOG.info("Model {} added", model);
@@ -262,20 +263,7 @@ public class LocalRecorder implements Recorder {
                 boolean automerge = Config.getInstance().getSettings().automerge;
                 generatePlaylist(directory);
                 if(local && automerge) {
-                    File mergedFile = merge(directory);
-                    if(mergedFile != null && mergedFile.exists() && mergedFile.length() > 0) {
-                        LOG.debug("Merged file {}", mergedFile.getAbsolutePath());
-                        if (!Config.getInstance().getSettings().automergeKeepSegments) {
-                            try {
-                                LOG.debug("Deleting directory {}", directory);
-                                delete(directory, mergedFile);
-                            } catch (IOException e) {
-                                LOG.error("Couldn't delete directory {}", directory, e);
-                            }
-                        }
-                    } else {
-                        LOG.error("Merged file not found {}", mergedFile);
-                    }
+                    merge(directory);
                 }
             }
         };
@@ -291,6 +279,38 @@ public class LocalRecorder implements Recorder {
         try {
             File mergedFile = Recording.mergedFileFromDirectory(recDir);
             segmentMerger.merge(recDir, mergedFile);
+
+            if(mergedFile != null && mergedFile.exists() && mergedFile.length() > 0) {
+                LOG.debug("Merged file {}", mergedFile.getAbsolutePath());
+                if (Config.getInstance().getSettings().mergeDir.length() > 0) {
+                    File mergeDir = new File(Config.getInstance().getSettings().mergeDir);
+                    if(!mergeDir.exists()) {
+                        boolean created = mergeDir.mkdirs();
+                        if(!created) {
+                            LOG.error("Couldn't create directory for merged files {}", mergeDir);
+                        }
+                    }
+
+                    File finalLocation = new File(mergeDir, mergedFile.getName());
+                    try {
+                        Files.move(mergedFile.toPath(), finalLocation.toPath(), StandardCopyOption.ATOMIC_MOVE);
+                    } catch (IOException e) {
+                        LOG.error("Couldn't move merged file to merge dirctory {}", mergeDir);
+                    }
+                }
+                LOG.debug("Keep segments: {}", Config.getInstance().getSettings().automergeKeepSegments);
+                if (!Config.getInstance().getSettings().automergeKeepSegments) {
+                    try {
+                        LOG.debug("Deleting directory {}", recDir);
+                        delete(recDir, mergedFile);
+                    } catch (IOException e) {
+                        LOG.error("Couldn't delete directory {}", recDir, e);
+                    }
+                }
+            } else {
+                LOG.error("Merged file not found {}", mergedFile);
+            }
+
             return mergedFile;
         } catch (IOException e) {
             LOG.error("Couldn't generate playlist file", e);
@@ -536,13 +556,13 @@ public class LocalRecorder implements Recorder {
     }
 
     @Override
-    public void merge(Recording rec, boolean keepSegments) throws IOException {
+    public File merge(Recording rec, boolean keepSegments) throws IOException {
         File recordingsDir = new File(config.getSettings().recordingsDir);
         File directory = new File(recordingsDir, rec.getPath());
-        merge(directory);
+        File mergedFile = merge(directory);
         if(!keepSegments) {
-            File mergedFile = Recording.mergedFileFromDirectory(directory);
             delete(directory, mergedFile);
         }
+        return mergedFile;
     }
 }

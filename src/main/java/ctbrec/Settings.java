@@ -10,6 +10,7 @@ public class Settings {
     public int httpTimeout = 10;
     public String httpServer = "localhost";
     public String recordingsDir = System.getProperty("user.home") + File.separator + "ctbrec";
+    public String mergeDir = "";
     public String mediaPlayer = "/usr/bin/mpv";
     public String username = "";
     public String password = "";

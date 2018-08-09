@@ -1,5 +1,6 @@
 package ctbrec.recorder;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
@@ -235,7 +236,7 @@ public class RemoteRecorder implements Recorder {
     }
 
     @Override
-    public void merge(Recording recording, boolean keepSegments) throws IOException {
+    public File merge(Recording recording, boolean keepSegments) throws IOException {
         throw new RuntimeException("Merging not available for remote recorder");
     }
 }

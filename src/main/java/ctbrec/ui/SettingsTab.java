@@ -42,6 +42,7 @@ public class SettingsTab extends Tab {
     private static final transient Logger LOG = LoggerFactory.getLogger(SettingsTab.class);
 
     private TextField recordingsDirectory;
+    private Button recordingsDirectoryButton;
     private TextField mergeDirectory;
     private TextField mediaPlayer;
     private TextField username;
@@ -53,10 +54,13 @@ public class SettingsTab extends Tab {
     private CheckBox automerge = new CheckBox();
     private CheckBox automergeKeepSegments = new CheckBox();
     private CheckBox chooseStreamQuality = new CheckBox();
+    private CheckBox autoRecordFollowed = new CheckBox();
     private PasswordField password;
     private RadioButton recordLocal;
     private RadioButton recordRemote;
     private ToggleGroup recordLocation;
+
+    private TitledPane ctb;
     private TitledPane mergePane;
 
     public SettingsTab() {
@@ -81,7 +85,8 @@ public class SettingsTab extends Tab {
         GridPane.setHgrow(recordingsDirectory, Priority.ALWAYS);
         GridPane.setColumnSpan(recordingsDirectory, 2);
         layout.add(recordingsDirectory, 1, 0);
-        layout.add(createRecordingsBrowseButton(), 3, 0);
+        recordingsDirectoryButton = createRecordingsBrowseButton();
+        layout.add(recordingsDirectoryButton, 3, 0);
 
         layout.add(new Label("Player"), 0, 1);
         mediaPlayer = new TextField(Config.getInstance().getSettings().mediaPlayer);
@@ -116,12 +121,29 @@ public class SettingsTab extends Tab {
         GridPane.setHgrow(password, Priority.ALWAYS);
         GridPane.setColumnSpan(password, 2);
         layout.add(password, 1, 1);
-        TitledPane ctb = new TitledPane("Chaturbate", layout);
+
+        Label l = new Label("Record all followed models");
+        layout.add(l, 0, 2);
+        autoRecordFollowed = new CheckBox();
+        autoRecordFollowed.setSelected(Config.getInstance().getSettings().recordFollowed);
+        autoRecordFollowed.setOnAction((e) -> {
+            Config.getInstance().getSettings().recordFollowed = autoRecordFollowed.isSelected();
+            showRestartRequired();
+        });
+        GridPane.setMargin(autoRecordFollowed, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        GridPane.setMargin(username, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        GridPane.setMargin(password, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        layout.add(autoRecordFollowed, 1, 2);
+        Label warning = new Label("Don't do this, if you follow many models. You have been warned ;) !");
+        warning.setTextFill(Color.RED);
+        layout.add(warning, 2, 2);
+
+        ctb = new TitledPane("Chaturbate", layout);
         ctb.setCollapsible(false);
         mainLayout.add(ctb, 0, 1);
 
         layout = createGridLayout();
-        Label l = new Label("Display stream resolution in overview");
+        l = new Label("Display stream resolution in overview");
         layout.add(l, 0, 0);
         loadResolution = new CheckBox();
         loadResolution.setSelected(Config.getInstance().getSettings().determineResolution);
@@ -192,11 +214,7 @@ public class SettingsTab extends Tab {
         recordLocation.selectedToggleProperty().addListener((e) -> {
             Config.getInstance().getSettings().localRecording = recordLocal.isSelected();
             setRecordingMode(recordLocal.isSelected());
-            Alert restart = new AutosizeAlert(AlertType.INFORMATION);
-            restart.setTitle("Restart required");
-            restart.setHeaderText("Restart required");
-            restart.setContentText("Changes get applied after a restart of the application");
-            restart.show();
+            showRestartRequired();
         });
         GridPane.setMargin(l, new Insets(0, 0, CHECKBOX_MARGIN, 0));
         GridPane.setMargin(recordLocal, new Insets(0, 0, CHECKBOX_MARGIN, 0));
@@ -267,6 +285,14 @@ public class SettingsTab extends Tab {
         setRecordingMode(recordLocal.isSelected());
     }
 
+    private void showRestartRequired() {
+        Alert restart = new AutosizeAlert(AlertType.INFORMATION);
+        restart.setTitle("Restart required");
+        restart.setHeaderText("Restart required");
+        restart.setContentText("Changes get applied after a restart of the application");
+        restart.show();
+    }
+
     private GridPane createGridLayout() {
         GridPane layout = new GridPane();
         layout.setPadding(new Insets(10));
@@ -282,6 +308,9 @@ public class SettingsTab extends Tab {
         automerge.setDisable(!local);
         automergeKeepSegments.setDisable(!local);
         mergePane.setDisable(!local);
+        ctb.setDisable(!local);
+        recordingsDirectory.setDisable(!local);
+        recordingsDirectoryButton.setDisable(!local);
     }
 
     private ChangeListener<? super Boolean> createRecordingsDirectoryFocusListener() {
@@ -355,7 +384,7 @@ public class SettingsTab extends Tab {
         return null;
     }
 
-    private Node createRecordingsBrowseButton() {
+    private Button createRecordingsBrowseButton() {
         Button button = new Button("Select");
         button.setOnAction((e) -> {
             DirectoryChooser chooser = new DirectoryChooser();

@@ -1,4 +1,5 @@
 package ctbrec.recorder;
+
 import static ctbrec.Recording.STATUS.FINISHED;
 import static ctbrec.Recording.STATUS.GENERATING_PLAYLIST;
 import static ctbrec.Recording.STATUS.RECORDING;
@@ -18,8 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,24 +29,28 @@ import com.iheartradio.m3u8.PlaylistException;
 import ctbrec.Config;
 import ctbrec.HttpClient;
 import ctbrec.Model;
+import ctbrec.ModelParser;
 import ctbrec.Recording;
 import ctbrec.Recording.STATUS;
 import ctbrec.recorder.PlaylistGenerator.InvalidPlaylistException;
 import ctbrec.recorder.download.Download;
 import ctbrec.recorder.download.HlsDownload;
+import okhttp3.Request;
+import okhttp3.Response;
 
 public class LocalRecorder implements Recorder {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(LocalRecorder.class);
 
+    private List<Model> followedModels = Collections.synchronizedList(new ArrayList<>());
     private List<Model> models = Collections.synchronizedList(new ArrayList<>());
-    private Lock lock = new ReentrantLock();
     private Map<Model, Download> recordingProcesses = Collections.synchronizedMap(new HashMap<>());
     private Map<File, PlaylistGenerator> playlistGenerators = new HashMap<>();
     private Map<File, SegmentMerger> segmentMergers = new HashMap<>();
     private Config config;
     private ProcessMonitor processMonitor;
     private OnlineMonitor onlineMonitor;
+    private FollowedMonitor followedMonitor;
     private PlaylistGeneratorTrigger playlistGenTrigger;
     private HttpClient client = HttpClient.getInstance();
     private volatile boolean recording = true;
@@ -68,6 +71,11 @@ public class LocalRecorder implements Recorder {
         playlistGenTrigger = new PlaylistGeneratorTrigger();
         playlistGenTrigger.start();
 
+        if (config.getSettings().recordFollowed) {
+            followedMonitor = new FollowedMonitor();
+            followedMonitor.start();
+        }
+
         LOG.debug("Recorder initialized");
         LOG.info("Models to record: {}", models);
         LOG.info("Saving recordings in {}", config.getSettings().recordingsDir);
@@ -75,30 +83,27 @@ public class LocalRecorder implements Recorder {
 
     @Override
     public void startRecording(Model model) {
-        lock.lock();
-        if(!models.contains(model)) {
+        if (!models.contains(model)) {
             LOG.info("Model {} added", model);
+            if (followedModels.contains(model)) {
+                followedModels.remove(model);
+            }
             models.add(model);
             config.getSettings().models.add(model);
             onlineMonitor.interrupt();
         }
-        lock.unlock();
     }
 
     @Override
     public void stopRecording(Model model) throws IOException {
-        lock.lock();
-        try {
-            if (models.contains(model)) {
-                models.remove(model);
-                config.getSettings().models.remove(model);
-                if(recordingProcesses.containsKey(model)) {
-                    stopRecordingProcess(model);
-                }
-                LOG.info("Model {} removed", model);
+        if (models.contains(model) || followedModels.contains(model)) {
+            models.remove(model);
+            followedModels.remove(model);
+            config.getSettings().models.remove(model);
+            if (recordingProcesses.containsKey(model)) {
+                stopRecordingProcess(model);
             }
-        } finally {
-            lock.unlock();
+            LOG.info("Model {} removed", model);
         }
     }
 
@@ -109,7 +114,7 @@ public class LocalRecorder implements Recorder {
             return;
         }
 
-        if (!models.contains(model)) {
+        if (!models.contains(model) && !followedModels.contains(model)) {
             LOG.info("Model {} has been removed. Restarting of recording cancelled.", model);
             return;
         }
@@ -129,29 +134,22 @@ public class LocalRecorder implements Recorder {
     }
 
     private void stopRecordingProcess(Model model) throws IOException {
-        lock.lock();
-        try {
-            Download download = recordingProcesses.get(model);
-            download.stop();
-            recordingProcesses.remove(model);
-        } finally {
-            lock.unlock();
-        }
+        Download download = recordingProcesses.get(model);
+        download.stop();
+        recordingProcesses.remove(model);
     }
 
     @Override
     public boolean isRecording(Model model) {
-        lock.lock();
-        try {
-            return models.contains(model);
-        } finally {
-            lock.unlock();
-        }
+        return models.contains(model) || followedModels.contains(model);
     }
 
     @Override
     public List<Model> getModelsRecording() {
-        return Collections.unmodifiableList(models);
+        List<Model> union = new ArrayList<>();
+        union.addAll(models);
+        union.addAll(followedModels);
+        return Collections.unmodifiableList(union);
     }
 
     @Override
@@ -162,26 +160,24 @@ public class LocalRecorder implements Recorder {
         onlineMonitor.running = false;
         processMonitor.running = false;
         playlistGenTrigger.running = false;
+        if (followedMonitor != null) {
+            followedMonitor.running = false;
+        }
         LOG.debug("Stopping all recording processes");
         stopRecordingProcesses();
     }
 
     private void stopRecordingProcesses() {
-        lock.lock();
-        try {
-            for (Model model : models) {
-                Download recordingProcess = recordingProcesses.get(model);
-                if(recordingProcess != null) {
-                    try {
-                        recordingProcess.stop();
-                        LOG.debug("Stopped recording for {}", model);
-                    } catch (Exception e) {
-                        LOG.error("Couldn't stop recording for model {}", model, e);
-                    }
+        for (Model model : models) {
+            Download recordingProcess = recordingProcesses.get(model);
+            if (recordingProcess != null) {
+                try {
+                    recordingProcess.stop();
+                    LOG.debug("Stopped recording for {}", model);
+                } catch (Exception e) {
+                    LOG.error("Couldn't stop recording for model {}", model, e);
                 }
             }
-        } finally {
-            lock.unlock();
         }
     }
 
@@ -193,15 +189,15 @@ public class LocalRecorder implements Recorder {
     }
 
     private void tryRestartRecording(Model model) {
-        if(!recording) {
+        if (!recording) {
             // recorder is not in recording state
             return;
         }
 
         try {
-            boolean modelInRecordingList = models.contains(model);
+            boolean modelInRecordingList = isRecording(model);
             boolean online = checkIfOnline(model);
-            if(modelInRecordingList && online) {
+            if (modelInRecordingList && online) {
                 LOG.info("Restarting recording for model {}", model);
                 recordingProcesses.remove(model);
                 startRecordingProcess(model);
@@ -222,31 +218,74 @@ public class LocalRecorder implements Recorder {
         @Override
         public void run() {
             running = true;
-            while(running) {
-                lock.lock();
-                try {
-                    List<Model> restart = new ArrayList<Model>();
-                    for (Iterator<Entry<Model,Download>> iterator = recordingProcesses.entrySet().iterator(); iterator.hasNext();) {
-                        Entry<Model, Download> entry = iterator.next();
-                        Model m = entry.getKey();
-                        Download d = entry.getValue();
-                        if(!d.isAlive()) {
-                            LOG.debug("Recording terminated for model {}", m.getName());
-                            iterator.remove();
-                            restart.add(m);
-                            finishRecording(d.getDirectory());
-                        }
-                    }
-                    for (Model m : restart) {
-                        tryRestartRecording(m);
+            while (running) {
+                List<Model> restart = new ArrayList<Model>();
+                for (Iterator<Entry<Model, Download>> iterator = recordingProcesses.entrySet().iterator(); iterator.hasNext();) {
+                    Entry<Model, Download> entry = iterator.next();
+                    Model m = entry.getKey();
+                    Download d = entry.getValue();
+                    if (!d.isAlive()) {
+                        LOG.debug("Recording terminated for model {}", m.getName());
+                        iterator.remove();
+                        restart.add(m);
+                        finishRecording(d.getDirectory());
                     }
                 }
-                finally {
-                    lock.unlock();
+                for (Model m : restart) {
+                    tryRestartRecording(m);
                 }
 
                 try {
-                    if(running) Thread.sleep(1000);
+                    if (running)
+                        Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    LOG.error("Couldn't sleep", e);
+                }
+            }
+            LOG.debug(getName() + " terminated");
+        }
+    }
+
+    private class FollowedMonitor extends Thread {
+        private volatile boolean running = false;
+
+        public FollowedMonitor() {
+            setName("FollowedMonitor");
+            setDaemon(true);
+        }
+
+        @Override
+        public void run() {
+            running = true;
+            while (running) {
+                try {
+                    String url = "https://chaturbate.com/followed-cams/?page=1&keywords=&_=" + System.currentTimeMillis();
+                    LOG.debug("Fetching page {}", url);
+                    Request request = new Request.Builder().url(url).build();
+                    Response response = client.execute(request, true);
+                    if (response.isSuccessful()) {
+                        List<Model> followed = ModelParser.parseModels(response.body().string());
+                        response.close();
+                        followedModels.clear();
+                        for (Model model : followed) {
+                            if (!followedModels.contains(model) && !models.contains(model)) {
+                                LOG.info("Model {} added", model);
+                                followedModels.add(model);
+                            }
+                        }
+                        onlineMonitor.interrupt();
+                    } else {
+                        int code = response.code();
+                        response.close();
+                        LOG.error("Couldn't retrieve followed models. HTTP status {}", code);
+                    }
+                } catch (IOException e) {
+                    LOG.error("Couldn't retrieve followed models.", e);
+                }
+
+                try {
+                    if (running)
+                        Thread.sleep(10000);
                 } catch (InterruptedException e) {
                     LOG.error("Couldn't sleep", e);
                 }
@@ -262,7 +301,7 @@ public class LocalRecorder implements Recorder {
                 boolean local = Config.getInstance().getSettings().localRecording;
                 boolean automerge = Config.getInstance().getSettings().automerge;
                 generatePlaylist(directory);
-                if(local && automerge) {
+                if (local && automerge) {
                     merge(directory);
                 }
             }
@@ -272,7 +311,6 @@ public class LocalRecorder implements Recorder {
         t.start();
     }
 
-
     private File merge(File recDir) {
         SegmentMerger segmentMerger = new SegmentMerger();
         segmentMergers.put(recDir, segmentMerger);
@@ -280,13 +318,13 @@ public class LocalRecorder implements Recorder {
             File mergedFile = Recording.mergedFileFromDirectory(recDir);
             segmentMerger.merge(recDir, mergedFile);
 
-            if(mergedFile != null && mergedFile.exists() && mergedFile.length() > 0) {
+            if (mergedFile != null && mergedFile.exists() && mergedFile.length() > 0) {
                 LOG.debug("Merged file {}", mergedFile.getAbsolutePath());
                 if (Config.getInstance().getSettings().mergeDir.length() > 0) {
                     File mergeDir = new File(Config.getInstance().getSettings().mergeDir);
-                    if(!mergeDir.exists()) {
+                    if (!mergeDir.exists()) {
                         boolean created = mergeDir.mkdirs();
-                        if(!created) {
+                        if (!created) {
                             LOG.error("Couldn't create directory for merged files {}", mergeDir);
                         }
                     }
@@ -350,30 +388,26 @@ public class LocalRecorder implements Recorder {
         @Override
         public void run() {
             running = true;
-            while(running) {
-                lock.lock();
-                try {
-                    for (Model model : models) {
-                        if(!recordingProcesses.containsKey(model)) {
-                            try {
-                                boolean isOnline = checkIfOnline(model);
-                                LOG.trace("Checking online state for {}: {}", model, (isOnline ? "online" : "offline"));
-                                if(isOnline) {
-                                    LOG.info("Model {}'s room back to public. Starting recording", model);
-                                    startRecordingProcess(model);
-                                }
-                            } catch (Exception e) {
-                                LOG.error("Couldn't check if model {} is online", model.getName(), e);
-                                model.setOnline(false);
+            while (running) {
+                for (Model model : getModelsRecording()) {
+                    try {
+                        if (!recordingProcesses.containsKey(model)) {
+                            boolean isOnline = checkIfOnline(model);
+                            LOG.trace("Checking online state for {}: {}", model, (isOnline ? "online" : "offline"));
+                            if (isOnline) {
+                                LOG.info("Model {}'s room back to public. Starting recording", model);
+                                startRecordingProcess(model);
                             }
                         }
+                    } catch (Exception e) {
+                        LOG.error("Couldn't check if model {} is online", model.getName(), e);
+                        model.setOnline(false);
                     }
-                } finally {
-                    lock.unlock();
                 }
 
                 try {
-                    if(running) Thread.sleep(10000);
+                    if (running)
+                        Thread.sleep(10000);
                 } catch (InterruptedException e) {
                     LOG.trace("Sleep interrupted");
                 }
@@ -393,21 +427,21 @@ public class LocalRecorder implements Recorder {
         @Override
         public void run() {
             running = true;
-            while(running) {
+            while (running) {
                 try {
                     List<Recording> recs = getRecordings();
                     for (Recording rec : recs) {
-                        if(rec.getStatus() == RECORDING) {
+                        if (rec.getStatus() == RECORDING) {
                             boolean recordingProcessFound = false;
                             File recordingsDir = new File(config.getSettings().recordingsDir);
                             File recDir = new File(recordingsDir, rec.getPath());
-                            for(Entry<Model, Download> download : recordingProcesses.entrySet()) {
-                                if(download.getValue().getDirectory().equals(recDir)) {
+                            for (Entry<Model, Download> download : recordingProcesses.entrySet()) {
+                                if (download.getValue().getDirectory().equals(recDir)) {
                                     recordingProcessFound = true;
                                 }
                             }
-                            if(!recordingProcessFound) {
-                                if(deleteInProgress.contains(recDir)) {
+                            if (!recordingProcessFound) {
+                                if (deleteInProgress.contains(recDir)) {
                                     LOG.debug("{} is being deleted. Not going to generate a playlist", recDir);
                                 } else {
                                     finishRecording(recDir);
@@ -416,7 +450,8 @@ public class LocalRecorder implements Recorder {
                         }
                     }
 
-                    if(running) Thread.sleep(10000);
+                    if (running)
+                        Thread.sleep(10000);
                 } catch (InterruptedException e) {
                     LOG.error("Couldn't sleep", e);
                 } catch (Exception e) {
@@ -432,12 +467,12 @@ public class LocalRecorder implements Recorder {
         List<Recording> recordings = new ArrayList<>();
         File recordingsDir = new File(config.getSettings().recordingsDir);
         File[] subdirs = recordingsDir.listFiles();
-        if(subdirs == null ) {
+        if (subdirs == null) {
             return Collections.emptyList();
         }
 
         for (File subdir : subdirs) {
-            if(!subdir.isDirectory()) {
+            if (!subdir.isDirectory()) {
                 continue;
             }
 
@@ -445,9 +480,9 @@ public class LocalRecorder implements Recorder {
             for (File rec : recordingsDirs) {
                 String pattern = "yyyy-MM-dd_HH-mm";
                 SimpleDateFormat sdf = new SimpleDateFormat(pattern);
-                if(rec.isDirectory()) {
+                if (rec.isDirectory()) {
                     try {
-                        if(rec.getName().length() != pattern.length()) {
+                        if (rec.getName().length() != pattern.length()) {
                             continue;
                         }
 
@@ -459,20 +494,20 @@ public class LocalRecorder implements Recorder {
                         recording.setSizeInByte(getSize(rec));
                         File playlist = new File(rec, "playlist.m3u8");
                         recording.setHasPlaylist(playlist.exists());
-                        if(recording.hasPlaylist()) {
+                        if (recording.hasPlaylist()) {
                             recording.setStatus(FINISHED);
                         } else {
                             // this might be a merged recording
-                            if(Recording.isMergedRecording(rec)) {
+                            if (Recording.isMergedRecording(rec)) {
                                 recording.setStatus(FINISHED);
                             } else {
                                 PlaylistGenerator playlistGenerator = playlistGenerators.get(rec);
-                                if(playlistGenerator != null) {
+                                if (playlistGenerator != null) {
                                     recording.setStatus(GENERATING_PLAYLIST);
                                     recording.setProgress(playlistGenerator.getProgress());
                                 } else {
                                     SegmentMerger merger = segmentMergers.get(rec);
-                                    if(merger != null) {
+                                    if (merger != null) {
                                         recording.setStatus(STATUS.MERGING);
                                         recording.setProgress(merger.getProgress());
                                     } else {
@@ -482,7 +517,7 @@ public class LocalRecorder implements Recorder {
                             }
                         }
                         recordings.add(recording);
-                    } catch(Exception e) {
+                    } catch (Exception e) {
                         LOG.debug("Ignoring {}", rec.getAbsolutePath());
                     }
                 }
@@ -507,8 +542,8 @@ public class LocalRecorder implements Recorder {
         delete(directory, new File[] {});
     }
 
-    private void delete(File directory, File...excludes) throws IOException {
-        if(!directory.exists()) {
+    private void delete(File directory, File... excludes) throws IOException {
+        if (!directory.exists()) {
             throw new IOException("Recording does not exist");
         }
 
@@ -519,12 +554,12 @@ public class LocalRecorder implements Recorder {
             for (File file : files) {
                 boolean skip = false;
                 for (File exclude : excludes) {
-                    if(file.equals(exclude)) {
+                    if (file.equals(exclude)) {
                         skip = true;
                         break;
                     }
                 }
-                if(skip) {
+                if (skip) {
                     continue;
                 }
 
@@ -536,11 +571,11 @@ public class LocalRecorder implements Recorder {
                 }
             }
 
-            if(deletedAllFiles) {
-                if(directory.list().length == 0) {
+            if (deletedAllFiles) {
+                if (directory.list().length == 0) {
                     boolean deleted = directory.delete();
-                    if(deleted) {
-                        if(directory.getParentFile().list().length == 0) {
+                    if (deleted) {
+                        if (directory.getParentFile().list().length == 0) {
                             directory.getParentFile().delete();
                         }
                     } else {
@@ -560,7 +595,7 @@ public class LocalRecorder implements Recorder {
         File recordingsDir = new File(config.getSettings().recordingsDir);
         File directory = new File(recordingsDir, rec.getPath());
         File mergedFile = merge(directory);
-        if(!keepSegments) {
+        if (!keepSegments) {
             delete(directory, mergedFile);
         }
         return mergedFile;

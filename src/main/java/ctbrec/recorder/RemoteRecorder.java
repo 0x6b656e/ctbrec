@@ -37,7 +37,7 @@ public class RemoteRecorder implements Recorder {
             .build();
     private JsonAdapter<ModelListResponse> modelListResponseAdapter = moshi.adapter(ModelListResponse.class);
     private JsonAdapter<RecordingListResponse> recordingListResponseAdapter = moshi.adapter(RecordingListResponse.class);
-    private JsonAdapter<Model> modelAdapter = moshi.adapter(Model.class);
+    private JsonAdapter<ModelRequest> modelRequestAdapter = moshi.adapter(ModelRequest.class);
 
     private List<Model> models = Collections.emptyList();
 
@@ -65,15 +65,13 @@ public class RemoteRecorder implements Recorder {
     }
 
     private void sendRequest(String action, Model model) throws IOException, InvalidKeyException, NoSuchAlgorithmException, IllegalStateException {
-        String requestTemplate = "{\"action\": \"<<action>>\", \"model\": <<model>>}";
-        requestTemplate = requestTemplate.replaceAll("<<action>>", action);
-        requestTemplate = requestTemplate.replaceAll("<<model>>", modelAdapter.toJson(model));
-        LOG.debug("Sending request to recording server: {}", requestTemplate);
-        RequestBody body = RequestBody.create(JSON, requestTemplate);
+        String payload = modelRequestAdapter.toJson(new ModelRequest(action, model));
+        LOG.debug("Sending request to recording server: {}", payload);
+        RequestBody body = RequestBody.create(JSON, payload);
         Request.Builder builder = new Request.Builder()
                 .url("http://" + config.getSettings().httpServer + ":" + config.getSettings().httpPort + "/rec")
                 .post(body);
-        addHmacIfNeeded(requestTemplate, builder);
+        addHmacIfNeeded(payload, builder);
         Request request = builder.build();
         Response response = client.execute(request);
         String json = response.body().string();
@@ -238,5 +236,32 @@ public class RemoteRecorder implements Recorder {
     @Override
     public File merge(Recording recording, boolean keepSegments) throws IOException {
         throw new RuntimeException("Merging not available for remote recorder");
+    }
+
+    public static class ModelRequest {
+        private String action;
+        private Model model;
+
+        public ModelRequest(String action, Model model) {
+            super();
+            this.action = action;
+            this.model = model;
+        }
+
+        public String getAction() {
+            return action;
+        }
+
+        public void setAction(String action) {
+            this.action = action;
+        }
+
+        public Model getModel() {
+            return model;
+        }
+
+        public void setModel(Model model) {
+            this.model = model;
+        }
     }
 }

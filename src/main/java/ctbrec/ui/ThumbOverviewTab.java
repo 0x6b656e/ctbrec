@@ -2,6 +2,7 @@ package ctbrec.ui;
 
 
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -226,7 +227,12 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         alert.setTitle("Error");
         alert.setHeaderText("Couldn't fetch model list");
         if(event.getSource().getException() != null) {
-            alert.setContentText(event.getSource().getException().getLocalizedMessage());
+            if(event.getSource().getException() instanceof SocketTimeoutException) {
+                LOG.debug("Fetching model list timed out");
+                return;
+            } else {
+                alert.setContentText(event.getSource().getException().getLocalizedMessage());
+            }
         } else {
             alert.setContentText(event.getEventType().toString());
         }

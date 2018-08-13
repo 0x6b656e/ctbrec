@@ -341,6 +341,7 @@ public class ThumbCell extends StackPane {
     };
 
     private void startPlayer() {
+        // TODO if manual choice of stream quality is enabled, do the same thing as starting a download here
         try {
             StreamInfo streamInfo = Chaturbate.getStreamInfo(model, client);
             if(streamInfo.room_status.equals("public")) {

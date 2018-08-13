@@ -17,8 +17,9 @@ public class Player {
     private static PlayerThread playerThread;
 
     public static void play(String url) {
+        boolean singlePlayer = Config.getInstance().getSettings().singlePlayer;
         try {
-            if (playerThread != null && playerThread.isRunning()) {
+            if (singlePlayer && playerThread != null && playerThread.isRunning()) {
                 playerThread.stopThread();
             }
 
@@ -29,8 +30,9 @@ public class Player {
     }
 
     public static void play(Recording rec) {
+        boolean singlePlayer = Config.getInstance().getSettings().singlePlayer;
         try {
-            if (playerThread != null && playerThread.isRunning()) {
+            if (singlePlayer && playerThread != null && playerThread.isRunning()) {
                 playerThread.stopThread();
             }
 

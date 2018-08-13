@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Settings {
+    public boolean singlePlayer = true;
     public boolean localRecording = true;
     public int httpPort = 8080;
     public int httpTimeout = 10;
@@ -21,5 +22,6 @@ public class Settings {
     public boolean determineResolution = false;
     public boolean requireAuthentication = false;
     public boolean chooseStreamQuality = false;
+    public boolean recordFollowed = false;
     public byte[] key = null;
 }

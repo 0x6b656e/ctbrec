@@ -100,7 +100,7 @@ public class Launcher extends Application {
         root.getTabs().add(new SettingsTab());
         root.getTabs().add(new DonateTabFx());
 
-        primaryStage.setScene(new Scene(root, 1340, 720));
+        primaryStage.setScene(new Scene(root, 1340, 800));
         primaryStage.show();
         primaryStage.setOnCloseRequest((e) -> {
             e.consume();

@@ -41,6 +41,7 @@ public class SettingsTab extends Tab {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(SettingsTab.class);
 
+    private static final int CHECKBOX_MARGIN = 6;
     private TextField recordingsDirectory;
     private Button recordingsDirectoryButton;
     private TextField mergeDirectory;
@@ -48,13 +49,13 @@ public class SettingsTab extends Tab {
     private TextField username;
     private TextField server;
     private TextField port;
-    private static final int CHECKBOX_MARGIN = 6;
     private CheckBox loadResolution;
     private CheckBox secureCommunication = new CheckBox();
     private CheckBox automerge = new CheckBox();
     private CheckBox automergeKeepSegments = new CheckBox();
     private CheckBox chooseStreamQuality = new CheckBox();
     private CheckBox autoRecordFollowed = new CheckBox();
+    private CheckBox multiplePlayers = new CheckBox();
     private PasswordField password;
     private RadioButton recordLocal;
     private RadioButton recordRemote;
@@ -96,6 +97,17 @@ public class SettingsTab extends Tab {
         GridPane.setColumnSpan(mediaPlayer, 2);
         layout.add(mediaPlayer, 1, 1);
         layout.add(createMpvBrowseButton(), 3, 1);
+
+        Label l = new Label("Allow multiple players");
+        layout.add(l, 0, 2);
+        multiplePlayers.setSelected(!Config.getInstance().getSettings().singlePlayer);
+        multiplePlayers.setOnAction((e) -> Config.getInstance().getSettings().singlePlayer = !multiplePlayers.isSelected());
+        GridPane.setMargin(recordingsDirectory, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        GridPane.setMargin(mediaPlayer, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
+        GridPane.setMargin(multiplePlayers, new Insets(3, 0, 0, CHECKBOX_MARGIN));
+        layout.add(multiplePlayers, 1, 2);
+
         TitledPane locations = new TitledPane("Locations", layout);
         locations.setCollapsible(false);
         mainLayout.add(locations, 0, 0);
@@ -122,7 +134,7 @@ public class SettingsTab extends Tab {
         GridPane.setColumnSpan(password, 2);
         layout.add(password, 1, 1);
 
-        Label l = new Label("Record all followed models");
+        l = new Label("Record all followed models");
         layout.add(l, 0, 2);
         autoRecordFollowed = new CheckBox();
         autoRecordFollowed.setSelected(Config.getInstance().getSettings().recordFollowed);
@@ -130,13 +142,15 @@ public class SettingsTab extends Tab {
             Config.getInstance().getSettings().recordFollowed = autoRecordFollowed.isSelected();
             showRestartRequired();
         });
-        GridPane.setMargin(autoRecordFollowed, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        GridPane.setMargin(username, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        GridPane.setMargin(password, new Insets(0, 0, 0, CHECKBOX_MARGIN));
         layout.add(autoRecordFollowed, 1, 2);
         Label warning = new Label("Don't do this, if you follow many models. You have been warned ;) !");
         warning.setTextFill(Color.RED);
         layout.add(warning, 2, 2);
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
+        GridPane.setMargin(warning, new Insets(3, 0, 0, 0));
+        GridPane.setMargin(autoRecordFollowed, new Insets(3, 0, 0, CHECKBOX_MARGIN));
+        GridPane.setMargin(username, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        GridPane.setMargin(password, new Insets(0, 0, 0, CHECKBOX_MARGIN));
 
         ctb = new TitledPane("Chaturbate", layout);
         ctb.setCollapsible(false);

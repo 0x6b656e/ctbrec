@@ -78,6 +78,7 @@
 								<path>jre</path>
 								<bundledJre64Bit>true</bundledJre64Bit>
 								<minVersion>1.8.0</minVersion>
+								<maxHeapSize>512</maxHeapSize>
 							</jre>
 							<versionInfo>
 								<fileVersion>${project.version}.0</fileVersion>

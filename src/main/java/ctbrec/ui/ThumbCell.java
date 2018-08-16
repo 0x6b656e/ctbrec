@@ -109,7 +109,6 @@ public class ThumbCell extends StackPane {
         iv.setFitWidth(WIDTH);
         iv.setFitHeight(HEIGHT);
         iv.setSmooth(true);
-        iv.setCache(true);
         getChildren().add(iv);
 
         nameBackground = new Rectangle(WIDTH, 20);

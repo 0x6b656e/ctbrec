@@ -351,8 +351,8 @@ public class LocalRecorder implements Recorder {
 
             return mergedFile;
         } catch (IOException e) {
-            LOG.error("Couldn't generate playlist file", e);
-        } catch (ParseException | PlaylistException | InvalidPlaylistException e) {
+            LOG.error("Couldn't merge segments", e);
+        } catch (ParseException | PlaylistException e) {
             LOG.error("Playlist is invalid", e);
         } finally {
             segmentMergers.remove(recDir);
@@ -369,7 +369,7 @@ public class LocalRecorder implements Recorder {
         } catch (IOException | ParseException | PlaylistException e) {
             LOG.error("Couldn't generate playlist file", e);
         } catch (InvalidPlaylistException e) {
-            LOG.error("Playlist is invalid", e);
+            LOG.error("Playlist is invalid and will be deleted", e);
             File playlist = new File(recDir, "playlist.m3u8");
             playlist.delete();
         } finally {

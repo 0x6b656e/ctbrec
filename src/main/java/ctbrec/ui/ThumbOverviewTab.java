@@ -211,6 +211,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                 }
             }
 
+            filteredThumbCells.clear();
             filter();
             moveActiveRecordingsToFront();
         } finally {
@@ -256,6 +257,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
             for (ThumbCell thumbCell : filteredThumbCells) {
                 insert(thumbCell);
             }
+            filteredThumbCells.clear();
             return;
         }
 

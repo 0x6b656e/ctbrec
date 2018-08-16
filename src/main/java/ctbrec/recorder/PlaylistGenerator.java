@@ -188,7 +188,9 @@ public class PlaylistGenerator {
                     return name.startsWith("media_") && name.endsWith(".ts");
                 }
             });
-            if(segments.length != playlistSize) {
+            if(segments.length == 0) {
+                throw new InvalidPlaylistException("No segments found. Playlist is empty");
+            } else if(segments.length != playlistSize) {
                 throw new InvalidPlaylistException("Playlist size and amount of segments differ");
             } else {
                 LOG.debug("Generated playlist looks good");

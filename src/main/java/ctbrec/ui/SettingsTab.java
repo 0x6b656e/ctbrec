@@ -12,6 +12,7 @@ import ctbrec.Hmac;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
+import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
@@ -37,7 +38,7 @@ import javafx.scene.paint.Color;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;;
 
-public class SettingsTab extends Tab {
+public class SettingsTab extends Tab implements TabSelectionListener {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(SettingsTab.class);
 
@@ -60,6 +61,7 @@ public class SettingsTab extends Tab {
     private RadioButton recordLocal;
     private RadioButton recordRemote;
     private ToggleGroup recordLocation;
+    private ProxySettingsPane proxySettingsPane;
 
     private TitledPane ctb;
     private TitledPane mergePane;
@@ -111,6 +113,13 @@ public class SettingsTab extends Tab {
         TitledPane locations = new TitledPane("Locations", layout);
         locations.setCollapsible(false);
         mainLayout.add(locations, 0, 0);
+
+        proxySettingsPane = new ProxySettingsPane();
+        mainLayout.add(proxySettingsPane, 1, 0);
+        GridPane.setRowSpan(proxySettingsPane, 2);
+        GridPane.setFillWidth(proxySettingsPane, true);
+        GridPane.setHgrow(proxySettingsPane, Priority.ALWAYS);
+        GridPane.setValignment(proxySettingsPane, VPos.TOP);
 
         layout = createGridLayout();
         layout.add(new Label("Chaturbate User"), 0, 0);
@@ -299,7 +308,7 @@ public class SettingsTab extends Tab {
         setRecordingMode(recordLocal.isSelected());
     }
 
-    private void showRestartRequired() {
+    static void showRestartRequired() {
         Alert restart = new AutosizeAlert(AlertType.INFORMATION);
         restart.setTitle("Restart required");
         restart.setHeaderText("Restart required");
@@ -307,7 +316,7 @@ public class SettingsTab extends Tab {
         restart.show();
     }
 
-    private GridPane createGridLayout() {
+    static GridPane createGridLayout() {
         GridPane layout = new GridPane();
         layout.setPadding(new Insets(10));
         layout.setHgap(5);
@@ -501,5 +510,18 @@ public class SettingsTab extends Tab {
 
             }
         }
+    }
+
+    @Override
+    public void selected() {
+    }
+
+    @Override
+    public void deselected() {
+        saveConfig();
+    }
+
+    public void saveConfig() {
+        proxySettingsPane.saveConfig();
     }
 }

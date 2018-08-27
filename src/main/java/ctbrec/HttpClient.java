@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ctbrec.Settings.ProxyType;
 import ctbrec.ui.CookieJarImpl;
 import ctbrec.ui.HtmlParser;
 import ctbrec.ui.Launcher;
@@ -29,6 +30,7 @@ public class HttpClient {
     private String token;
 
     private HttpClient() {
+        loadProxySettings();
         client = new OkHttpClient.Builder()
                 .cookieJar(cookieJar)
                 .connectTimeout(Config.getInstance().getSettings().httpTimeout, TimeUnit.SECONDS)
@@ -36,6 +38,44 @@ public class HttpClient {
                 .connectionPool(new ConnectionPool(50, 10, TimeUnit.MINUTES))
                 //.addInterceptor(new LoggingInterceptor())
                 .build();
+    }
+
+    private void loadProxySettings() {
+        ProxyType proxyType = Config.getInstance().getSettings().proxyType;
+        switch (proxyType) {
+        case HTTP:
+            System.setProperty("http.proxyHost", Config.getInstance().getSettings().proxyHost);
+            System.setProperty("http.proxyPort", Config.getInstance().getSettings().proxyPort);
+            System.setProperty("https.proxyHost", Config.getInstance().getSettings().proxyHost);
+            System.setProperty("https.proxyPort", Config.getInstance().getSettings().proxyPort);
+            break;
+        case SOCKS4:
+            System.setProperty("socksProxyVersion", "4");
+            System.setProperty("socksProxyHost", Config.getInstance().getSettings().proxyHost);
+            System.setProperty("socksProxyPort", Config.getInstance().getSettings().proxyPort);
+            break;
+        case SOCKS5:
+            System.setProperty("socksProxyVersion", "5");
+            System.setProperty("socksProxyHost", Config.getInstance().getSettings().proxyHost);
+            System.setProperty("socksProxyPort", Config.getInstance().getSettings().proxyPort);
+            if(Config.getInstance().getSettings().proxyUser != null && !Config.getInstance().getSettings().proxyUser.isEmpty()) {
+                System.setProperty("java.net.socks.username", Config.getInstance().getSettings().proxyUser);
+                System.setProperty("java.net.socks.password", Config.getInstance().getSettings().proxyPassword);
+            }
+            break;
+        case DIRECT:
+        default:
+            System.clearProperty("http.proxyHost");
+            System.clearProperty("http.proxyPort");
+            System.clearProperty("https.proxyHost");
+            System.clearProperty("https.proxyPort");
+            System.clearProperty("socksProxyVersion");
+            System.clearProperty("socksProxyHost");
+            System.clearProperty("socksProxyPort");
+            System.clearProperty("java.net.socks.username");
+            System.clearProperty("java.net.socks.password");
+            break;
+        }
     }
 
     public static HttpClient getInstance() {
@@ -111,6 +151,10 @@ public class HttpClient {
             loginTries = 0;
         }
         return loggedIn;
+    }
+
+    public void reconfigure() {
+        instance = new HttpClient();
     }
 
     public String getToken() throws IOException {

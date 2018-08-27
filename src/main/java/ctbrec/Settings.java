@@ -5,6 +5,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Settings {
+
+    public enum ProxyType {
+        DIRECT,
+        HTTP,
+        SOCKS4,
+        SOCKS5
+    }
+
     public boolean singlePlayer = true;
     public boolean localRecording = true;
     public int httpPort = 8080;
@@ -24,4 +32,9 @@ public class Settings {
     public boolean chooseStreamQuality = false;
     public boolean recordFollowed = false;
     public byte[] key = null;
+    public ProxyType proxyType = ProxyType.DIRECT;
+    public String proxyHost;
+    public String proxyPort;
+    public String proxyUser;
+    public String proxyPassword;
 }

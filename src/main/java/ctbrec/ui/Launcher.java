@@ -33,6 +33,7 @@ public class Launcher extends Application {
     private Recorder recorder;
     private HttpClient client;
     private static HostServices hostServices;
+    private SettingsTab settingsTab;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -97,7 +98,8 @@ public class Launcher extends Application {
         root.getTabs().add(modelsTab);
         RecordingsTab recordingsTab = new RecordingsTab("Recordings", recorder, config);
         root.getTabs().add(recordingsTab);
-        root.getTabs().add(new SettingsTab());
+        settingsTab = new SettingsTab();
+        root.getTabs().add(settingsTab);
         root.getTabs().add(new DonateTabFx());
 
         primaryStage.setScene(new Scene(root, 1340, 800));
@@ -112,6 +114,7 @@ public class Launcher extends Application {
             new Thread() {
                 @Override
                 public void run() {
+                    settingsTab.saveConfig();
                     recorder.shutdown();
                     client.shutdown();
                     try {

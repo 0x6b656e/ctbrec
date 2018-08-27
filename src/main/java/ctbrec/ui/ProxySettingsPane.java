@@ -73,7 +73,6 @@ public class ProxySettingsPane extends TitledPane implements EventHandler<Action
     }
 
     void saveConfig() {
-        System.out.println("Saving proxy settings");
         Config.getInstance().getSettings().proxyType = proxyType.getValue();
         Config.getInstance().getSettings().proxyHost = proxyHost.getText();
         Config.getInstance().getSettings().proxyPort = proxyPort.getText();

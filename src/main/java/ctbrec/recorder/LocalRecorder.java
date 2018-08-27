@@ -337,7 +337,7 @@ public class LocalRecorder implements Recorder {
                     }
                 }
                 LOG.debug("Keep segments: {}", Config.getInstance().getSettings().automergeKeepSegments);
-                if (!Config.getInstance().getSettings().automergeKeepSegments) {
+                if (Config.getInstance().getSettings().automerge && !Config.getInstance().getSettings().automergeKeepSegments) {
                     try {
                         LOG.debug("Deleting directory {}", recDir);
                         delete(recDir, mergedFile);

@@ -1,13 +1,12 @@
 package ctbrec.ui;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
+import ctbrec.DevNull;
 import ctbrec.Recording;
 import ctbrec.recorder.OS;
 import ctbrec.recorder.StreamRedirectThread;
@@ -47,6 +46,7 @@ public class Player {
             playerThread.stopThread();
         }
     }
+
 
     private static class PlayerThread extends Thread {
         private boolean running = false;
@@ -111,20 +111,6 @@ public class Player {
             if (playerProcess != null) {
                 playerProcess.destroy();
             }
-        }
-    }
-
-    private static class DevNull extends OutputStream {
-        @Override
-        public void write(int b) throws IOException {
-        }
-
-        @Override
-        public void write(byte[] b) throws IOException {
-        }
-
-        @Override
-        public void write(byte[] b, int off, int len) throws IOException {
         }
     }
 }

@@ -373,6 +373,13 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
                             });
                         }
 
+                    } catch (FileNotFoundException e) {
+                        showErrorDialog("Error while downloading recording", "The target file couldn't be created", e);
+                        LOG.error("Error while downloading recording", e);
+                    } catch (IOException e) {
+                        showErrorDialog("Error while downloading recording", "The recording could not be downloaded", e);
+                        LOG.error("Error while downloading recording", e);
+                    } finally {
                         Platform.runLater(new Runnable() {
                             @Override
                             public void run() {
@@ -380,12 +387,6 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
                                 recording.setProgress(-1);
                             }
                         });
-                    } catch (FileNotFoundException e) {
-                        showErrorDialog("Error while downloading recording", "The target file couldn't be created", e);
-                        LOG.error("Error while downloading recording", e);
-                    } catch (IOException e) {
-                        showErrorDialog("Error while downloading recording", "The recording could not be downloaded", e);
-                        LOG.error("Error while downloading recording", e);
                     }
                 }
             };

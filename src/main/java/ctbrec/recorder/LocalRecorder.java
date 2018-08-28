@@ -312,6 +312,8 @@ public class LocalRecorder implements Recorder {
     }
 
     private File merge(File recDir) {
+        // TODO idea: create a factory for segment merger, which checks for ffmpeg and
+        // returns the FFmpeg merger, if available and the simple one otherwise
         SegmentMerger segmentMerger = new SimpleSegmentMerger();
         //SegmentMerger segmentMerger = new FFmpegSegmentMerger();
         segmentMergers.put(recDir, segmentMerger);
@@ -334,7 +336,7 @@ public class LocalRecorder implements Recorder {
                     try {
                         Files.move(mergedFile.toPath(), finalLocation.toPath(), StandardCopyOption.ATOMIC_MOVE);
                     } catch (IOException e) {
-                        LOG.error("Couldn't move merged file to merge dirctory {}", mergeDir);
+                        LOG.error("Couldn't move merged file to merge directory {}", mergeDir, e);
                     }
                 }
 

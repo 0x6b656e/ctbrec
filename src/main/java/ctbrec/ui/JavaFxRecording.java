@@ -3,6 +3,7 @@ package ctbrec.ui;
 import java.text.DecimalFormat;
 import java.time.Instant;
 
+import ctbrec.Config;
 import ctbrec.Recording;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -113,6 +114,13 @@ public class JavaFxRecording extends Recording {
     }
 
     public void update(Recording updated) {
+        if(!Config.getInstance().getSettings().localRecording) {
+            if(getStatus() == STATUS.DOWNLOADING && updated.getStatus() != STATUS.DOWNLOADING) {
+                // ignore, because the the status coming from the server is FINISHED and we are
+                // overriding it with DOWNLOADING
+                return;
+            }
+        }
         setStatus(updated.getStatus());
         setProgress(updated.getProgress());
         setSizeInByte(updated.getSizeInByte());

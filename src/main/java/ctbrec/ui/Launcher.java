@@ -201,6 +201,7 @@ public class Launcher extends Application {
                         LOG.debug("ctbrec is up-to-date {}", ctbrecVersion);
                     }
                 }
+                response.close();
             } catch (IOException e) {
                 LOG.warn("Update check failed {}", e.getMessage());
             }

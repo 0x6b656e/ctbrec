@@ -12,7 +12,7 @@ public class Recording {
     private String path;
     private boolean hasPlaylist;
     private STATUS status;
-    private int generatingPlaylistProgress = -1;
+    private int progress = -1;
     private long sizeInByte;
 
     public static enum STATUS {
@@ -58,11 +58,11 @@ public class Recording {
     }
 
     public int getProgress() {
-        return this.generatingPlaylistProgress;
+        return this.progress;
     }
 
     public void setProgress(int progress) {
-        this.generatingPlaylistProgress = progress;
+        this.progress = progress;
     }
 
     public String getPath() {

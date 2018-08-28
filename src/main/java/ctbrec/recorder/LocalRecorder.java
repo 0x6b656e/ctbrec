@@ -2,6 +2,7 @@ package ctbrec.recorder;
 
 import static ctbrec.Recording.STATUS.FINISHED;
 import static ctbrec.Recording.STATUS.GENERATING_PLAYLIST;
+import static ctbrec.Recording.STATUS.MERGING;
 import static ctbrec.Recording.STATUS.RECORDING;
 
 import java.io.File;
@@ -31,7 +32,6 @@ import ctbrec.HttpClient;
 import ctbrec.Model;
 import ctbrec.ModelParser;
 import ctbrec.Recording;
-import ctbrec.Recording.STATUS;
 import ctbrec.recorder.PlaylistGenerator.InvalidPlaylistException;
 import ctbrec.recorder.download.Download;
 import ctbrec.recorder.download.HlsDownload;
@@ -312,7 +312,8 @@ public class LocalRecorder implements Recorder {
     }
 
     private File merge(File recDir) {
-        SegmentMerger segmentMerger = new SegmentMerger();
+        SegmentMerger segmentMerger = new SimpleSegmentMerger();
+        //SegmentMerger segmentMerger = new FFmpegSegmentMerger();
         segmentMergers.put(recDir, segmentMerger);
         try {
             File mergedFile = Recording.mergedFileFromDirectory(recDir);
@@ -336,10 +337,11 @@ public class LocalRecorder implements Recorder {
                         LOG.error("Couldn't move merged file to merge dirctory {}", mergeDir);
                     }
                 }
-                LOG.debug("Keep segments: {}", Config.getInstance().getSettings().automergeKeepSegments);
+
                 if (Config.getInstance().getSettings().automerge && !Config.getInstance().getSettings().automergeKeepSegments) {
                     try {
                         LOG.debug("Deleting directory {}", recDir);
+                        // TODO validate the size of the merged file before deleting the segments
                         delete(recDir, mergedFile);
                     } catch (IOException e) {
                         LOG.error("Couldn't delete directory {}", recDir, e);
@@ -494,22 +496,22 @@ public class LocalRecorder implements Recorder {
                         recording.setSizeInByte(getSize(rec));
                         File playlist = new File(rec, "playlist.m3u8");
                         recording.setHasPlaylist(playlist.exists());
-                        if (recording.hasPlaylist()) {
-                            recording.setStatus(FINISHED);
+
+                        PlaylistGenerator playlistGenerator = playlistGenerators.get(rec);
+                        if (playlistGenerator != null) {
+                            recording.setStatus(GENERATING_PLAYLIST);
+                            recording.setProgress(playlistGenerator.getProgress());
                         } else {
-                            // this might be a merged recording
-                            if (Recording.isMergedRecording(rec)) {
-                                recording.setStatus(FINISHED);
+                            SegmentMerger merger = segmentMergers.get(rec);
+                            if (merger != null) {
+                                recording.setStatus(MERGING);
+                                recording.setProgress(merger.getProgress());
                             } else {
-                                PlaylistGenerator playlistGenerator = playlistGenerators.get(rec);
-                                if (playlistGenerator != null) {
-                                    recording.setStatus(GENERATING_PLAYLIST);
-                                    recording.setProgress(playlistGenerator.getProgress());
+                                if (Recording.isMergedRecording(rec)) {
+                                    recording.setStatus(FINISHED);
                                 } else {
-                                    SegmentMerger merger = segmentMergers.get(rec);
-                                    if (merger != null) {
-                                        recording.setStatus(STATUS.MERGING);
-                                        recording.setProgress(merger.getProgress());
+                                    if (recording.hasPlaylist()) {
+                                        recording.setStatus(FINISHED);
                                     } else {
                                         recording.setStatus(RECORDING);
                                     }
@@ -596,6 +598,7 @@ public class LocalRecorder implements Recorder {
         File directory = new File(recordingsDir, rec.getPath());
         File mergedFile = merge(directory);
         if (!keepSegments) {
+            // TODO validate the size of the merged file before deleting the segments
             delete(directory, mergedFile);
         }
         return mergedFile;

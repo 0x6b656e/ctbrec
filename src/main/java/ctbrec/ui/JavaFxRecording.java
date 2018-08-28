@@ -113,10 +113,8 @@ public class JavaFxRecording extends Recording {
     }
 
     public void update(Recording updated) {
-        if(getStatus() != STATUS.DOWNLOADING && getStatus() != STATUS.MERGING) {
-            setStatus(updated.getStatus());
-            setProgress(updated.getProgress());
-        }
+        setStatus(updated.getStatus());
+        setProgress(updated.getProgress());
         setSizeInByte(updated.getSizeInByte());
     }
 

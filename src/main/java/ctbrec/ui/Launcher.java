@@ -59,9 +59,9 @@ public class Launcher extends Application {
         checkForUpdates();
     }
 
-    private void createGui(Stage primaryStage) {
+    private void createGui(Stage primaryStage) throws IOException {
         LOG.debug("Creating GUI");
-        primaryStage.setTitle("CTB Recorder");
+        primaryStage.setTitle("CTB Recorder " + getVersion());
         InputStream icon = getClass().getResourceAsStream("/icon.png");
         primaryStage.getIcons().add(new Image(icon));
         tabPane = new TabPane();
@@ -214,7 +214,7 @@ public class Launcher extends Application {
 
     private Version getVersion() throws IOException {
         if(Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
-            return Version.of("0.0.0");
+            return Version.of("0.0.0-DEV");
         } else {
             try(InputStream is = getClass().getClassLoader().getResourceAsStream("version")) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is));

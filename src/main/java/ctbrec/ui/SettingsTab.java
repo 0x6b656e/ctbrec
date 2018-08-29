@@ -199,7 +199,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         GridPane.setMargin(automerge, new Insets(0, 0, 0, CHECKBOX_MARGIN));
         mergeLayout.add(automerge, 1, 0);
 
-        l = new Label("Keep segments");
+        l = new Label("Keep segments after auto-merge");
         mergeLayout.add(l, 0, 1);
         automergeKeepSegments.setSelected(Config.getInstance().getSettings().automergeKeepSegments);
         automergeKeepSegments.setOnAction((e) -> Config.getInstance().getSettings().automergeKeepSegments = automergeKeepSegments.isSelected());
@@ -218,7 +218,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         mergeLayout.add(mergeDirectory, 1, 2);
         mergeLayout.add(createMergeDirButton(), 3, 2);
 
-        mergePane = new TitledPane("Auto-merge", mergeLayout);
+        mergePane = new TitledPane("Merging", mergeLayout);
         mergePane.setCollapsible(false);
         mainLayout.add(mergePane, 0, 3);
 

@@ -48,11 +48,19 @@ public class HttpClient {
             System.setProperty("http.proxyPort", Config.getInstance().getSettings().proxyPort);
             System.setProperty("https.proxyHost", Config.getInstance().getSettings().proxyHost);
             System.setProperty("https.proxyPort", Config.getInstance().getSettings().proxyPort);
+            if(Config.getInstance().getSettings().proxyUser != null && !Config.getInstance().getSettings().proxyUser.isEmpty()) {
+                System.setProperty("http.proxyUser", Config.getInstance().getSettings().proxyUser);
+                System.setProperty("http.proxyPassword", Config.getInstance().getSettings().proxyPassword);
+            }
             break;
         case SOCKS4:
             System.setProperty("socksProxyVersion", "4");
             System.setProperty("socksProxyHost", Config.getInstance().getSettings().proxyHost);
             System.setProperty("socksProxyPort", Config.getInstance().getSettings().proxyPort);
+            if(Config.getInstance().getSettings().proxyUser != null && !Config.getInstance().getSettings().proxyUser.isEmpty()) {
+                System.setProperty("java.net.socks.username", Config.getInstance().getSettings().proxyUser);
+                System.setProperty("java.net.socks.password", Config.getInstance().getSettings().proxyPassword);
+            }
             break;
         case SOCKS5:
             System.setProperty("socksProxyVersion", "5");
@@ -74,6 +82,8 @@ public class HttpClient {
             System.clearProperty("socksProxyPort");
             System.clearProperty("java.net.socks.username");
             System.clearProperty("java.net.socks.password");
+            System.clearProperty("http.proxyUser");
+            System.clearProperty("http.proxyPassword");
             break;
         }
     }

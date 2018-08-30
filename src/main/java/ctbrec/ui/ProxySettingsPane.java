@@ -1,4 +1,8 @@
 package ctbrec.ui;
+import static ctbrec.Settings.ProxyType.DIRECT;
+import static ctbrec.Settings.ProxyType.HTTP;
+import static ctbrec.Settings.ProxyType.SOCKS4;
+import static ctbrec.Settings.ProxyType.SOCKS5;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,10 +42,10 @@ public class ProxySettingsPane extends TitledPane implements EventHandler<Action
         Label l = new Label("Type");
         layout.add(l, 0, 0);
         List<ProxyType> proxyTypes = new ArrayList<>();
-        proxyTypes.add(ProxyType.DIRECT);
-        proxyTypes.add(ProxyType.HTTP);
-        proxyTypes.add(ProxyType.SOCKS4);
-        proxyTypes.add(ProxyType.SOCKS5);
+        proxyTypes.add(DIRECT);
+        proxyTypes.add(HTTP);
+        proxyTypes.add(SOCKS4);
+        proxyTypes.add(SOCKS5);
         proxyType = new ComboBox<>(new ObservableListWrapper<>(proxyTypes));
         proxyType.setOnAction(this);
         layout.add(proxyType, 1, 0);
@@ -87,26 +91,16 @@ public class ProxySettingsPane extends TitledPane implements EventHandler<Action
     }
 
     private void setComponentDisableState() {
-        switch (proxyType.getValue()) {
-        case DIRECT:
+        if(proxyType.getValue() == DIRECT) {
             proxyHost.setDisable(true);
             proxyPort.setDisable(true);
             proxyUser.setDisable(true);
             proxyPassword.setDisable(true);
-            break;
-        case HTTP:
-        case SOCKS4:
-            proxyHost.setDisable(false);
-            proxyPort.setDisable(false);
-            proxyUser.setDisable(true);
-            proxyPassword.setDisable(true);
-            break;
-        case SOCKS5:
+        } else {
             proxyHost.setDisable(false);
             proxyPort.setDisable(false);
             proxyUser.setDisable(false);
             proxyPassword.setDisable(false);
-            break;
         }
     }
 }

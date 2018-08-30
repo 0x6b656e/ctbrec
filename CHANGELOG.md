@@ -1,3 +1,9 @@
+1.4.2
+========================
+* Enabled proxy authentication for SOCKS4 and HTTP
+* Empty recording directories are now ignored instead of cluttering the log 
+  file with error messages
+
 1.4.1
 ========================
 * Added proxy settings

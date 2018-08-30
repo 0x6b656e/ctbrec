@@ -368,8 +368,10 @@ public class LocalRecorder implements Recorder {
         PlaylistGenerator playlistGenerator = new PlaylistGenerator();
         playlistGenerators.put(recDir, playlistGenerator);
         try {
-            playlistGenerator.generate(recDir);
-            playlistGenerator.validate(recDir);
+            File playlist = playlistGenerator.generate(recDir);
+            if(playlist != null) {
+                playlistGenerator.validate(recDir);
+            }
         } catch (IOException | ParseException | PlaylistException e) {
             LOG.error("Couldn't generate playlist file", e);
         } catch (InvalidPlaylistException e) {
@@ -476,11 +478,18 @@ public class LocalRecorder implements Recorder {
         }
 
         for (File subdir : subdirs) {
+            // only consider directories
             if (!subdir.isDirectory()) {
                 continue;
             }
 
+            // ignore empty directories
             File[] recordingsDirs = subdir.listFiles();
+            if(recordingsDirs.length == 0) {
+                continue;
+            }
+
+            // start going over valid directories
             for (File rec : recordingsDirs) {
                 String pattern = "yyyy-MM-dd_HH-mm";
                 SimpleDateFormat sdf = new SimpleDateFormat(pattern);

@@ -44,10 +44,15 @@ public class PlaylistGenerator {
     private int lastPercentage;
     private List<ProgressListener> listeners = new ArrayList<>();
 
-    public void generate(File directory) throws IOException, ParseException, PlaylistException {
+    public File generate(File directory) throws IOException, ParseException, PlaylistException {
         LOG.debug("Starting playlist generation for {}", directory);
         // get a list of all ts files and sort them by sequence
         File[] files = directory.listFiles((f) -> f.getName().endsWith(".ts"));
+        if(files.length == 0) {
+            LOG.debug("{} is empty. Not going to generate a playlist", directory);
+            return null;
+        }
+
         Arrays.sort(files, (f1, f2) -> {
             String n1 = f1.getName();
             n1 = n1.substring(0, n1.length()-3);
@@ -107,6 +112,7 @@ public class PlaylistGenerator {
             writer.write(master);
             LOG.debug("Finished playlist generation for {}", directory);
         }
+        return output;
     }
 
     private void updateProgressListeners(double percentage) {

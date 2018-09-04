@@ -1,3 +1,7 @@
+1.4.3
+========================
+* Added possibility to switch the video resolution for a recording
+
 1.4.2
 ========================
 * Enabled proxy authentication for SOCKS4 and HTTP

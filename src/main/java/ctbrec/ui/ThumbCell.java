@@ -332,10 +332,13 @@ public class ThumbCell extends StackPane {
     };
 
     private void startPlayer() {
-        // TODO if manual choice of stream quality is enabled, do the same thing as starting a download here
+        // TODO if manual choice of stream quality is enabled, do the same thing as starting a download here?!?
+        // or maybe not, because the player should automatically switch between resolutions depending on the
+        // network bandwidth
         try {
             StreamInfo streamInfo = Chaturbate.getStreamInfo(model, client);
             if(streamInfo.room_status.equals("public")) {
+                LOG.debug("Playing {}", streamInfo.url);
                 Player.play(streamInfo.url);
             } else {
                 Alert alert = new AutosizeAlert(Alert.AlertType.INFORMATION);

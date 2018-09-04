@@ -9,10 +9,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ctbrec.HttpClient;
 import ctbrec.Model;
 import ctbrec.recorder.Recorder;
 import javafx.application.Platform;
@@ -217,8 +219,46 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         openInBrowser.setOnAction((e) -> Launcher.open(table.getSelectionModel().getSelectedItem().getUrl()));
         MenuItem openInPlayer = new MenuItem("Open in Player");
         openInPlayer.setOnAction((e) -> Player.play(table.getSelectionModel().getSelectedItem().getUrl()));
+        MenuItem switchStreamSource = new MenuItem("Switch resolution");
+        switchStreamSource.setOnAction((e) -> switchStreamSource(table.getSelectionModel().getSelectedItem()));
 
-        return new ContextMenu(stop, copyUrl, openInBrowser, openInPlayer);
+        return new ContextMenu(stop, copyUrl, openInBrowser, switchStreamSource);
+    }
+
+    private void switchStreamSource(JavaFxModel fxModel) {
+        if(!fxModel.isOnline()) {
+            Alert alert = new AutosizeAlert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Switch resolution");
+            alert.setHeaderText("Couldn't switch stream resolution");
+            alert.setContentText("The resolution can only be changed, when the model is online");
+            alert.showAndWait();
+            return;
+        }
+
+        HttpClient client = HttpClient.getInstance();
+        Function<Model, Void> onSuccess = (m) -> {
+            try {
+                recorder.switchStreamSource(m);
+            } catch (InvalidKeyException | NoSuchAlgorithmException | IllegalStateException | IOException e) {
+                LOG.error("Error while switching stream resolution", e);
+                showStreamSwitchErrorDialog(e);
+            }
+            return null;
+        };
+        Function<Throwable, Void> onFail = (t) -> {
+            LOG.error("Error while switching stream resolution", t);
+            showStreamSwitchErrorDialog(t);
+            return null;
+        };
+        StreamSourceSelectionDialog.show(fxModel.getDelegate(), client, onSuccess, onFail);
+    }
+
+    private void showStreamSwitchErrorDialog(Throwable throwable) {
+        Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+        alert.setTitle("Error");
+        alert.setHeaderText("Couldn't switch stream resolution");
+        alert.setContentText("Error while switching stream resolution: " + throwable.getLocalizedMessage());
+        alert.showAndWait();
     }
 
     private void stopAction() {

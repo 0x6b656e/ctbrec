@@ -104,6 +104,11 @@ public class RecorderServlet extends AbstractCtbrecServlet {
                     resp.getWriter().write(recAdapter.toJson(rec));
                     resp.getWriter().write("]}");
                     break;
+                case "switch":
+                    recorder.switchStreamSource(request.model);
+                    response = "{\"status\": \"success\", \"msg\": \"Resolution switched\"}";
+                    resp.getWriter().write(response);
+                    break;
                 default:
                     resp.setStatus(SC_BAD_REQUEST);
                     response = "{\"status\": \"error\", \"msg\": \"Unknown action\"}";

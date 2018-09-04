@@ -264,4 +264,9 @@ public class RemoteRecorder implements Recorder {
             this.model = model;
         }
     }
+
+    @Override
+    public void switchStreamSource(Model model) throws IOException, InvalidKeyException, NoSuchAlgorithmException, IllegalStateException {
+        sendRequest("switch", model);
+    }
 }

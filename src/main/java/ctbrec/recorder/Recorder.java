@@ -14,6 +14,8 @@ public interface Recorder {
 
     public void stopRecording(Model model) throws IOException, InvalidKeyException, NoSuchAlgorithmException, IllegalStateException;
 
+    public void switchStreamSource(Model model) throws IOException, InvalidKeyException, NoSuchAlgorithmException, IllegalStateException;
+
     /**
      * Returns, if a model is in the list of models to record. This does not reflect, if there currently is a recording running. The model might be offline
      * aswell.

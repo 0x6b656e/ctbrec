@@ -9,6 +9,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -613,5 +615,12 @@ public class LocalRecorder implements Recorder {
             delete(directory, mergedFile);
         }
         return mergedFile;
+    }
+
+    @Override
+    public void switchStreamSource(Model model) throws IOException, InvalidKeyException, NoSuchAlgorithmException, IllegalStateException {
+        LOG.debug("Switching stream source to index {} for model {}", model.getStreamUrlIndex(), model.getName());
+        stopRecordingProcess(model);
+        tryRestartRecording(model);
     }
 }

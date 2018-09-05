@@ -1,6 +1,7 @@
 1.4.3
 ========================
 * Added possibility to switch the video resolution for a recording
+* Added selection box below the overview pages to change the thumbnail size
 
 1.4.2
 ========================

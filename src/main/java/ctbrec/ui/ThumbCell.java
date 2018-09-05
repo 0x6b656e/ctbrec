@@ -58,9 +58,7 @@ import okhttp3.Response;
 public class ThumbCell extends StackPane {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(ThumbCell.class);
-
-    private static final int WIDTH = 180;
-    private static final int HEIGHT = 135;
+    public static int width = 180;
     private static final Duration ANIMATION_DURATION = new Duration(250);
 
     // this acts like a cache, once the stream resolution for a model has been determined, we don't do it again (until ctbrec is restarted)
@@ -98,18 +96,16 @@ public class ThumbCell extends StackPane {
 
         iv = new ImageView();
         setImage(model.getPreview());
-        iv.setFitWidth(WIDTH);
-        iv.setFitHeight(HEIGHT);
         iv.setSmooth(true);
         getChildren().add(iv);
 
-        nameBackground = new Rectangle(WIDTH, 20);
+        nameBackground = new Rectangle();
         nameBackground.setFill(recording ? colorRecording : colorNormal);
         nameBackground.setOpacity(.7);
         StackPane.setAlignment(nameBackground, Pos.BOTTOM_CENTER);
         getChildren().add(nameBackground);
 
-        topicBackground = new Rectangle(WIDTH, 115);
+        topicBackground = new Rectangle();
         topicBackground.setFill(Color.BLACK);
         topicBackground.setOpacity(0);
         StackPane.setAlignment(topicBackground, Pos.TOP_LEFT);
@@ -138,11 +134,7 @@ public class ThumbCell extends StackPane {
         topic.setFont(new Font("Sansserif", 13));
         topic.setTextAlignment(TextAlignment.LEFT);
         topic.setOpacity(0);
-        topic.prefHeight(110);
-        topic.maxHeight(110);
         int margin = 4;
-        topic.maxWidth(WIDTH-margin*2);
-        topic.setWrappingWidth(WIDTH-margin*2);
         StackPane.setMargin(topic, new Insets(margin));
         StackPane.setAlignment(topic, Pos.TOP_CENTER);
         getChildren().add(topic);
@@ -188,8 +180,7 @@ public class ThumbCell extends StackPane {
             }
         });
 
-        setMinSize(WIDTH, HEIGHT);
-        setPrefSize(WIDTH, HEIGHT);
+        setThumbWidth(width);
 
         setRecording(recording);
         if(Config.getInstance().getSettings().determineResolution) {
@@ -541,5 +532,26 @@ public class ThumbCell extends StackPane {
         } else if (!model.equals(other.model))
             return false;
         return true;
+    }
+
+    public void setThumbWidth(int width) {
+        int height = width * 3 / 4;
+        setSize(width, height);
+    }
+
+    private void setSize(int w, int h) {
+        iv.setFitWidth(w);
+        iv.setFitHeight(h);
+        setMinSize(w, h);
+        setPrefSize(w, h);
+        nameBackground.setWidth(w);
+        nameBackground.setHeight(20);
+        topicBackground.setWidth(w);
+        topicBackground.setHeight(h-nameBackground.getHeight());
+        topic.prefHeight(h-25);
+        topic.maxHeight(h-25);
+        int margin = 4;
+        topic.maxWidth(w-margin*2);
+        topic.setWrappingWidth(w-margin*2);
     }
 }

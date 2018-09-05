@@ -37,4 +37,6 @@ public class Settings {
     public String proxyPort;
     public String proxyUser;
     public String proxyPassword;
+    public int thumbWidth = 180;
+
 }

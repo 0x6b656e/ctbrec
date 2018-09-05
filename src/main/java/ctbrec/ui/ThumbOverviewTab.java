@@ -22,6 +22,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.sun.javafx.collections.ObservableListWrapper;
+
+import ctbrec.Config;
 import ctbrec.HttpClient;
 import ctbrec.Model;
 import ctbrec.ModelParser;
@@ -35,6 +38,8 @@ import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TextField;
@@ -68,6 +73,8 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     Button pagePrev = new Button("◀");
     Button pageNext = new Button("▶");
     private volatile boolean updatesSuspended = false;
+
+    private ComboBox<Integer> thumbWidth;
 
     public ThumbOverviewTab(String title, String url, boolean loginRequired) {
         super(title);
@@ -121,11 +128,44 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
             restartUpdateService();
         });
 
+        ThumbCell.width = Config.getInstance().getSettings().thumbWidth;
+        HBox thumbSizeSelector = new HBox(5);
+        Label l = new Label("Thumb Size");
+        l.setPadding(new Insets(5,0,0,0));
+        thumbSizeSelector.getChildren().add(l);
+        List<Integer> thumbWidths = new ArrayList<>();
+        thumbWidths.add(180);
+        thumbWidths.add(200);
+        thumbWidths.add(220);
+        thumbWidths.add(270);
+        thumbWidths.add(360);
+        thumbWidth = new ComboBox<>(new ObservableListWrapper<>(thumbWidths));
+        thumbWidth.getSelectionModel().select(new Integer(ThumbCell.width));
+        thumbWidth.setOnAction((e) -> {
+            int width = thumbWidth.getSelectionModel().getSelectedItem();
+            ThumbCell.width = width;
+            Config.getInstance().getSettings().thumbWidth = width;
+            for (Node node : grid.getChildren()) {
+                ThumbCell cell = (ThumbCell) node;
+                cell.setThumbWidth(width);
+            }
+            for (ThumbCell cell : filteredThumbCells) {
+                cell.setThumbWidth(width);
+            }
+        });
+        thumbSizeSelector.getChildren().add(thumbWidth);
+        BorderPane.setMargin(thumbSizeSelector, new Insets(5));
+
+
+        BorderPane bottomPane = new BorderPane();
+        bottomPane.setLeft(pagination);
+        bottomPane.setRight(thumbSizeSelector);
+
         BorderPane root = new BorderPane();
         root.setPadding(new Insets(5));
         root.setTop(search);
         root.setCenter(scrollPane);
-        root.setBottom(pagination);
+        root.setBottom(bottomPane);
         setContent(root);
     }
 

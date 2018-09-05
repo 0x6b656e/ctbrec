@@ -2,6 +2,7 @@
 ========================
 * Added possibility to switch the video resolution for a recording
 * Added selection box below the overview pages to change the thumbnail size
+* Save and restore window size, location and maximized state
 
 1.4.2
 ========================

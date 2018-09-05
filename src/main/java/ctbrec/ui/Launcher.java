@@ -64,6 +64,7 @@ public class Launcher extends Application {
         primaryStage.setTitle("CTB Recorder " + getVersion());
         InputStream icon = getClass().getResourceAsStream("/icon.png");
         primaryStage.getIcons().add(new Image(icon));
+
         tabPane = new TabPane();
         tabPane.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<Tab>() {
             @Override
@@ -93,7 +94,17 @@ public class Launcher extends Application {
         tabPane.getTabs().add(settingsTab);
         tabPane.getTabs().add(new DonateTabFx());
 
-        primaryStage.setScene(new Scene(tabPane, 1340, 800));
+        int windowWidth = Config.getInstance().getSettings().windowWidth;
+        int windowHeight = Config.getInstance().getSettings().windowHeight;
+        primaryStage.setScene(new Scene(tabPane, windowWidth, windowHeight));
+        primaryStage.getScene().widthProperty().addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowWidth = newVal.intValue());
+        primaryStage.getScene().heightProperty().addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowHeight = newVal.intValue());
+        primaryStage.setMaximized(Config.getInstance().getSettings().windowMaximized);
+        primaryStage.maximizedProperty().addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowMaximized = newVal.booleanValue());
+        primaryStage.setX(Config.getInstance().getSettings().windowX);
+        primaryStage.setY(Config.getInstance().getSettings().windowY);
+        primaryStage.xProperty().addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowX = newVal.intValue());
+        primaryStage.yProperty().addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowY = newVal.intValue());
         primaryStage.show();
         primaryStage.setOnCloseRequest((e) -> {
             e.consume();

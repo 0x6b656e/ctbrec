@@ -38,5 +38,9 @@ public class Settings {
     public String proxyUser;
     public String proxyPassword;
     public int thumbWidth = 180;
-
+    public int windowWidth = 1340;
+    public int windowHeight = 800;
+    public boolean windowMaximized = false;
+    public int windowX;
+    public int windowY;
 }

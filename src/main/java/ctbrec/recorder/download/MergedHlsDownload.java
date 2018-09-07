@@ -158,7 +158,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
                         LOG.error("Interrupted while waiting for a download future", e);
                     }
                 } catch (ExecutionException e) {
-                    LOG.error("Error while executing download", e);
+                    LOG.error("Error while opening segment stream", e);
                 }
             }
         });

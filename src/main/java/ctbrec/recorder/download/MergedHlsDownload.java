@@ -88,9 +88,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
                         int seq = lsp.seq;
                         for (int i = nextSegment; i < lsp.seq; i++) {
                             URL segmentUrl = new URL(first.replaceAll(Integer.toString(seq), Integer.toString(i)));
-                            LOG.debug("Reloading segment {} for model {}", i, model.getName());
-                            // FIXME this does not work with the current mechanism, since the InputStreams for these segments would be added
-                            // to the mergeQueue in the wrong spot (after successors of these segments -> wrong order)
+                            LOG.debug("Loading missed segment {} for model {}", i, model.getName());
                             Future<InputStream> downloadFuture = downloadThreadPool.submit(new SegmentDownload(segmentUrl, client));
                             mergeQueue.add(downloadFuture);
                         }
@@ -157,7 +155,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
                     multiSource.addSource(source);
                 } catch (InterruptedException e) {
                     if(running) {
-                        LOG.error("Error while waiting for a download future", e);
+                        LOG.error("Interrupted while waiting for a download future", e);
                     }
                 } catch (ExecutionException e) {
                     LOG.error("Error while executing download", e);

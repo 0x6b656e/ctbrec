@@ -1,12 +1,14 @@
 package ctbrec.recorder.download;
 
+import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.WRITE;
+
 import java.io.EOFException;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.channels.FileChannel;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -14,10 +16,19 @@ import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Objects;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.taktik.mpegts.Streamer;
+import org.taktik.mpegts.sinks.ByteChannelSink;
+import org.taktik.mpegts.sinks.MTSSink;
+import org.taktik.mpegts.sources.BlockingMultiMTSSource;
+import org.taktik.mpegts.sources.InputStreamMTSSource;
 
 import com.iheartradio.m3u8.ParseException;
 import com.iheartradio.m3u8.PlaylistException;
@@ -30,11 +41,16 @@ import ctbrec.recorder.StreamInfo;
 import okhttp3.Request;
 import okhttp3.Response;
 
-public class HlsDownload extends AbstractHlsDownload {
+public class MergedHlsDownload extends AbstractHlsDownload {
 
-    private static final transient Logger LOG = LoggerFactory.getLogger(HlsDownload.class);
+    private static final transient Logger LOG = LoggerFactory.getLogger(MergedHlsDownload.class);
+    private BlockingQueue<Future<InputStream>> mergeQueue = new LinkedBlockingQueue<>();
+    private BlockingMultiMTSSource multiSource;
+    private Thread mergeThread;
+    private Thread handoverThread;
+    private Streamer streamer;
 
-    public HlsDownload(HttpClient client) {
+    public MergedHlsDownload(HttpClient client) {
         super(client);
     }
 
@@ -55,6 +71,11 @@ public class HlsDownload extends AbstractHlsDownload {
                 Files.createDirectories(downloadDir);
             }
 
+            mergeThread = createMergeThread(downloadDir);
+            mergeThread.start();
+            handoverThread = createHandoverThread();
+            handoverThread.start();
+
             String segments = parseMaster(streamInfo.url, model.getStreamUrlIndex());
             if(segments != null) {
                 int lastSegment = 0;
@@ -68,7 +89,10 @@ public class HlsDownload extends AbstractHlsDownload {
                         for (int i = nextSegment; i < lsp.seq; i++) {
                             URL segmentUrl = new URL(first.replaceAll(Integer.toString(seq), Integer.toString(i)));
                             LOG.debug("Reloading segment {} for model {}", i, model.getName());
-                            downloadThreadPool.submit(new SegmentDownload(segmentUrl, downloadDir, client));
+                            // FIXME this does not work with the current mechanism, since the InputStreams for these segments would be added
+                            // to the mergeQueue in the wrong spot (after successors of these segments -> wrong order)
+                            Future<InputStream> downloadFuture = downloadThreadPool.submit(new SegmentDownload(segmentUrl, client));
+                            mergeQueue.add(downloadFuture);
                         }
                         // TODO switch to a lower bitrate/resolution ?!?
                     }
@@ -78,8 +102,8 @@ public class HlsDownload extends AbstractHlsDownload {
                             skip--;
                         } else {
                             URL segmentUrl = new URL(segment);
-                            downloadThreadPool.submit(new SegmentDownload(segmentUrl, downloadDir, client));
-                            //new SegmentDownload(segment, downloadDir).call();
+                            Future<InputStream> downloadFuture = downloadThreadPool.submit(new SegmentDownload(segmentUrl, client));
+                            mergeQueue.add(downloadFuture);
                         }
                     }
 
@@ -123,55 +147,111 @@ public class HlsDownload extends AbstractHlsDownload {
         }
     }
 
+    private Thread createHandoverThread() {
+        Thread t = new Thread(() -> {
+            while(running) {
+                try {
+                    Future<InputStream> downloadFuture = mergeQueue.take();
+                    InputStream tsData = downloadFuture.get();
+                    InputStreamMTSSource source = InputStreamMTSSource.builder().setInputStream(tsData).build();
+                    multiSource.addSource(source);
+                } catch (InterruptedException e) {
+                    if(running) {
+                        LOG.error("Error while waiting for a download future", e);
+                    }
+                } catch (ExecutionException e) {
+                    LOG.error("Error while executing download", e);
+                } catch (IOException e) {
+                    LOG.error("Error while saving stream to file", e);
+                }
+            }
+        });
+        t.setName("Segment Handover Thread");
+        t.setDaemon(true);
+        return t;
+    }
+
+    private Thread createMergeThread(Path downloadDir) {
+        Thread t = new Thread(() -> {
+            multiSource = BlockingMultiMTSSource.builder().setFixContinuity(true).build();
+
+            File out = new File(downloadDir.toFile(), "record.ts");
+            FileChannel channel = null;
+            try {
+                channel = FileChannel.open(out.toPath(), CREATE, WRITE);
+                MTSSink sink = ByteChannelSink.builder().setByteChannel(channel).build();
+
+                streamer = Streamer.builder()
+                        .setSource(multiSource)
+                        .setSink(sink)
+                        .setSleepingEnabled(false)
+                        .setBufferSize(10)
+                        .build();
+
+                // Start streaming
+                streamer.stream();
+            } catch (InterruptedException e) {
+                if(running) {
+                    LOG.error("Error while waiting for a download future", e);
+                }
+            }  catch(Exception e) {
+                LOG.error("Error while saving stream to file", e);
+            } finally {
+                try {
+                    channel.close();
+                } catch (IOException e) {
+                    LOG.error("Error while closing file {}", out);
+                }
+            }
+        });
+        t.setName("Segment Merger Thread");
+        t.setDaemon(true);
+        return t;
+    }
+
     @Override
     public void stop() {
         running = false;
         alive = false;
+        LOG.debug("Stopping streamer");
+        streamer.stop();
+        LOG.debug("Sending interrupt to merger");
+        mergeThread.interrupt();
+        LOG.debug("Sending interrupt to handover thread");
+        handoverThread.interrupt();
+        LOG.debug("Download stopped");
     }
 
-    private static class SegmentDownload implements Callable<Boolean> {
+    private static class SegmentDownload implements Callable<InputStream> {
         private URL url;
-        private Path file;
         private HttpClient client;
 
-        public SegmentDownload(URL url, Path dir, HttpClient client) {
+        public SegmentDownload(URL url, HttpClient client) {
             this.url = url;
             this.client = client;
-            File path = new File(url.getPath());
-            file = FileSystems.getDefault().getPath(dir.toString(), path.getName());
         }
 
         @Override
-        public Boolean call() throws Exception {
-            LOG.trace("Downloading segment to " + file);
+        public InputStream call() throws Exception {
+            LOG.trace("Downloading segment " + url.getFile());
             int maxTries = 3;
             for (int i = 1; i <= maxTries; i++) {
                 Request request = new Request.Builder().url(url).addHeader("connection", "keep-alive").build();
                 Response response = client.execute(request);
-                try (
-                        FileOutputStream fos = new FileOutputStream(file.toFile());
-                        InputStream in = response.body().byteStream())
-                {
-                    byte[] b = new byte[1024 * 100];
-                    int length = -1;
-                    while( (length = in.read(b)) >= 0 ) {
-                        fos.write(b, 0, length);
-                    }
-                    return true;
-                } catch(FileNotFoundException e) {
-                    LOG.debug("Segment does not exist {}", url.getFile());
-                    break;
+                try {
+                    InputStream in = response.body().byteStream();
+                    return in;
                 } catch(Exception e) {
                     if (i == maxTries) {
-                        LOG.warn("Error while downloading segment. Segment finally {} failed", file.toFile().getName());
+                        LOG.warn("Error while downloading segment. Segment {} finally failed", url.getFile());
                     } else {
-                        LOG.warn("Error while downloading segment on try {}", i);
+                        LOG.warn("Error while downloading segment {} on try {}", url.getFile(), i);
                     }
-                } finally {
+                } /*finally {
                     response.close();
-                }
+                }*/
             }
-            return false;
+            throw new IOException("Unable to download segment " + url.getFile() + " after " + maxTries + " tries");
         }
     }
 }

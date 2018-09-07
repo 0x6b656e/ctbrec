@@ -1,6 +1,5 @@
 package ctbrec.recorder;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
@@ -231,11 +230,6 @@ public class RemoteRecorder implements Recorder {
             throw new IOException("Couldn't delete recording: " + resp.msg);
             //throw new IOException("Couldn't delete recording: " + response.code() + " " + json);
         }
-    }
-
-    @Override
-    public File merge(Recording recording, boolean keepSegments) throws IOException {
-        throw new RuntimeException("Merging not available for remote recorder");
     }
 
     public static class ModelRequest {

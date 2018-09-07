@@ -8,7 +8,6 @@ import static ctbrec.Recording.STATUS.RECORDING;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
@@ -36,7 +35,7 @@ import ctbrec.ModelParser;
 import ctbrec.Recording;
 import ctbrec.recorder.PlaylistGenerator.InvalidPlaylistException;
 import ctbrec.recorder.download.Download;
-import ctbrec.recorder.download.HlsDownload;
+import ctbrec.recorder.download.MergedHlsDownload;
 import okhttp3.Request;
 import okhttp3.Response;
 
@@ -121,7 +120,8 @@ public class LocalRecorder implements Recorder {
             return;
         }
 
-        Download download = new HlsDownload(client);
+        //Download download = new HlsDownload(client);
+        Download download = new MergedHlsDownload(client);
         recordingProcesses.put(model, download);
         new Thread() {
             @Override
@@ -301,69 +301,14 @@ public class LocalRecorder implements Recorder {
             @Override
             public void run() {
                 boolean local = Config.getInstance().getSettings().localRecording;
-                boolean automerge = Config.getInstance().getSettings().automerge;
-                generatePlaylist(directory);
-                if (local && automerge) {
-                    merge(directory);
+                if(!local) {
+                    generatePlaylist(directory);
                 }
             }
         };
         t.setDaemon(true);
         t.setName("Postprocessing" + directory.toString());
         t.start();
-    }
-
-    private File merge(File recDir) {
-        // TODO idea: create a factory for segment merger, which checks for ffmpeg and
-        // returns the FFmpeg merger, if available and the simple one otherwise
-        SegmentMerger segmentMerger = new SimpleSegmentMerger();
-        //SegmentMerger segmentMerger = new FFmpegSegmentMerger();
-        segmentMergers.put(recDir, segmentMerger);
-        try {
-            File mergedFile = Recording.mergedFileFromDirectory(recDir);
-            segmentMerger.merge(recDir, mergedFile);
-
-            if (mergedFile != null && mergedFile.exists() && mergedFile.length() > 0) {
-                LOG.debug("Merged file {}", mergedFile.getAbsolutePath());
-                if (Config.getInstance().getSettings().mergeDir.length() > 0) {
-                    File mergeDir = new File(Config.getInstance().getSettings().mergeDir);
-                    if (!mergeDir.exists()) {
-                        boolean created = mergeDir.mkdirs();
-                        if (!created) {
-                            LOG.error("Couldn't create directory for merged files {}", mergeDir);
-                        }
-                    }
-
-                    File finalLocation = new File(mergeDir, mergedFile.getName());
-                    try {
-                        Files.move(mergedFile.toPath(), finalLocation.toPath(), StandardCopyOption.ATOMIC_MOVE);
-                    } catch (IOException e) {
-                        LOG.error("Couldn't move merged file to merge directory {}", mergeDir, e);
-                    }
-                }
-
-                if (Config.getInstance().getSettings().automerge && !Config.getInstance().getSettings().automergeKeepSegments) {
-                    try {
-                        LOG.debug("Deleting directory {}", recDir);
-                        // TODO validate the size of the merged file before deleting the segments
-                        delete(recDir, mergedFile);
-                    } catch (IOException e) {
-                        LOG.error("Couldn't delete directory {}", recDir, e);
-                    }
-                }
-            } else {
-                LOG.error("Merged file not found {}", mergedFile);
-            }
-
-            return mergedFile;
-        } catch (IOException e) {
-            LOG.error("Couldn't merge segments", e);
-        } catch (ParseException | PlaylistException e) {
-            LOG.error("Playlist is invalid", e);
-        } finally {
-            segmentMergers.remove(recDir);
-        }
-        return null;
     }
 
     private void generatePlaylist(File recDir) {
@@ -603,18 +548,6 @@ public class LocalRecorder implements Recorder {
         } finally {
             deleteInProgress.remove(directory);
         }
-    }
-
-    @Override
-    public File merge(Recording rec, boolean keepSegments) throws IOException {
-        File recordingsDir = new File(config.getSettings().recordingsDir);
-        File directory = new File(recordingsDir, rec.getPath());
-        File mergedFile = merge(directory);
-        if (!keepSegments) {
-            // TODO validate the size of the merged file before deleting the segments
-            delete(directory, mergedFile);
-        }
-        return mergedFile;
     }
 
     @Override

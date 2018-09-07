@@ -45,15 +45,12 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private static final int CHECKBOX_MARGIN = 6;
     private TextField recordingsDirectory;
     private Button recordingsDirectoryButton;
-    private TextField mergeDirectory;
     private TextField mediaPlayer;
     private TextField username;
     private TextField server;
     private TextField port;
     private CheckBox loadResolution;
     private CheckBox secureCommunication = new CheckBox();
-    private CheckBox automerge = new CheckBox();
-    private CheckBox automergeKeepSegments = new CheckBox();
     private CheckBox chooseStreamQuality = new CheckBox();
     private CheckBox autoRecordFollowed = new CheckBox();
     private CheckBox multiplePlayers = new CheckBox();
@@ -62,9 +59,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private RadioButton recordRemote;
     private ToggleGroup recordLocation;
     private ProxySettingsPane proxySettingsPane;
-
     private TitledPane ctb;
-    private TitledPane mergePane;
 
     public SettingsTab() {
         setText("Settings");
@@ -191,37 +186,6 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         quality.setCollapsible(false);
         mainLayout.add(quality, 0, 2);
 
-        GridPane mergeLayout = createGridLayout();
-        l = new Label("Auto-merge recordings");
-        mergeLayout.add(l, 0, 0);
-        automerge.setSelected(Config.getInstance().getSettings().automerge);
-        automerge.setOnAction((e) -> Config.getInstance().getSettings().automerge = automerge.isSelected());
-        GridPane.setMargin(automerge, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        mergeLayout.add(automerge, 1, 0);
-
-        l = new Label("Keep segments after auto-merge");
-        mergeLayout.add(l, 0, 1);
-        automergeKeepSegments.setSelected(Config.getInstance().getSettings().automergeKeepSegments);
-        automergeKeepSegments.setOnAction((e) -> Config.getInstance().getSettings().automergeKeepSegments = automergeKeepSegments.isSelected());
-        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, CHECKBOX_MARGIN, 0));
-        GridPane.setMargin(automergeKeepSegments, new Insets(CHECKBOX_MARGIN, 0, CHECKBOX_MARGIN, CHECKBOX_MARGIN));
-        mergeLayout.add(automergeKeepSegments, 1, 1);
-
-        l = new Label("Move merged files to");
-        mergeLayout.add(l, 0, 2);
-        mergeDirectory = new TextField(Config.getInstance().getSettings().mergeDir);
-        mergeDirectory.setOnAction((e) -> Config.getInstance().getSettings().mergeDir = mergeDirectory.getText());
-        mergeDirectory.focusedProperty().addListener(createMergeDirectoryFocusListener());
-        GridPane.setFillWidth(mergeDirectory, true);
-        GridPane.setHgrow(mergeDirectory, Priority.ALWAYS);
-        GridPane.setMargin(mergeDirectory, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        mergeLayout.add(mergeDirectory, 1, 2);
-        mergeLayout.add(createMergeDirButton(), 3, 2);
-
-        mergePane = new TitledPane("Merging", mergeLayout);
-        mergePane.setCollapsible(false);
-        mainLayout.add(mergePane, 0, 3);
-
         layout = createGridLayout();
         l = new Label("Record Location");
         layout.add(l, 0, 0);
@@ -303,7 +267,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
 
         TitledPane recordLocation = new TitledPane("Record Location", layout);
         recordLocation.setCollapsible(false);
-        mainLayout.add(recordLocation, 0, 4);
+        mainLayout.add(recordLocation, 0, 3);
 
         setRecordingMode(recordLocal.isSelected());
     }
@@ -328,9 +292,6 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         server.setDisable(local);
         port.setDisable(local);
         secureCommunication.setDisable(local);
-        automerge.setDisable(!local);
-        automergeKeepSegments.setDisable(!local);
-        mergePane.setDisable(!local);
         ctb.setDisable(!local);
         recordingsDirectory.setDisable(!local);
         recordingsDirectoryButton.setDisable(!local);
@@ -347,26 +308,6 @@ public class SettingsTab extends Tab implements TabSelectionListener {
                     String input = recordingsDirectory.getText();
                     File newDir = new File(input);
                     setRecordingsDir(newDir);
-                }
-            }
-        };
-    }
-
-    private ChangeListener<? super Boolean> createMergeDirectoryFocusListener() {
-        return new ChangeListener<Boolean>() {
-            @Override
-            public void changed(ObservableValue<? extends Boolean> arg0, Boolean oldPropertyValue, Boolean newPropertyValue) {
-                if (newPropertyValue) {
-                    mergeDirectory.setBorder(Border.EMPTY);
-                    mergeDirectory.setTooltip(null);
-                } else {
-                    String input = mergeDirectory.getText();
-                    if(input.isEmpty()) {
-                        Config.getInstance().getSettings().mergeDir = "";
-                    } else {
-                        File newDir = new File(input);
-                        setMergeDir(newDir);
-                    }
                 }
             }
         };
@@ -423,22 +364,6 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         return button;
     }
 
-    private Node createMergeDirButton() {
-        Button button = new Button("Select");
-        button.setOnAction((e) -> {
-            DirectoryChooser chooser = new DirectoryChooser();
-            File currentDir = new File(Config.getInstance().getSettings().mergeDir);
-            if (currentDir.exists() && currentDir.isDirectory()) {
-                chooser.setInitialDirectory(currentDir);
-            }
-            File selectedDir = chooser.showDialog(null);
-            if(selectedDir != null) {
-                setMergeDir(selectedDir);
-            }
-        });
-        return button;
-    }
-
     private Node createMpvBrowseButton() {
         Button button = new Button("Select");
         button.setOnAction((e) -> {
@@ -482,33 +407,6 @@ public class SettingsTab extends Tab implements TabSelectionListener {
                 recordingsDirectory.setTooltip(new Tooltip("Directory does not exist"));
             }
 
-        }
-    }
-
-    private void setMergeDir(File dir) {
-        if (dir != null) {
-            if (dir.isDirectory()) {
-                try {
-                    String path = dir.getCanonicalPath();
-                    Config.getInstance().getSettings().mergeDir = path;
-                    mergeDirectory.setText(path);
-                } catch (IOException e1) {
-                    LOG.error("Couldn't determine directory path", e1);
-                    Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
-                    alert.setTitle("Whoopsie");
-                    alert.setContentText("Couldn't determine directory path");
-                    alert.showAndWait();
-                }
-            } else {
-                mergeDirectory.setBorder(new Border(new BorderStroke(Color.RED, BorderStrokeStyle.DASHED, new CornerRadii(2), new BorderWidths(2))));
-                if (!dir.isDirectory()) {
-                    mergeDirectory.setTooltip(new Tooltip("This is not a directory"));
-                }
-                if (!dir.exists()) {
-                    mergeDirectory.setTooltip(new Tooltip("Directory does not exist"));
-                }
-
-            }
         }
     }
 

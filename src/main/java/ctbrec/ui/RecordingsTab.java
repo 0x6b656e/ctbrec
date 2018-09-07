@@ -45,7 +45,6 @@ import javafx.scene.Cursor;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ContextMenu;
-import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
@@ -260,67 +259,7 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
             contextMenu.getItems().add(downloadRecording);
         }
 
-        Menu mergeRecording = new Menu("Merge segments");
-        MenuItem mergeKeep = new MenuItem("… and keep segments");
-        mergeKeep.setOnAction((e) -> {
-            try {
-                merge(recording, true);
-            } catch (IOException e1) {
-                showErrorDialog("Error while merging recording", "The playlist does not exist", e1);
-                LOG.error("Error while merging recording", e);
-            }
-        });
-        MenuItem mergeDelete = new MenuItem("… and delete segments");
-        mergeDelete.setOnAction((e) -> {
-            try {
-                merge(recording, false);
-            } catch (IOException e1) {
-                showErrorDialog("Error while merging recording", "The playlist does not exist", e1);
-                LOG.error("Error while merging recording", e);
-            }
-        });
-        mergeRecording.getItems().addAll(mergeKeep, mergeDelete);
-        if (Config.getInstance().getSettings().localRecording && recording.getStatus() == STATUS.FINISHED) {
-            if(!Recording.isMergedRecording(recording)) {
-                contextMenu.getItems().add(mergeRecording);
-            }
-        }
-
         return contextMenu;
-    }
-
-    private void merge(Recording recording, boolean keepSegments) throws IOException {
-        File recDir = new File (Config.getInstance().getSettings().recordingsDir, recording.getPath());
-        File playlistFile = new File(recDir, "playlist.m3u8");
-        if(!playlistFile.exists()) {
-            table.setCursor(Cursor.DEFAULT);
-            throw new IOException("Playlist file does not exist");
-        }
-        String filename = recording.getPath().replaceAll("/", "-") + ".ts";
-        File targetFile = new File(recDir, filename);
-        if(targetFile.exists()) {
-            return;
-        }
-
-        Thread t = new Thread() {
-            @Override
-            public void run() {
-                try {
-                    recorder.merge(recording, keepSegments);
-                } catch (IOException e) {
-                    showErrorDialog("Error while merging segments", "The merged file could not be created", e);
-                    LOG.error("Error while merging segments", e);
-                } finally {
-                    Platform.runLater(() -> {
-                        recording.setStatus(STATUS.FINISHED);
-                        recording.setProgress(-1);
-                    });
-                }
-            };
-        };
-        t.setDaemon(true);
-        t.setName("Segment Merger " + recording.getPath());
-        t.start();
     }
 
     private void download(Recording recording) throws IOException, ParseException, PlaylistException {

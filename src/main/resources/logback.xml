@@ -44,5 +44,6 @@
 	<logger name="ctbrec.ui.CookieJarImpl" level="INFO"/>
 	<logger name="ctbrec.ui.ThumbOverviewTab" level="DEBUG"/>
 	<logger name="org.eclipse.jetty" level="INFO" />
+	<logger name="streamer" level="ERROR" />
 	
 </configuration>

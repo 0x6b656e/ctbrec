@@ -19,14 +19,11 @@ public class Settings {
     public int httpTimeout = 10;
     public String httpServer = "localhost";
     public String recordingsDir = System.getProperty("user.home") + File.separator + "ctbrec";
-    public String mergeDir = "";
     public String mediaPlayer = "/usr/bin/mpv";
     public String username = "";
     public String password = "";
     public String lastDownloadDir = "";
     public List<Model> models = new ArrayList<Model>();
-    public boolean automerge = false;
-    public boolean automergeKeepSegments = false;
     public boolean determineResolution = false;
     public boolean requireAuthentication = false;
     public boolean chooseStreamQuality = false;

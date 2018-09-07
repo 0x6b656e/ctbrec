@@ -2,7 +2,6 @@ package ctbrec.recorder;
 
 import static ctbrec.Recording.STATUS.FINISHED;
 import static ctbrec.Recording.STATUS.GENERATING_PLAYLIST;
-import static ctbrec.Recording.STATUS.MERGING;
 import static ctbrec.Recording.STATUS.RECORDING;
 
 import java.io.File;
@@ -47,7 +46,6 @@ public class LocalRecorder implements Recorder {
     private List<Model> models = Collections.synchronizedList(new ArrayList<>());
     private Map<Model, Download> recordingProcesses = Collections.synchronizedMap(new HashMap<>());
     private Map<File, PlaylistGenerator> playlistGenerators = new HashMap<>();
-    private Map<File, SegmentMerger> segmentMergers = new HashMap<>();
     private Config config;
     private ProcessMonitor processMonitor;
     private OnlineMonitor onlineMonitor;
@@ -460,19 +458,13 @@ public class LocalRecorder implements Recorder {
                             recording.setStatus(GENERATING_PLAYLIST);
                             recording.setProgress(playlistGenerator.getProgress());
                         } else {
-                            SegmentMerger merger = segmentMergers.get(rec);
-                            if (merger != null) {
-                                recording.setStatus(MERGING);
-                                recording.setProgress(merger.getProgress());
+                            if (Recording.isMergedRecording(rec)) {
+                                recording.setStatus(FINISHED);
                             } else {
-                                if (Recording.isMergedRecording(rec)) {
+                                if (recording.hasPlaylist()) {
                                     recording.setStatus(FINISHED);
                                 } else {
-                                    if (recording.hasPlaylist()) {
-                                        recording.setStatus(FINISHED);
-                                    } else {
-                                        recording.setStatus(RECORDING);
-                                    }
+                                    recording.setStatus(RECORDING);
                                 }
                             }
                         }

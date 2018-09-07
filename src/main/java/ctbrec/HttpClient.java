@@ -9,8 +9,8 @@ import org.slf4j.LoggerFactory;
 
 import ctbrec.Settings.ProxyType;
 import ctbrec.ui.CookieJarImpl;
+import ctbrec.ui.CtbrecApplication;
 import ctbrec.ui.HtmlParser;
-import ctbrec.ui.Launcher;
 import okhttp3.ConnectionPool;
 import okhttp3.Cookie;
 import okhttp3.FormBody;
@@ -121,7 +121,7 @@ public class HttpClient {
     public boolean login() throws IOException {
         try {
             Request login = new Request.Builder()
-                    .url(Launcher.BASE_URI + "/auth/login/")
+                    .url(CtbrecApplication.BASE_URI + "/auth/login/")
                     .build();
             Response response = client.newCall(login).execute();
             String content = response.body().string();
@@ -135,8 +135,8 @@ public class HttpClient {
                     .add("csrfmiddlewaretoken", token)
                     .build();
             login = new Request.Builder()
-                    .url(Launcher.BASE_URI + "/auth/login/")
-                    .header("Referer", Launcher.BASE_URI + "/auth/login/")
+                    .url(CtbrecApplication.BASE_URI + "/auth/login/")
+                    .header("Referer", CtbrecApplication.BASE_URI + "/auth/login/")
                     .post(body)
                     .build();
 

@@ -467,7 +467,18 @@ public class LocalRecorder implements Recorder {
                             recording.setProgress(playlistGenerator.getProgress());
                         } else {
                             if (Recording.isMergedRecording(rec)) {
-                                recording.setStatus(FINISHED);
+                                boolean dirUsedByRecordingProcess = false;
+                                for (Download download : recordingProcesses.values()) {
+                                    if(rec.equals(download.getDirectory())) {
+                                        dirUsedByRecordingProcess = true;
+                                        break;
+                                    }
+                                }
+                                if(dirUsedByRecordingProcess) {
+                                    recording.setStatus(RECORDING);
+                                } else {
+                                    recording.setStatus(FINISHED);
+                                }
                             } else {
                                 if (recording.hasPlaylist()) {
                                     recording.setStatus(FINISHED);

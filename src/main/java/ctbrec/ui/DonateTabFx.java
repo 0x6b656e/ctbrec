@@ -43,7 +43,7 @@ public class DonateTabFx extends Tab {
 
         ImageView coffeeImage = new ImageView(getClass().getResource("/html/buymeacoffee-fancy.png").toString());
         Button coffeeButton = new Button("Buy me a coffee");
-        coffeeButton.setOnMouseClicked((e) -> { Launcher.open("https://www.buymeacoffee.com/0xboobface"); });
+        coffeeButton.setOnMouseClicked((e) -> { DesktopIntergation.open("https://www.buymeacoffee.com/0xboobface"); });
         VBox buyCoffeeBox = new VBox(5);
         buyCoffeeBox.setAlignment(Pos.TOP_CENTER);
         buyCoffeeBox.getChildren().addAll(coffeeImage, coffeeButton);

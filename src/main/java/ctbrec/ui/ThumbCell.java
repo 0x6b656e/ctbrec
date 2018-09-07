@@ -420,9 +420,9 @@ public class ThumbCell extends StackPane {
 
                     String url = null;
                     if(follow) {
-                        url = Launcher.BASE_URI + "/follow/follow/" + model.getName() + "/";
+                        url = CtbrecApplication.BASE_URI + "/follow/follow/" + model.getName() + "/";
                     } else {
-                        url = Launcher.BASE_URI + "/follow/unfollow/" + model.getName() + "/";
+                        url = CtbrecApplication.BASE_URI + "/follow/unfollow/" + model.getName() + "/";
                     }
 
                     RequestBody body = RequestBody.create(null, new byte[0]);

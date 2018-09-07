@@ -1,6 +1,6 @@
 package ctbrec;
 
-import static ctbrec.ui.Launcher.BASE_URI;
+import static ctbrec.ui.CtbrecApplication.BASE_URI;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -2,8 +2,9 @@ package org.taktik.mpegts;
 
 import java.nio.ByteBuffer;
 
-import com.google.common.base.Preconditions;
 import org.taktik.ioutils.NIOUtils;
+
+import com.google.common.base.Preconditions;
 
 public class MTSPacket extends PacketSupport {
 	private boolean transportErrorIndicator;	// Transport Error Indicator (TEI)

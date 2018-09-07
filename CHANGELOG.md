@@ -1,3 +1,7 @@
+1.5.0
+========================
+
+
 1.4.3
 ========================
 * Added possibility to switch the video resolution for a recording

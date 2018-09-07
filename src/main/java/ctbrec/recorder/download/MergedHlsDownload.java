@@ -36,6 +36,7 @@ import com.iheartradio.m3u8.PlaylistException;
 import ctbrec.Config;
 import ctbrec.HttpClient;
 import ctbrec.Model;
+import ctbrec.Recording;
 import ctbrec.recorder.Chaturbate;
 import ctbrec.recorder.ProgressListener;
 import ctbrec.recorder.StreamInfo;
@@ -96,7 +97,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
                 Files.createDirectories(downloadDir);
             }
 
-            File targetFile = new File(downloadDir.toFile(), "record.ts");
+            File targetFile = Recording.mergedFileFromDirectory(downloadDir.toFile());
             mergeThread = createMergeThread(targetFile, null);
             mergeThread.start();
             handoverThread = createHandoverThread();

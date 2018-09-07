@@ -9,6 +9,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,5 +81,9 @@ public class Config {
         LOG.debug("Saving config to {}", configFile.getAbsolutePath());
         Files.createDirectories(configDir.toPath());
         Files.write(configFile.toPath(), json.getBytes("utf-8"), CREATE, WRITE, TRUNCATE_EXISTING);
+    }
+
+    public boolean isServerMode() {
+        return Objects.equals(System.getProperty("ctbrec.server.mode"), "1");
     }
 }

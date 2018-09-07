@@ -26,6 +26,7 @@ public class HttpServer {
     private Server server = new Server();
 
     public HttpServer() throws Exception {
+        System.setProperty("ctbrec.server.mode", "1");
         if(System.getProperty("ctbrec.config") == null) {
             System.setProperty("ctbrec.config", "server.json");
         }

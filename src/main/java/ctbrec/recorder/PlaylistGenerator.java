@@ -47,9 +47,7 @@ public class PlaylistGenerator {
     public File generate(File directory) throws IOException, ParseException, PlaylistException {
         LOG.debug("Starting playlist generation for {}", directory);
         // get a list of all ts files and sort them by sequence
-        File[] files = directory.listFiles((f) -> {
-            return f.getName().endsWith(".ts") && !f.getName().startsWith("record");
-        });
+        File[] files = directory.listFiles((f) -> f.getName().endsWith(".ts"));
         if(files.length == 0) {
             LOG.debug("{} is empty. Not going to generate a playlist", directory);
             return null;

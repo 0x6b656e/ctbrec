@@ -67,7 +67,7 @@ public abstract class AbstractHlsDownload implements Download {
         }
     }
 
-    LiveStreamingPlaylist getNextSegments(String segments) throws IOException, ParseException, PlaylistException {
+    SegmentPlaylist getNextSegments(String segments) throws IOException, ParseException, PlaylistException {
         URL segmentsUrl = new URL(segments);
         Request request = new Request.Builder().url(segmentsUrl).addHeader("connection", "keep-alive").build();
         Response response = client.execute(request);
@@ -77,7 +77,7 @@ public abstract class AbstractHlsDownload implements Download {
             Playlist playlist = parser.parse();
             if(playlist.hasMediaPlaylist()) {
                 MediaPlaylist mediaPlaylist = playlist.getMediaPlaylist();
-                LiveStreamingPlaylist lsp = new LiveStreamingPlaylist();
+                SegmentPlaylist lsp = new SegmentPlaylist();
                 lsp.seq = mediaPlaylist.getMediaSequenceNumber();
                 lsp.targetDuration = mediaPlaylist.getTargetDuration();
                 List<TrackData> tracks = mediaPlaylist.getTracks();
@@ -110,7 +110,7 @@ public abstract class AbstractHlsDownload implements Download {
         return downloadDir.toFile();
     }
 
-    public static class LiveStreamingPlaylist {
+    public static class SegmentPlaylist {
         public int seq = 0;
         public float totalDuration = 0;
         public float lastSegDuration = 0;

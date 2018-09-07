@@ -34,6 +34,7 @@ import ctbrec.ModelParser;
 import ctbrec.Recording;
 import ctbrec.recorder.PlaylistGenerator.InvalidPlaylistException;
 import ctbrec.recorder.download.Download;
+import ctbrec.recorder.download.HlsDownload;
 import ctbrec.recorder.download.MergedHlsDownload;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -67,8 +68,11 @@ public class LocalRecorder implements Recorder {
         processMonitor.start();
         onlineMonitor = new OnlineMonitor();
         onlineMonitor.start();
+
         playlistGenTrigger = new PlaylistGeneratorTrigger();
-        playlistGenTrigger.start();
+        if(Config.getInstance().isServerMode()) {
+            playlistGenTrigger.start();
+        }
 
         if (config.getSettings().recordFollowed) {
             followedMonitor = new FollowedMonitor();
@@ -118,8 +122,13 @@ public class LocalRecorder implements Recorder {
             return;
         }
 
-        //Download download = new HlsDownload(client);
-        Download download = new MergedHlsDownload(client);
+        Download download;
+        if (Config.getInstance().isServerMode()) {
+            download = new HlsDownload(client);
+        } else {
+            download = new MergedHlsDownload(client);
+        }
+
         recordingProcesses.put(model, download);
         new Thread() {
             @Override
@@ -298,8 +307,7 @@ public class LocalRecorder implements Recorder {
         Thread t = new Thread() {
             @Override
             public void run() {
-                boolean local = Config.getInstance().getSettings().localRecording;
-                if(!local) {
+                if(Config.getInstance().isServerMode()) {
                     generatePlaylist(directory);
                 }
             }

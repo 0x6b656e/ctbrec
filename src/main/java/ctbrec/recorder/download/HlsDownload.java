@@ -60,7 +60,7 @@ public class HlsDownload extends AbstractHlsDownload {
                 int lastSegment = 0;
                 int nextSegment = 0;
                 while(running) {
-                    LiveStreamingPlaylist lsp = getNextSegments(segments);
+                    SegmentPlaylist lsp = getNextSegments(segments);
                     if(nextSegment > 0 && lsp.seq > nextSegment) {
                         LOG.warn("Missed segments {} < {} in download for {}", nextSegment, lsp.seq, model);
                         String first = lsp.segments.get(0);

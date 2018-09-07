@@ -37,6 +37,7 @@ import ctbrec.Config;
 import ctbrec.HttpClient;
 import ctbrec.Model;
 import ctbrec.recorder.Chaturbate;
+import ctbrec.recorder.ProgressListener;
 import ctbrec.recorder.StreamInfo;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -52,6 +53,30 @@ public class MergedHlsDownload extends AbstractHlsDownload {
 
     public MergedHlsDownload(HttpClient client) {
         super(client);
+    }
+
+    public void start(String segmentPlaylistUri, File target, ProgressListener progressListener) throws IOException {
+        try {
+            running = true;
+            mergeThread = createMergeThread(target, progressListener);
+            mergeThread.start();
+            handoverThread = createHandoverThread();
+            handoverThread.start();
+
+            downloadSegments(segmentPlaylistUri, false);
+        } catch(ParseException e) {
+            throw new IOException("Couldn't parse stream information", e);
+        } catch(PlaylistException e) {
+            throw new IOException("Couldn't parse HLS playlist", e);
+        } catch(EOFException e) {
+            // end of playlist reached
+            LOG.debug("Reached end of playlist");
+        } catch(Exception e) {
+            throw new IOException("Couldn't download segment", e);
+        } finally {
+            alive = false;
+            LOG.debug("Download for terminated");
+        }
     }
 
     @Override
@@ -71,62 +96,15 @@ public class MergedHlsDownload extends AbstractHlsDownload {
                 Files.createDirectories(downloadDir);
             }
 
-            mergeThread = createMergeThread(downloadDir);
+            File targetFile = new File(downloadDir.toFile(), "record.ts");
+            mergeThread = createMergeThread(targetFile, null);
             mergeThread.start();
             handoverThread = createHandoverThread();
             handoverThread.start();
 
             String segments = parseMaster(streamInfo.url, model.getStreamUrlIndex());
             if(segments != null) {
-                int lastSegment = 0;
-                int nextSegment = 0;
-                while(running) {
-                    LiveStreamingPlaylist lsp = getNextSegments(segments);
-                    if(nextSegment > 0 && lsp.seq > nextSegment) {
-                        LOG.warn("Missed segments {} < {} in download for {}", nextSegment, lsp.seq, model);
-                        String first = lsp.segments.get(0);
-                        int seq = lsp.seq;
-                        for (int i = nextSegment; i < lsp.seq; i++) {
-                            URL segmentUrl = new URL(first.replaceAll(Integer.toString(seq), Integer.toString(i)));
-                            LOG.debug("Loading missed segment {} for model {}", i, model.getName());
-                            Future<InputStream> downloadFuture = downloadThreadPool.submit(new SegmentDownload(segmentUrl, client));
-                            mergeQueue.add(downloadFuture);
-                        }
-                        // TODO switch to a lower bitrate/resolution ?!?
-                    }
-                    int skip = nextSegment - lsp.seq;
-                    for (String segment : lsp.segments) {
-                        if(skip > 0) {
-                            skip--;
-                        } else {
-                            URL segmentUrl = new URL(segment);
-                            Future<InputStream> downloadFuture = downloadThreadPool.submit(new SegmentDownload(segmentUrl, client));
-                            mergeQueue.add(downloadFuture);
-                        }
-                    }
-
-                    long wait = 0;
-                    if(lastSegment == lsp.seq) {
-                        // playlist didn't change -> wait for at least half the target duration
-                        wait = (long) lsp.targetDuration * 1000 / 2;
-                        LOG.trace("Playlist didn't change... waiting for {}ms", wait);
-                    } else {
-                        // playlist did change -> wait for at least last segment duration
-                        wait = 1;//(long) lsp.lastSegDuration * 1000;
-                        LOG.trace("Playlist changed... waiting for {}ms", wait);
-                    }
-
-                    try {
-                        Thread.sleep(wait);
-                    } catch (InterruptedException e) {
-                        if(running) {
-                            LOG.error("Couldn't sleep between segment downloads. This might mess up the download!");
-                        }
-                    }
-
-                    lastSegment = lsp.seq;
-                    nextSegment = lastSegment + lsp.segments.size();
-                }
+                downloadSegments(segments, true);
             } else {
                 throw new IOException("Couldn't determine segments uri");
             }
@@ -145,36 +123,103 @@ public class MergedHlsDownload extends AbstractHlsDownload {
         }
     }
 
-    private Thread createHandoverThread() {
-        Thread t = new Thread(() -> {
-            while(running) {
-                try {
-                    Future<InputStream> downloadFuture = mergeQueue.take();
-                    InputStream tsData = downloadFuture.get();
-                    InputStreamMTSSource source = InputStreamMTSSource.builder().setInputStream(tsData).build();
-                    multiSource.addSource(source);
-                } catch (InterruptedException e) {
-                    if(running) {
-                        LOG.error("Interrupted while waiting for a download future", e);
-                    }
-                } catch (ExecutionException e) {
-                    LOG.error("Error while opening segment stream", e);
+    private void downloadSegments(String segmentPlaylistUri, boolean livestreamDownload) throws IOException, ParseException, PlaylistException {
+        int lastSegment = 0;
+        int nextSegment = 0;
+        while(running) {
+            SegmentPlaylist lsp = getNextSegments(segmentPlaylistUri);
+            if(!livestreamDownload) {
+                multiSource.setTotalSegments(lsp.segments.size());
+            }
+            if(nextSegment > 0 && lsp.seq > nextSegment) {
+                LOG.warn("Missed segments {} < {} in download for {}", nextSegment, lsp.seq, segmentPlaylistUri);
+                String first = lsp.segments.get(0);
+                int seq = lsp.seq;
+                for (int i = nextSegment; i < lsp.seq; i++) {
+                    URL segmentUrl = new URL(first.replaceAll(Integer.toString(seq), Integer.toString(i)));
+                    LOG.debug("Loading missed segment {} for model {}", i, segmentPlaylistUri);
+                    Future<InputStream> downloadFuture = downloadThreadPool.submit(new SegmentDownload(segmentUrl, client));
+                    mergeQueue.add(downloadFuture);
+                }
+                // TODO switch to a lower bitrate/resolution ?!?
+            }
+            int skip = nextSegment - lsp.seq;
+            for (String segment : lsp.segments) {
+                if(skip > 0) {
+                    skip--;
+                } else {
+                    URL segmentUrl = new URL(segment);
+                    Future<InputStream> downloadFuture = downloadThreadPool.submit(new SegmentDownload(segmentUrl, client));
+                    mergeQueue.add(downloadFuture);
                 }
             }
-        });
+
+            if(livestreamDownload) {
+                long wait = 0;
+                if(lastSegment == lsp.seq) {
+                    // playlist didn't change -> wait for at least half the target duration
+                    wait = (long) lsp.targetDuration * 1000 / 2;
+                    LOG.trace("Playlist didn't change... waiting for {}ms", wait);
+                } else {
+                    // playlist did change -> wait for at least last segment duration
+                    wait = 1;//(long) lsp.lastSegDuration * 1000;
+                    LOG.trace("Playlist changed... waiting for {}ms", wait);
+                }
+
+                try {
+                    Thread.sleep(wait);
+                } catch (InterruptedException e) {
+                    if(running) {
+                        LOG.error("Couldn't sleep between segment downloads. This might mess up the download!");
+                    }
+                }
+            }
+
+            lastSegment = lsp.seq;
+            nextSegment = lastSegment + lsp.segments.size();
+
+            if(!livestreamDownload) {
+                break;
+            }
+        }
+    }
+
+    private Thread createHandoverThread() {
+        Thread t = new Thread() {
+            @Override
+            public void run() {
+                while(running) {
+                    try {
+                        Future<InputStream> downloadFuture = mergeQueue.take();
+                        InputStream tsData = downloadFuture.get();
+                        InputStreamMTSSource source = InputStreamMTSSource.builder().setInputStream(tsData).build();
+                        multiSource.addSource(source);
+                    } catch (InterruptedException e) {
+                        if(running) {
+                            LOG.error("Interrupted while waiting for a download future", e);
+                        }
+                    } catch (ExecutionException e) {
+                        LOG.error("Error while opening segment stream", e);
+                    }
+                }
+                LOG.debug("Handover Thread finished");
+            };
+        };
         t.setName("Segment Handover Thread");
         t.setDaemon(true);
         return t;
     }
 
-    private Thread createMergeThread(Path downloadDir) {
+    private Thread createMergeThread(File targetFile, ProgressListener listener) {
         Thread t = new Thread(() -> {
-            multiSource = BlockingMultiMTSSource.builder().setFixContinuity(true).build();
+            multiSource = BlockingMultiMTSSource.builder()
+                    .setFixContinuity(true)
+                    .setProgressListener(listener)
+                    .build();
 
-            File out = new File(downloadDir.toFile(), "record.ts");
             FileChannel channel = null;
             try {
-                channel = FileChannel.open(out.toPath(), CREATE, WRITE);
+                channel = FileChannel.open(targetFile.toPath(), CREATE, WRITE);
                 MTSSink sink = ByteChannelSink.builder().setByteChannel(channel).build();
 
                 streamer = Streamer.builder()
@@ -186,6 +231,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
 
                 // Start streaming
                 streamer.stream();
+                LOG.debug("Streamer finished");
             } catch (InterruptedException e) {
                 if(running) {
                     LOG.error("Error while waiting for a download future", e);
@@ -196,7 +242,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
                 try {
                     channel.close();
                 } catch (IOException e) {
-                    LOG.error("Error while closing file {}", out);
+                    LOG.error("Error while closing file {}", targetFile);
                 }
             }
         });

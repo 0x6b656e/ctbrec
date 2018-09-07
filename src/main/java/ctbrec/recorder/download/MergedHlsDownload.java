@@ -159,8 +159,6 @@ public class MergedHlsDownload extends AbstractHlsDownload {
                     }
                 } catch (ExecutionException e) {
                     LOG.error("Error while executing download", e);
-                } catch (IOException e) {
-                    LOG.error("Error while saving stream to file", e);
                 }
             }
         });

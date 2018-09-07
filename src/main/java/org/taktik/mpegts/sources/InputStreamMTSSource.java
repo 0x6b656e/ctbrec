@@ -13,7 +13,7 @@ public class InputStreamMTSSource extends AbstractMTSSource {
 
     private InputStream inputStream;
 
-    private InputStreamMTSSource(InputStream inputStream) throws IOException {
+    private InputStreamMTSSource(InputStream inputStream) {
         this.inputStream = inputStream;
     }
 
@@ -55,7 +55,7 @@ public class InputStreamMTSSource extends AbstractMTSSource {
             return this;
         }
 
-        public InputStreamMTSSource build() throws IOException {
+        public InputStreamMTSSource build() {
             Preconditions.checkNotNull(inputStream, "InputStream cannot be null");
             return new InputStreamMTSSource(inputStream);
         }

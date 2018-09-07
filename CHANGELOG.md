@@ -1,8 +1,14 @@
+1.5.0
+========================
+
+
 1.4.3
 ========================
 * Added possibility to switch the video resolution for a recording
 * Added selection box below the overview pages to change the thumbnail size
 * Save and restore window size, location and maximized state
+* Added check for OpenJDK and JavaFX on start to print out a better error,
+  if JavaFX is not available
 
 1.4.2
 ========================

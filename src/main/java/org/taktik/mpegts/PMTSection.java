@@ -52,8 +52,8 @@ public class PMTSection extends PSISection {
         int w1 = data.getShort() & 0xffff;
         int pcrPid = w1 & 0x1fff;
 
-        int w2 = data.getShort() & 0xffff;
-        int programInfoLength = w2 & 0xfff;
+        //int w2 = data.getShort() & 0xffff;
+        //int programInfoLength = w2 & 0xfff;
 
         //		List<Tag> tags = parseTags(NIOUtils.read(data, programInfoLength));
         //		List<PMTStream> streams = new ArrayList<PMTStream>();

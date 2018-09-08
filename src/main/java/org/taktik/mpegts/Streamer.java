@@ -83,7 +83,7 @@ public class Streamer {
 
     private void internalStream() {
         boolean resetState = false;
-        MTSPacket packet;
+        MTSPacket packet = null;
         long packetCount = 0;
         //long pcrPidPacketCount = 0;
         Long firstPcrValue = null;
@@ -106,17 +106,21 @@ public class Streamer {
             // Initialize time to sleep
             long sleepNanos = 0;
 
-            packet = buffer.poll();
-
-            if (packet == null) {
-                if (endOfSourceReached) {
-                    packet = buffer.poll();
-                    if (packet == null) {
-                        break;
+            try {
+                packet = buffer.take();
+                if (packet == null) {
+                    if (endOfSourceReached) {
+                        packet = buffer.take();
+                        if (packet == null) {
+                            break;
+                        }
+                    } else {
+                        continue;
                     }
-                } else {
-                    continue;
                 }
+            } catch (InterruptedException e1) {
+                log.error("INterrupted while eaiting for packet");
+                continue;
             }
 
             int pid = packet.getPid();

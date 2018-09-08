@@ -21,6 +21,7 @@ public class BlockingMultiMTSSource extends AbstractMTSSource implements AutoClo
     private int downloadedSegments = 0;
     private int totalSegments = -1;
     private ProgressListener listener;
+    private int lastProgress = 0;
 
     private BlockingMultiMTSSource(boolean fixContinuity) {
         this.fixContinuity = fixContinuity;
@@ -41,28 +42,48 @@ public class BlockingMultiMTSSource extends AbstractMTSSource implements AutoClo
         }
 
         MTSPacket packet = currentSource.nextPacket();
+        packet = switchSourceIfNeeded(packet);
+
+        if (fixContinuity) {
+            continuityFixer.fixContinuity(packet);
+        }
+        return packet;
+    }
+
+    private MTSPacket switchSourceIfNeeded(MTSPacket packet) throws Exception {
         if(packet == null) {
             // end of source has been reached, switch to the next source
-            currentSource.close();
+            closeCurrentSource();
+
             downloadedSegments++;
             if(listener != null && totalSegments > 0) {
                 int progress = (int)(downloadedSegments * 100.0 / totalSegments);
-                listener.update(progress);
+                if(progress > lastProgress) {
+                    listener.update(progress);
+                    lastProgress = progress;
+                }
             }
             if(downloadedSegments == totalSegments) {
                 LOG.debug("All segments written. Queue size {}", sources.size());
                 return null;
             }
 
-            currentSource = sources.take();
-            packet = currentSource.nextPacket();
-            //            }
-        }
-
-        if (fixContinuity) {
-            continuityFixer.fixContinuity(packet);
+            return firstPacketFromNextSource();
         }
         return packet;
+    }
+
+    private MTSPacket firstPacketFromNextSource() throws Exception {
+        switchSource();
+        return currentSource.nextPacket();
+    }
+
+    private void switchSource() throws InterruptedException {
+        currentSource = sources.take();
+    }
+
+    private void closeCurrentSource() throws Exception {
+        currentSource.close();
     }
 
     private void setProgressListener(ProgressListener listener) {

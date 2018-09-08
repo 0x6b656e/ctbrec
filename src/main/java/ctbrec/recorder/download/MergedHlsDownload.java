@@ -3,6 +3,7 @@ package ctbrec.recorder.download;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.WRITE;
 
+import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
@@ -15,12 +16,10 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.Objects;
-import java.util.concurrent.BlockingQueue;
+import java.util.Queue;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,10 +45,8 @@ import okhttp3.Response;
 public class MergedHlsDownload extends AbstractHlsDownload {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(MergedHlsDownload.class);
-    private BlockingQueue<Future<InputStream>> mergeQueue = new LinkedBlockingQueue<>();
     private BlockingMultiMTSSource multiSource;
     private Thread mergeThread;
-    private Thread handoverThread;
     private Streamer streamer;
 
     public MergedHlsDownload(HttpClient client) {
@@ -59,21 +56,13 @@ public class MergedHlsDownload extends AbstractHlsDownload {
     public void start(String segmentPlaylistUri, File target, ProgressListener progressListener) throws IOException {
         try {
             running = true;
-            mergeThread = createMergeThread(target, progressListener);
+            mergeThread = createMergeThread(target, progressListener, false);
             mergeThread.start();
-            handoverThread = createHandoverThread();
-            handoverThread.start();
-
             downloadSegments(segmentPlaylistUri, false);
         } catch(ParseException e) {
             throw new IOException("Couldn't parse stream information", e);
         } catch(PlaylistException e) {
             throw new IOException("Couldn't parse HLS playlist", e);
-        } catch(EOFException e) {
-            // end of playlist reached
-            LOG.debug("Reached end of playlist");
-        } catch(Exception e) {
-            throw new IOException("Couldn't download segment", e);
         } finally {
             alive = false;
             LOG.debug("Download for terminated");
@@ -98,10 +87,8 @@ public class MergedHlsDownload extends AbstractHlsDownload {
             }
 
             File targetFile = Recording.mergedFileFromDirectory(downloadDir.toFile());
-            mergeThread = createMergeThread(targetFile, null);
+            mergeThread = createMergeThread(targetFile, null, true);
             mergeThread.start();
-            handoverThread = createHandoverThread();
-            handoverThread.start();
 
             String segments = parseMaster(streamInfo.url, model.getStreamUrlIndex());
             if(segments != null) {
@@ -127,6 +114,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
     private void downloadSegments(String segmentPlaylistUri, boolean livestreamDownload) throws IOException, ParseException, PlaylistException {
         int lastSegment = 0;
         int nextSegment = 0;
+        Queue<byte[]> mergeQueue = new LinkedList<>();
         while(running) {
             SegmentPlaylist lsp = getNextSegments(segmentPlaylistUri);
             if(!livestreamDownload) {
@@ -139,8 +127,13 @@ public class MergedHlsDownload extends AbstractHlsDownload {
                 for (int i = nextSegment; i < lsp.seq; i++) {
                     URL segmentUrl = new URL(first.replaceAll(Integer.toString(seq), Integer.toString(i)));
                     LOG.debug("Loading missed segment {} for model {}", i, segmentPlaylistUri);
-                    Future<InputStream> downloadFuture = downloadThreadPool.submit(new SegmentDownload(segmentUrl, client));
-                    mergeQueue.add(downloadFuture);
+                    byte[] segmentData;
+                    try {
+                        segmentData = new SegmentDownload(segmentUrl, client).call();
+                        mergeQueue.add(segmentData);
+                    } catch (Exception e) {
+                        LOG.error("Error while downloading segment {}", segmentUrl, e);
+                    }
                 }
                 // TODO switch to a lower bitrate/resolution ?!?
             }
@@ -150,27 +143,48 @@ public class MergedHlsDownload extends AbstractHlsDownload {
                     skip--;
                 } else {
                     URL segmentUrl = new URL(segment);
-                    Future<InputStream> downloadFuture = downloadThreadPool.submit(new SegmentDownload(segmentUrl, client));
-                    mergeQueue.add(downloadFuture);
+                    try {
+                        byte[] segmentData = new SegmentDownload(segmentUrl, client).call();
+                        if(livestreamDownload) {
+                            mergeQueue.add(segmentData);
+                        } else {
+                            writeSegment(segmentData);
+                        }
+                    } catch (Exception e) {
+                        LOG.error("Error while downloading segment {}", segmentUrl, e);
+                    }
                 }
             }
 
             if(livestreamDownload) {
+                while(!mergeQueue.isEmpty()) {
+                    try {
+                        LOG.debug("Writing segment");
+                        writeSegment(mergeQueue.poll());
+                    } catch (InterruptedException e) {
+                        if(running) {
+                            LOG.error("Interrupted while waiting to add a new segment to multi source", e);
+                        }
+                    }
+                }
+            }
+
+            if (livestreamDownload) {
                 long wait = 0;
-                if(lastSegment == lsp.seq) {
+                if (lastSegment == lsp.seq) {
                     // playlist didn't change -> wait for at least half the target duration
                     wait = (long) lsp.targetDuration * 1000 / 2;
                     LOG.trace("Playlist didn't change... waiting for {}ms", wait);
                 } else {
                     // playlist did change -> wait for at least last segment duration
-                    wait = 1;//(long) lsp.lastSegDuration * 1000;
+                    wait = 1;// (long) lsp.lastSegDuration * 1000;
                     LOG.trace("Playlist changed... waiting for {}ms", wait);
                 }
 
                 try {
                     Thread.sleep(wait);
                 } catch (InterruptedException e) {
-                    if(running) {
+                    if (running) {
                         LOG.error("Couldn't sleep between segment downloads. This might mess up the download!");
                     }
                 }
@@ -185,33 +199,20 @@ public class MergedHlsDownload extends AbstractHlsDownload {
         }
     }
 
-    private Thread createHandoverThread() {
-        Thread t = new Thread() {
-            @Override
-            public void run() {
-                while(running) {
-                    try {
-                        Future<InputStream> downloadFuture = mergeQueue.take();
-                        InputStream tsData = downloadFuture.get();
-                        InputStreamMTSSource source = InputStreamMTSSource.builder().setInputStream(tsData).build();
-                        multiSource.addSource(source);
-                    } catch (InterruptedException e) {
-                        if(running) {
-                            LOG.error("Interrupted while waiting for a download future", e);
-                        }
-                    } catch (ExecutionException e) {
-                        LOG.error("Error while opening segment stream", e);
-                    }
-                }
-                LOG.debug("Handover Thread finished");
-            };
-        };
-        t.setName("Segment Handover Thread");
-        t.setDaemon(true);
-        return t;
+    private void writeSegment(byte[] segmentData) throws InterruptedException {
+        InputStream in = new ByteArrayInputStream(segmentData);
+        InputStreamMTSSource source = InputStreamMTSSource.builder().setInputStream(in).build();
+        multiSource.addSource(source);
     }
 
-    private Thread createMergeThread(File targetFile, ProgressListener listener) {
+    @Override
+    public void stop() {
+        running = false;
+        alive = false;
+        LOG.debug("Download stopped");
+    }
+
+    private Thread createMergeThread(File targetFile, ProgressListener listener, boolean liveStream) {
         Thread t = new Thread(() -> {
             multiSource = BlockingMultiMTSSource.builder()
                     .setFixContinuity(true)
@@ -226,7 +227,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
                 streamer = Streamer.builder()
                         .setSource(multiSource)
                         .setSink(sink)
-                        .setSleepingEnabled(false)
+                        .setSleepingEnabled(liveStream)
                         .setBufferSize(10)
                         .build();
 
@@ -252,20 +253,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
         return t;
     }
 
-    @Override
-    public void stop() {
-        running = false;
-        alive = false;
-        LOG.debug("Stopping streamer");
-        streamer.stop();
-        LOG.debug("Sending interrupt to merger");
-        mergeThread.interrupt();
-        LOG.debug("Sending interrupt to handover thread");
-        handoverThread.interrupt();
-        LOG.debug("Download stopped");
-    }
-
-    private static class SegmentDownload implements Callable<InputStream> {
+    private static class SegmentDownload implements Callable<byte[]> {
         private URL url;
         private HttpClient client;
 
@@ -275,24 +263,22 @@ public class MergedHlsDownload extends AbstractHlsDownload {
         }
 
         @Override
-        public InputStream call() throws Exception {
+        public byte[] call() throws Exception {
             LOG.trace("Downloading segment " + url.getFile());
             int maxTries = 3;
             for (int i = 1; i <= maxTries; i++) {
-                Request request = new Request.Builder().url(url).addHeader("connection", "keep-alive").build();
-                Response response = client.execute(request);
                 try {
-                    InputStream in = response.body().byteStream();
-                    return in;
+                    Request request = new Request.Builder().url(url).addHeader("connection", "keep-alive").build();
+                    Response response = client.execute(request);
+                    byte[] segment = response.body().bytes();
+                    return segment;
                 } catch(Exception e) {
                     if (i == maxTries) {
                         LOG.warn("Error while downloading segment. Segment {} finally failed", url.getFile());
                     } else {
                         LOG.warn("Error while downloading segment {} on try {}", url.getFile(), i);
                     }
-                } /*finally {
-                    response.close();
-                }*/
+                }
             }
             throw new IOException("Unable to download segment " + url.getFile() + " after " + maxTries + " tries");
         }

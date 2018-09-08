@@ -448,7 +448,12 @@ public class LocalRecorder implements Recorder {
                 SimpleDateFormat sdf = new SimpleDateFormat(pattern);
                 if (rec.isDirectory()) {
                     try {
+                        // ignore directories, which are probably not created by ctbrec
                         if (rec.getName().length() != pattern.length()) {
+                            continue;
+                        }
+                        // ignore empty directories
+                        if (rec.listFiles().length == 0) {
                             continue;
                         }
 

@@ -77,8 +77,12 @@ public class Streamer {
             log.error("Couldn't close sink", e);
         }
         buffer.clear();
-        bufferingThread.interrupt();
-        streamingThread.interrupt();
+        try {
+            bufferingThread.interrupt();
+            streamingThread.interrupt();
+        } catch (Exception e) {
+            log.error("Couldn't interrupt streamer threads");
+        }
     }
 
     private void internalStream() {

@@ -1,6 +1,10 @@
 1.5.0
 ========================
-
+* Recordings are now stored in a single file
+* The server still saves segments, downloads are
+  one single file, too
+* Recordings and downloads are now proper transport streams
+  (continuity and timestamps get fixed, if invalid)
 
 1.4.3
 ========================

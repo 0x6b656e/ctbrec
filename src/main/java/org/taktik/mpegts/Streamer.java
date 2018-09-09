@@ -65,6 +65,7 @@ public class Streamer {
     }
 
     public void stop() {
+        streamingShouldStop = true;
         try {
             source.close();
         } catch (Exception e) {
@@ -75,7 +76,6 @@ public class Streamer {
         } catch (Exception e) {
             log.error("Couldn't close sink", e);
         }
-        streamingShouldStop = true;
         buffer.clear();
         bufferingThread.interrupt();
         streamingThread.interrupt();
@@ -232,10 +232,12 @@ public class Streamer {
             // Stream packet
             // System.out.println("Streaming packet #" + packetCount + ", PID=" + mtsPacket.getPid() + ", pcrCount=" + pcrCount + ", continuityCounter=" + mtsPacket.getContinuityCounter());
 
-            try {
-                sink.send(packet);
-            } catch (Exception e) {
-                log.error("Error sending packet to sink", e);
+            if(!streamingShouldStop) {
+                try {
+                    sink.send(packet);
+                } catch (Exception e) {
+                    log.error("Error sending packet to sink", e);
+                }
             }
 
             packetCount++;

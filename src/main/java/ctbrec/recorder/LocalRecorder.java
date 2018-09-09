@@ -515,10 +515,10 @@ public class LocalRecorder implements Recorder {
     public void delete(Recording recording) throws IOException {
         File recordingsDir = new File(config.getSettings().recordingsDir);
         File directory = new File(recordingsDir, recording.getPath());
-        delete(directory, new File[] {});
+        delete(directory);
     }
 
-    private void delete(File directory, File... excludes) throws IOException {
+    private void delete(File directory) throws IOException {
         if (!directory.exists()) {
             throw new IOException("Recording does not exist");
         }
@@ -528,18 +528,8 @@ public class LocalRecorder implements Recorder {
             File[] files = directory.listFiles();
             boolean deletedAllFiles = true;
             for (File file : files) {
-                boolean skip = false;
-                for (File exclude : excludes) {
-                    if (file.equals(exclude)) {
-                        skip = true;
-                        break;
-                    }
-                }
-                if (skip) {
-                    continue;
-                }
-
                 try {
+                    LOG.debug("Deleting {}", file.getAbsolutePath());
                     Files.delete(file.toPath());
                 } catch (Exception e) {
                     deletedAllFiles = false;
@@ -548,10 +538,16 @@ public class LocalRecorder implements Recorder {
             }
 
             if (deletedAllFiles) {
+                LOG.debug("All files deleted");
+                for (String file : directory.list()) {
+                    LOG.debug(file);
+                }
                 if (directory.list().length == 0) {
+                    LOG.debug("Deleting directory {}", directory);
                     boolean deleted = directory.delete();
                     if (deleted) {
                         if (directory.getParentFile().list().length == 0) {
+                            LOG.debug("Deleting parent directory {}", directory.getParentFile());
                             directory.getParentFile().delete();
                         }
                     } else {

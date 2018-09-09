@@ -119,7 +119,7 @@ public class Streamer {
                     }
                 }
             } catch (InterruptedException e1) {
-                log.error("INterrupted while eaiting for packet");
+                log.error("Interrupted while waiting for packet");
                 continue;
             }
 

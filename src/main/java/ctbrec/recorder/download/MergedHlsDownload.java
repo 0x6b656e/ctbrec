@@ -65,6 +65,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
             throw new IOException("Couldn't parse HLS playlist", e);
         } finally {
             alive = false;
+            streamer.stop();
             LOG.debug("Download for terminated");
         }
     }
@@ -107,6 +108,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
             throw new IOException("Couldn't download segment", e);
         } finally {
             alive = false;
+            streamer.stop();
             LOG.debug("Download for {} terminated", model);
         }
     }
@@ -159,7 +161,6 @@ public class MergedHlsDownload extends AbstractHlsDownload {
             if(livestreamDownload) {
                 while(!mergeQueue.isEmpty()) {
                     try {
-                        LOG.debug("Writing segment");
                         writeSegment(mergeQueue.poll());
                     } catch (InterruptedException e) {
                         if(running) {
@@ -209,6 +210,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
     public void stop() {
         running = false;
         alive = false;
+        streamer.stop();
         LOG.debug("Download stopped");
     }
 

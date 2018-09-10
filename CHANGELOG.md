@@ -1,3 +1,11 @@
+1.5.1
+========================
+* Added setting to split up the recording after x minutes 
+* Fixed possible OutOfMemoryError, which was caused by invalid transport
+  stream packets
+* Fixed possible OutOfMemoryError, which could occur, if the stream was
+  downloaded faster than it could be written to the hard drive
+
 1.5.0
 ========================
 * Recordings are now stored in a single file

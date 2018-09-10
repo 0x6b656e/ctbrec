@@ -471,7 +471,13 @@ public class LocalRecorder implements Recorder {
                             recording.setStatus(GENERATING_PLAYLIST);
                             recording.setProgress(playlistGenerator.getProgress());
                         } else {
-                            if (Recording.isMergedRecording(rec)) {
+                            if (config.isServerMode()) {
+                                if (recording.hasPlaylist()) {
+                                    recording.setStatus(FINISHED);
+                                } else {
+                                    recording.setStatus(RECORDING);
+                                }
+                            } else {
                                 boolean dirUsedByRecordingProcess = false;
                                 for (Download download : recordingProcesses.values()) {
                                     if(rec.equals(download.getDirectory())) {
@@ -483,12 +489,6 @@ public class LocalRecorder implements Recorder {
                                     recording.setStatus(RECORDING);
                                 } else {
                                     recording.setStatus(FINISHED);
-                                }
-                            } else {
-                                if (recording.hasPlaylist()) {
-                                    recording.setStatus(FINISHED);
-                                } else {
-                                    recording.setStatus(RECORDING);
                                 }
                             }
                         }

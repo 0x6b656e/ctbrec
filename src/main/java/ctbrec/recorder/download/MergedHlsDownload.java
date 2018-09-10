@@ -14,7 +14,10 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.Objects;
@@ -48,15 +51,20 @@ public class MergedHlsDownload extends AbstractHlsDownload {
     private BlockingMultiMTSSource multiSource;
     private Thread mergeThread;
     private Streamer streamer;
+    private ZonedDateTime startTime;
+    private Config config;
+    private File targetFile;
+    private DecimalFormat df = new DecimalFormat("00000");
+    private int splitCounter = 0;
 
     public MergedHlsDownload(HttpClient client) {
         super(client);
     }
 
-    public void start(String segmentPlaylistUri, File target, ProgressListener progressListener) throws IOException {
+    public void start(String segmentPlaylistUri, File targetFile, ProgressListener progressListener) throws IOException {
         try {
             running = true;
-            mergeThread = createMergeThread(target, progressListener, false);
+            mergeThread = createMergeThread(targetFile, progressListener, false);
             mergeThread.start();
             downloadSegments(segmentPlaylistUri, false);
         } catch(ParseException e) {
@@ -72,8 +80,10 @@ public class MergedHlsDownload extends AbstractHlsDownload {
 
     @Override
     public void start(Model model, Config config) throws IOException {
+        this.config = config;
         try {
             running = true;
+            startTime = ZonedDateTime.now();
             StreamInfo streamInfo = Chaturbate.getStreamInfo(model, client);
             if(!Objects.equals(streamInfo.room_status, "public")) {
                 throw new IOException(model.getName() +"'s room is not public");
@@ -87,8 +97,13 @@ public class MergedHlsDownload extends AbstractHlsDownload {
                 Files.createDirectories(downloadDir);
             }
 
-            File targetFile = Recording.mergedFileFromDirectory(downloadDir.toFile());
-            mergeThread = createMergeThread(targetFile, null, true);
+            targetFile = Recording.mergedFileFromDirectory(downloadDir.toFile());
+            File target = targetFile;
+            if(config.getSettings().splitRecordings > 0) {
+                LOG.debug("Splitting recordings every {} seconds", config.getSettings().splitRecordings);
+                target = new File(targetFile.getAbsolutePath().replaceAll("\\.ts", "-00000.ts"));
+            }
+            mergeThread = createMergeThread(target, null, true);
             mergeThread.start();
 
             String segments = parseMaster(streamInfo.url, model.getStreamUrlIndex());
@@ -159,6 +174,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
             }
 
             if(livestreamDownload) {
+                // download new segments
                 while(!mergeQueue.isEmpty()) {
                     try {
                         writeSegment(mergeQueue.poll());
@@ -168,21 +184,32 @@ public class MergedHlsDownload extends AbstractHlsDownload {
                         }
                     }
                 }
-            }
 
-            if (livestreamDownload) {
-                long wait = 0;
-                if (lastSegment == lsp.seq) {
-                    // playlist didn't change -> wait for at least half the target duration
-                    wait = (long) lsp.targetDuration * 1000 / 2;
-                    LOG.trace("Playlist didn't change... waiting for {}ms", wait);
-                } else {
-                    // playlist did change -> wait for at least last segment duration
-                    wait = 1;// (long) lsp.lastSegDuration * 1000;
-                    LOG.trace("Playlist changed... waiting for {}ms", wait);
+                // split up the recording, if configured
+                if(config.getSettings().splitRecordings > 0) {
+                    Duration recordingDuration = Duration.between(startTime, ZonedDateTime.now());
+                    long seconds = recordingDuration.getSeconds();
+                    if(seconds >= config.getSettings().splitRecordings) {
+                        streamer.stop();
+                        File target = new File(targetFile.getAbsolutePath().replaceAll("\\.ts", "-"+df.format(++splitCounter)+".ts"));
+                        mergeThread = createMergeThread(target, null, true);
+                        mergeThread.start();
+                        startTime = ZonedDateTime.now();
+                    }
                 }
 
+                // wait some time until requesting the segment playlist again to not hammer the server
                 try {
+                    long wait = 0;
+                    if (lastSegment == lsp.seq) {
+                        // playlist didn't change -> wait for at least half the target duration
+                        wait = (long) lsp.targetDuration * 1000 / 2;
+                        LOG.trace("Playlist didn't change... waiting for {}ms", wait);
+                    } else {
+                        // playlist did change -> wait for at least last segment duration
+                        wait = 1;// (long) lsp.lastSegDuration * 1000;
+                        LOG.trace("Playlist changed... waiting for {}ms", wait);
+                    }
                     Thread.sleep(wait);
                 } catch (InterruptedException e) {
                     if (running) {

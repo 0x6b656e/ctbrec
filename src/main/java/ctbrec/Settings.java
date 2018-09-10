@@ -40,4 +40,5 @@ public class Settings {
     public boolean windowMaximized = false;
     public int windowX;
     public int windowY;
+    public int splitRecordings = 0;
 }

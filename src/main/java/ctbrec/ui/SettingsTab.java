@@ -2,10 +2,14 @@ package ctbrec.ui;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.sun.javafx.collections.ObservableListWrapper;
 
 import ctbrec.Config;
 import ctbrec.Hmac;
@@ -18,6 +22,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.RadioButton;
@@ -60,6 +65,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private ToggleGroup recordLocation;
     private ProxySettingsPane proxySettingsPane;
     private TitledPane ctb;
+    private ComboBox<SplitAfterOption> splitAfter;
 
     public SettingsTab() {
         setText("Settings");
@@ -75,6 +81,49 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         setContent(mainLayout);
 
         GridPane layout = createGridLayout();
+        Label l = new Label("Display stream resolution in overview");
+        layout.add(l, 0, 0);
+        loadResolution = new CheckBox();
+        loadResolution.setSelected(Config.getInstance().getSettings().determineResolution);
+        loadResolution.setOnAction((e) -> {
+            Config.getInstance().getSettings().determineResolution = loadResolution.isSelected();
+            if(!loadResolution.isSelected()) {
+                ThumbOverviewTab.queue.clear();
+            }
+        });
+        //GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+        GridPane.setMargin(loadResolution, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        layout.add(loadResolution, 1, 0);
+
+        l = new Label("Manually select stream quality");
+        layout.add(l, 0, 1);
+        chooseStreamQuality.setSelected(Config.getInstance().getSettings().chooseStreamQuality);
+        chooseStreamQuality.setOnAction((e) -> Config.getInstance().getSettings().chooseStreamQuality = chooseStreamQuality.isSelected());
+        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+        GridPane.setMargin(chooseStreamQuality, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
+        layout.add(chooseStreamQuality, 1, 1);
+
+        l = new Label("Split recordings after (minutes)");
+        layout.add(l, 0, 2);
+        List<SplitAfterOption> options = new ArrayList<>();
+        options.add(new SplitAfterOption("disabled", 0));
+        options.add(new SplitAfterOption("10 min", 10 * 60));
+        options.add(new SplitAfterOption("15 min", 15 * 60));
+        options.add(new SplitAfterOption("20 min", 20 * 60));
+        options.add(new SplitAfterOption("30 min", 30 * 60));
+        options.add(new SplitAfterOption("60 min", 60 * 60));
+        splitAfter = new ComboBox<>(new ObservableListWrapper<>(options));
+        layout.add(splitAfter, 1, 2);
+        setSplitAfterValue();
+        splitAfter.setOnAction((e) -> Config.getInstance().getSettings().splitRecordings = splitAfter.getSelectionModel().getSelectedItem().getValue());
+        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+        GridPane.setMargin(splitAfter, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
+
+        TitledPane general = new TitledPane("General", layout);
+        general.setCollapsible(false);
+        mainLayout.add(general, 0, 0);
+
+        layout = createGridLayout();
         layout.add(new Label("Recordings Directory"), 0, 0);
         recordingsDirectory = new TextField(Config.getInstance().getSettings().recordingsDir);
         recordingsDirectory.focusedProperty().addListener(createRecordingsDirectoryFocusListener());
@@ -95,7 +144,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         layout.add(mediaPlayer, 1, 1);
         layout.add(createMpvBrowseButton(), 3, 1);
 
-        Label l = new Label("Allow multiple players");
+        l = new Label("Allow multiple players");
         layout.add(l, 0, 2);
         multiplePlayers.setSelected(!Config.getInstance().getSettings().singlePlayer);
         multiplePlayers.setOnAction((e) -> Config.getInstance().getSettings().singlePlayer = !multiplePlayers.isSelected());
@@ -107,7 +156,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
 
         TitledPane locations = new TitledPane("Locations", layout);
         locations.setCollapsible(false);
-        mainLayout.add(locations, 0, 0);
+        mainLayout.add(locations, 0, 1);
 
         proxySettingsPane = new ProxySettingsPane();
         mainLayout.add(proxySettingsPane, 1, 0);
@@ -158,33 +207,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
 
         ctb = new TitledPane("Chaturbate", layout);
         ctb.setCollapsible(false);
-        mainLayout.add(ctb, 0, 1);
-
-        layout = createGridLayout();
-        l = new Label("Display stream resolution in overview");
-        layout.add(l, 0, 0);
-        loadResolution = new CheckBox();
-        loadResolution.setSelected(Config.getInstance().getSettings().determineResolution);
-        loadResolution.setOnAction((e) -> {
-            Config.getInstance().getSettings().determineResolution = loadResolution.isSelected();
-            if(!loadResolution.isSelected()) {
-                ThumbOverviewTab.queue.clear();
-            }
-        });
-        //GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
-        GridPane.setMargin(loadResolution, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        layout.add(loadResolution, 1, 0);
-
-        l = new Label("Manually select stream quality");
-        layout.add(l, 0, 1);
-        chooseStreamQuality.setSelected(Config.getInstance().getSettings().chooseStreamQuality);
-        chooseStreamQuality.setOnAction((e) -> Config.getInstance().getSettings().chooseStreamQuality = chooseStreamQuality.isSelected());
-        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
-        GridPane.setMargin(chooseStreamQuality, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
-        layout.add(chooseStreamQuality, 1, 1);
-        TitledPane quality = new TitledPane("Stream Quality", layout);
-        quality.setCollapsible(false);
-        mainLayout.add(quality, 0, 2);
+        mainLayout.add(ctb, 0, 2);
 
         layout = createGridLayout();
         l = new Label("Record Location");
@@ -272,6 +295,15 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         setRecordingMode(recordLocal.isSelected());
     }
 
+    private void setSplitAfterValue() {
+        int value = Config.getInstance().getSettings().splitRecordings;
+        for (SplitAfterOption option : splitAfter.getItems()) {
+            if(option.getValue() == value) {
+                splitAfter.getSelectionModel().select(option);
+            }
+        }
+    }
+
     static void showRestartRequired() {
         Alert restart = new AutosizeAlert(AlertType.INFORMATION);
         restart.setTitle("Restart required");
@@ -295,6 +327,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         ctb.setDisable(!local);
         recordingsDirectory.setDisable(!local);
         recordingsDirectoryButton.setDisable(!local);
+        splitAfter.setDisable(!local);
     }
 
     private ChangeListener<? super Boolean> createRecordingsDirectoryFocusListener() {
@@ -421,5 +454,25 @@ public class SettingsTab extends Tab implements TabSelectionListener {
 
     public void saveConfig() {
         proxySettingsPane.saveConfig();
+    }
+
+    public static class SplitAfterOption {
+        private String label;
+        private int value;
+
+        public SplitAfterOption(String label, int value) {
+            super();
+            this.label = label;
+            this.value = value;
+        }
+
+        public int getValue() {
+            return value;
+        }
+
+        @Override
+        public String toString() {
+            return label;
+        }
     }
 }

@@ -48,7 +48,7 @@ public class BlockingMultiMTSSource extends AbstractMTSSource implements AutoClo
             try {
                 continuityFixer.fixContinuity(packet);
             } catch(Exception e) {
-                LOG.error("Failed to fix continuity. MTSPacket probably invalid", e);
+                LOG.warn("Failed to fix continuity. MTSPacket probably invalid", e);
                 return nextPacketInternal();
             }
         }

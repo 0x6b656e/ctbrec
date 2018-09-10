@@ -28,7 +28,7 @@ public class BlockingMultiMTSSource extends AbstractMTSSource implements AutoClo
         if (fixContinuity) {
             continuityFixer = new ContinuityFixer();
         }
-        this.sources = new LinkedBlockingQueue<>();
+        this.sources = new LinkedBlockingQueue<>(10);
     }
 
     public void addSource(MTSSource source) throws InterruptedException {
@@ -45,7 +45,12 @@ public class BlockingMultiMTSSource extends AbstractMTSSource implements AutoClo
         packet = switchSourceIfNeeded(packet);
 
         if (fixContinuity) {
-            continuityFixer.fixContinuity(packet);
+            try {
+                continuityFixer.fixContinuity(packet);
+            } catch(Exception e) {
+                LOG.error("Failed to fix continuity. MTSPacket probably invalid", e);
+                return nextPacketInternal();
+            }
         }
         return packet;
     }

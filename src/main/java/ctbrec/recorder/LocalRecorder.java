@@ -539,9 +539,6 @@ public class LocalRecorder implements Recorder {
 
             if (deletedAllFiles) {
                 LOG.debug("All files deleted");
-                for (String file : directory.list()) {
-                    LOG.debug(file);
-                }
                 if (directory.list().length == 0) {
                     LOG.debug("Deleting directory {}", directory);
                     boolean deleted = directory.delete();

@@ -529,7 +529,7 @@ public class LocalRecorder implements Recorder {
             boolean deletedAllFiles = true;
             for (File file : files) {
                 try {
-                    LOG.debug("Deleting {}", file.getAbsolutePath());
+                    LOG.trace("Deleting {}", file.getAbsolutePath());
                     Files.delete(file.toPath());
                 } catch (Exception e) {
                     deletedAllFiles = false;

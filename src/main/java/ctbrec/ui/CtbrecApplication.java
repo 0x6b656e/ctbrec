@@ -97,6 +97,7 @@ public class CtbrecApplication extends Application {
         int windowWidth = Config.getInstance().getSettings().windowWidth;
         int windowHeight = Config.getInstance().getSettings().windowHeight;
         primaryStage.setScene(new Scene(tabPane, windowWidth, windowHeight));
+        primaryStage.getScene().getStylesheets().add("/ctbrec/ui/ThumbCell.css");
         primaryStage.getScene().widthProperty().addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowWidth = newVal.intValue());
         primaryStage.getScene().heightProperty().addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowHeight = newVal.intValue());
         primaryStage.setMaximized(Config.getInstance().getSettings().windowMaximized);

@@ -34,16 +34,24 @@ import javafx.concurrent.ScheduledService;
 import javafx.concurrent.Task;
 import javafx.concurrent.Worker.State;
 import javafx.concurrent.WorkerStateEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.ContextMenuEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
@@ -61,6 +69,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     ScheduledService<List<Model>> updateService;
     Recorder recorder;
     List<ThumbCell> filteredThumbCells = Collections.synchronizedList(new ArrayList<>());
+    List<ThumbCell> selectedThumbCells = Collections.synchronizedList(new ArrayList<>());
     String filter;
     FlowPane grid = new FlowPane();
     ReentrantLock gridLock = new ReentrantLock();
@@ -73,6 +82,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     Button pagePrev = new Button("◀");
     Button pageNext = new Button("▶");
     private volatile boolean updatesSuspended = false;
+    ContextMenu popup;
 
     private ComboBox<Integer> thumbWidth;
 
@@ -236,7 +246,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                     }
                 }
                 if(!found) {
-                    ThumbCell newCell = new ThumbCell(this, model, recorder, client);
+                    ThumbCell newCell = createThumbCell(this, model, recorder, client);
                     newCell.setIndex(index);
                     positionChangedOrNew.add(newCell);
                 }
@@ -259,6 +269,126 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         }
 
     }
+
+    private ThumbCell createThumbCell(ThumbOverviewTab thumbOverviewTab, Model model, Recorder recorder2, HttpClient client2) {
+        ThumbCell newCell = new ThumbCell(this, model, recorder, client);
+        newCell.addEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> {
+            suspendUpdates(true);
+            popup = createContextMenu(newCell);
+            popup.show(newCell, event.getScreenX(), event.getScreenY());
+            popup.setOnHidden((e) -> suspendUpdates(false));
+            event.consume();
+        });
+        newCell.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
+            if(popup != null) {
+                popup.hide();
+                popup = null;
+                return;
+            }
+        });
+        newCell.selectionProperty().addListener((obs, oldValue, newValue) -> {
+            if(newValue) {
+                selectedThumbCells.add(newCell);
+            } else {
+                selectedThumbCells.remove(newCell);
+            }
+        });
+        newCell.setOnMouseClicked(mouseClickListener);
+        return newCell;
+    }
+
+    private ContextMenu createContextMenu(ThumbCell cell) {
+        MenuItem openInPlayer = new MenuItem("Open in Player");
+        openInPlayer.setOnAction((e) -> startPlayer(cell));
+
+        MenuItem start = new MenuItem("Start Recording");
+        start.setOnAction((e) -> startStopAction(cell, true));
+        MenuItem stop = new MenuItem("Stop Recording");
+        stop.setOnAction((e) -> startStopAction(cell, false));
+        MenuItem startStop = recorder.isRecording(cell.getModel()) ? stop : start;
+
+        MenuItem follow = new MenuItem("Follow");
+        follow.setOnAction((e) -> follow(cell, true));
+        MenuItem unfollow = new MenuItem("Unfollow");
+        unfollow.setOnAction((e) -> follow(cell, false));
+
+        MenuItem copyUrl = new MenuItem("Copy URL");
+        copyUrl.setOnAction((e) -> {
+            final Clipboard clipboard = Clipboard.getSystemClipboard();
+            final ClipboardContent content = new ClipboardContent();
+            content.putString(cell.getModel().getUrl());
+            clipboard.setContent(content);
+        });
+
+        // check, if other cells are selected, too. in that case, we have to disable menu item, which make sense only for
+        // single selections. but only do that, if the popup has been triggered on a selected cell. otherwise remove the
+        // selection and show the normal menu
+        if (selectedThumbCells.size() > 1 || selectedThumbCells.size() == 1 && selectedThumbCells.get(0) != cell) {
+            if(cell.isSelected()) {
+                if(Config.getInstance().getSettings().singlePlayer) {
+                    openInPlayer.setDisable(true);
+                }
+                copyUrl.setDisable(true);
+            } else {
+                removeSelection();
+            }
+        }
+
+        ContextMenu contextMenu = new ContextMenu();
+        contextMenu.setAutoHide(true);
+        contextMenu.setHideOnEscape(true);
+        contextMenu.setAutoFix(true);
+        MenuItem followOrUnFollow = this instanceof FollowedTab ? unfollow : follow;
+        contextMenu.getItems().addAll(openInPlayer, startStop , followOrUnFollow, copyUrl);
+        return contextMenu;
+    }
+
+    private void follow(ThumbCell cell, boolean follow) {
+        if(selectedThumbCells.isEmpty()) {
+            cell.follow(follow);
+        } else {
+            for (ThumbCell thumbCell : selectedThumbCells) {
+                thumbCell.follow(follow);
+            }
+        }
+    }
+
+    private void startStopAction(ThumbCell cell, boolean start) {
+        if(selectedThumbCells.isEmpty()) {
+            cell.startStopAction(start);
+        } else {
+            for (ThumbCell thumbCell : selectedThumbCells) {
+                thumbCell.startStopAction(start);
+            }
+        }
+    }
+
+    private void startPlayer(ThumbCell cell) {
+        if(selectedThumbCells.isEmpty()) {
+            cell.startPlayer();
+        } else {
+            for (ThumbCell thumbCell : selectedThumbCells) {
+                thumbCell.startPlayer();
+            }
+        }
+    }
+
+    private EventHandler<MouseEvent> mouseClickListener = new EventHandler<MouseEvent>() {
+        @Override
+        public void handle(MouseEvent e) {
+            ThumbCell cell = (ThumbCell) e.getSource();
+            if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2) {
+                cell.setSelected(false);
+                cell.startPlayer();
+            } else if (e.getButton() == MouseButton.PRIMARY && e.isShiftDown()) {
+                if(popup == null) {
+                    cell.setSelected(!cell.isSelected());
+                }
+            } else if (e.getButton() == MouseButton.PRIMARY) {
+                removeSelection();
+            }
+        }
+    };
 
     protected void onFail(WorkerStateEvent event) {
         if(updatesSuspended) {
@@ -309,6 +439,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
             if(!matches(m, filter)) {
                 iterator.remove();
                 filteredThumbCells.add(cell);
+                cell.setSelected(false);
             }
         }
 
@@ -438,5 +569,11 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
 
     void suspendUpdates(boolean suspend) {
         this.updatesSuspended = suspend;
+    }
+
+    private void removeSelection() {
+        while(selectedThumbCells.size() > 0) {
+            selectedThumbCells.get(0).setSelected(false);
+        }
     }
 }

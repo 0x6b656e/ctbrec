@@ -24,24 +24,18 @@ import javafx.animation.Interpolator;
 import javafx.animation.ParallelTransition;
 import javafx.animation.Transition;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
-import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ContextMenu;
-import javafx.scene.control.MenuItem;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.Clipboard;
-import javafx.scene.input.ClipboardContent;
-import javafx.scene.input.ContextMenuEvent;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
@@ -69,6 +63,7 @@ public class ThumbCell extends StackPane {
     private Rectangle resolutionBackground;
     private Rectangle nameBackground;
     private Rectangle topicBackground;
+    private Rectangle selectionOverlay;
     private Text name;
     private Text topic;
     private Text resolutionTag;
@@ -80,14 +75,13 @@ public class ThumbCell extends StackPane {
     private Color colorNormal = Color.BLACK;
     private Color colorHighlight = Color.WHITE;
     private Color colorRecording = new Color(0.8, 0.28, 0.28, 1);
+    private SimpleBooleanProperty selectionProperty = new SimpleBooleanProperty(false);
 
     private HttpClient client;
 
-    private ThumbOverviewTab parent;
     private ObservableList<Node> thumbCellList;
 
     public ThumbCell(ThumbOverviewTab parent, Model model, Recorder recorder, HttpClient client) {
-        this.parent = parent;
         this.thumbCellList = parent.grid.getChildren();
         this.model = model;
         this.recorder = recorder;
@@ -158,6 +152,14 @@ public class ThumbCell extends StackPane {
         recordingAnimation.setCycleCount(FadeTransition.INDEFINITE);
         recordingAnimation.setAutoReverse(true);
 
+        selectionOverlay = new Rectangle();
+        //selectionOverlay.setFill(new Color(0, 150f/255, 201f/255, .75));
+        //selectionOverlay.setStyle("-fx-background-color: -fx-accent");
+        //selectionOverlay.getStyleClass().add("table-view");
+        selectionOverlay.setOpacity(0);
+        StackPane.setAlignment(selectionOverlay, Pos.TOP_LEFT);
+        getChildren().add(selectionOverlay);
+
         setOnMouseEntered((e) -> {
             new ParallelTransition(changeColor(nameBackground, colorNormal, colorHighlight), changeColor(name, colorHighlight, colorNormal)).playFromStart();
             new ParallelTransition(changeOpacity(topicBackground, 0.7), changeOpacity(topic, 0.7)).playFromStart();
@@ -166,26 +168,26 @@ public class ThumbCell extends StackPane {
             new ParallelTransition(changeColor(nameBackground, colorHighlight, colorNormal), changeColor(name, colorNormal, colorHighlight)).playFromStart();
             new ParallelTransition(changeOpacity(topicBackground, 0), changeOpacity(topic, 0)).playFromStart();
         });
-        setOnMouseClicked(doubleClickListener);
-        addEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> {
-            parent.suspendUpdates(true);
-            popup = createContextMenu();
-            popup.show(ThumbCell.this, event.getScreenX(), event.getScreenY());
-            popup.setOnHidden((e) -> parent.suspendUpdates(false));
-            event.consume();
-        });
-        addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
-            if(popup != null) {
-                popup.hide();
-            }
-        });
-
         setThumbWidth(width);
 
         setRecording(recording);
         if(Config.getInstance().getSettings().determineResolution) {
             determineResolution();
         }
+    }
+
+    public void setSelected(boolean selected) {
+        selectionProperty.set(selected);
+        selectionOverlay.getStyleClass().add("selection-background");
+        selectionOverlay.setOpacity(selected ? .75 : 0);
+    }
+
+    public boolean isSelected() {
+        return selectionProperty.get();
+    }
+
+    public ObservableValue<Boolean> selectionProperty() {
+        return selectionProperty;
     }
 
     private void determineResolution() {
@@ -268,38 +270,6 @@ public class ThumbCell extends StackPane {
         }
     }
 
-    private ContextMenu createContextMenu() {
-        MenuItem openInPlayer = new MenuItem("Open in Player");
-        openInPlayer.setOnAction((e) -> startPlayer());
-
-        MenuItem start = new MenuItem("Start Recording");
-        start.setOnAction((e) -> startStopAction(true));
-        MenuItem stop = new MenuItem("Stop Recording");
-        stop.setOnAction((e) -> startStopAction(false));
-        MenuItem startStop = recorder.isRecording(model) ? stop : start;
-
-        MenuItem follow = new MenuItem("Follow");
-        follow.setOnAction((e) -> follow(true));
-        MenuItem unfollow = new MenuItem("Unfollow");
-        unfollow.setOnAction((e) -> follow(false));
-
-        MenuItem copyUrl = new MenuItem("Copy URL");
-        copyUrl.setOnAction((e) -> {
-            final Clipboard clipboard = Clipboard.getSystemClipboard();
-            final ClipboardContent content = new ClipboardContent();
-            content.putString(model.getUrl());
-            clipboard.setContent(content);
-        });
-
-        ContextMenu contextMenu = new ContextMenu();
-        contextMenu.setAutoHide(true);
-        contextMenu.setHideOnEscape(true);
-        contextMenu.setAutoFix(true);
-        MenuItem followOrUnFollow = parent instanceof FollowedTab ? unfollow : follow;
-        contextMenu.getItems().addAll(openInPlayer, startStop , followOrUnFollow, copyUrl);
-        return contextMenu;
-    }
-
     private Transition changeColor(Shape shape, Color from, Color to) {
         FillTransition transition = new FillTransition(ANIMATION_DURATION, from, to);
         transition.setShape(shape);
@@ -313,16 +283,7 @@ public class ThumbCell extends StackPane {
         return transition;
     }
 
-    private EventHandler<MouseEvent> doubleClickListener = new EventHandler<MouseEvent>() {
-        @Override
-        public void handle(MouseEvent e) {
-            if(e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2) {
-                startPlayer();
-            }
-        }
-    };
-
-    private void startPlayer() {
+    void startPlayer() {
         // TODO if manual choice of stream quality is enabled, do the same thing as starting a download here?!?
         // or maybe not, because the player should automatically switch between resolutions depending on the
         // network bandwidth
@@ -359,7 +320,7 @@ public class ThumbCell extends StackPane {
         recordingIndicator.setVisible(recording);
     }
 
-    private void startStopAction(boolean start) {
+    void startStopAction(boolean start) {
         setCursor(Cursor.WAIT);
 
         boolean selectSource = Config.getInstance().getSettings().chooseStreamQuality;
@@ -408,7 +369,7 @@ public class ThumbCell extends StackPane {
         }.start();
     }
 
-    private void follow(boolean follow) {
+    void follow(boolean follow) {
         setCursor(Cursor.WAIT);
         new Thread() {
             @Override
@@ -553,5 +514,7 @@ public class ThumbCell extends StackPane {
         int margin = 4;
         topic.maxWidth(w-margin*2);
         topic.setWrappingWidth(w-margin*2);
+        selectionOverlay.setWidth(w);
+        selectionOverlay.setHeight(h);
     }
 }

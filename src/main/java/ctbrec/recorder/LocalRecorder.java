@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 
 import org.slf4j.Logger;
@@ -107,6 +108,8 @@ public class LocalRecorder implements Recorder {
                 stopRecordingProcess(model);
             }
             LOG.info("Model {} removed", model);
+        } else {
+            throw new NoSuchElementException("Model " + model.getName() + " ["+model.getUrl()+"] not found in list of recorded models");
         }
     }
 

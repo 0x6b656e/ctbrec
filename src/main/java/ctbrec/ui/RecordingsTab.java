@@ -25,6 +25,7 @@ import com.iheartradio.m3u8.PlaylistException;
 
 import ctbrec.Config;
 import ctbrec.HttpClient;
+import ctbrec.Model;
 import ctbrec.Recording;
 import ctbrec.Recording.STATUS;
 import ctbrec.recorder.Recorder;
@@ -228,8 +229,23 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
         openInPlayer.setOnAction((e) -> {
             play(recording);
         });
-        if(recording.getStatus() == STATUS.FINISHED) {
+        if(recording.getStatus() == STATUS.FINISHED || Config.getInstance().getSettings().localRecording) {
             contextMenu.getItems().add(openInPlayer);
+        }
+
+        MenuItem stopRecording = new MenuItem("Stop recording");
+        stopRecording.setOnAction((e) -> {
+            Model m = new Model();
+            m.setName(recording.getModelName());
+            m.setUrl(CtbrecApplication.BASE_URI + '/' + recording.getModelName() + '/');
+            try {
+                recorder.stopRecording(m);
+            } catch (Exception e1) {
+                showErrorDialog("Stop recording", "Couldn't stop recording of model " + m.getName(), e1);
+            }
+        });
+        if(recording.getStatus() == STATUS.RECORDING) {
+            contextMenu.getItems().add(stopRecording);
         }
 
         MenuItem deleteRecording = new MenuItem("Delete");

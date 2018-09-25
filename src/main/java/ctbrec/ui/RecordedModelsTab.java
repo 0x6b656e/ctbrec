@@ -39,6 +39,8 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.ContextMenuEvent;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
@@ -101,6 +103,11 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         table.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
             if(popup != null) {
                 popup.hide();
+            }
+        });
+        table.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if(event.getCode() == KeyCode.DELETE) {
+                stopAction();
             }
         });
         scrollPane.setContent(table);

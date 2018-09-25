@@ -1,3 +1,11 @@
+1.5.2
+========================
+* Added possibility to select multiple models in the overview tabs by
+  holding SHIFT while clicking
+* Added possibility to stop a recording in the recordings tab
+* The delete key can now be used in the recorded models tab and in the 
+  followed tab to unfollow one ore more models
+
 1.5.1
 ========================
 * Added setting to split up the recording after x minutes 

@@ -83,9 +83,9 @@ public class CtbrecApplication extends Application {
         tabPane.getTabs().add(createTab("Male", BASE_URI + "/male-cams/"));
         tabPane.getTabs().add(createTab("Couples", BASE_URI + "/couple-cams/"));
         tabPane.getTabs().add(createTab("Trans", BASE_URI + "/trans-cams/"));
-        FollowedTab tab = new FollowedTab("Followed", BASE_URI + "/followed-cams/");
-        tab.setRecorder(recorder);
-        tabPane.getTabs().add(tab);
+        FollowedTab followedTab = new FollowedTab("Followed", BASE_URI + "/followed-cams/");
+        followedTab.setRecorder(recorder);
+        tabPane.getTabs().add(followedTab);
         RecordedModelsTab modelsTab = new RecordedModelsTab("Recording", recorder);
         tabPane.getTabs().add(modelsTab);
         RecordingsTab recordingsTab = new RecordingsTab("Recordings", recorder, config);
@@ -97,6 +97,7 @@ public class CtbrecApplication extends Application {
         int windowWidth = Config.getInstance().getSettings().windowWidth;
         int windowHeight = Config.getInstance().getSettings().windowHeight;
         primaryStage.setScene(new Scene(tabPane, windowWidth, windowHeight));
+        followedTab.setScene(primaryStage.getScene());
         primaryStage.getScene().getStylesheets().add("/ctbrec/ui/ThumbCell.css");
         primaryStage.getScene().widthProperty().addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowWidth = newVal.intValue());
         primaryStage.getScene().heightProperty().addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowHeight = newVal.intValue());

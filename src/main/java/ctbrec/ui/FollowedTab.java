@@ -1,7 +1,10 @@
 package ctbrec.ui;
 
 import javafx.concurrent.WorkerStateEvent;
+import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 
 public class FollowedTab extends ThumbOverviewTab {
     private Label status;
@@ -28,5 +31,15 @@ public class FollowedTab extends ThumbOverviewTab {
     public void selected() {
         status.setText("Logging in...");
         super.selected();
+    }
+
+    public void setScene(Scene scene) {
+        scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if(this.isSelected()) {
+                if(event.getCode() == KeyCode.DELETE) {
+                    follow(selectedThumbCells, false);
+                }
+            }
+        });
     }
 }

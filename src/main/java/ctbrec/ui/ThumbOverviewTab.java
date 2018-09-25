@@ -270,7 +270,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
 
     }
 
-    private ThumbCell createThumbCell(ThumbOverviewTab thumbOverviewTab, Model model, Recorder recorder2, HttpClient client2) {
+    ThumbCell createThumbCell(ThumbOverviewTab thumbOverviewTab, Model model, Recorder recorder2, HttpClient client2) {
         ThumbCell newCell = new ThumbCell(this, model, recorder, client);
         newCell.addEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> {
             suspendUpdates(true);
@@ -299,18 +299,18 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
 
     private ContextMenu createContextMenu(ThumbCell cell) {
         MenuItem openInPlayer = new MenuItem("Open in Player");
-        openInPlayer.setOnAction((e) -> startPlayer(cell));
+        openInPlayer.setOnAction((e) -> startPlayer(getSelectedThumbCells(cell)));
 
         MenuItem start = new MenuItem("Start Recording");
-        start.setOnAction((e) -> startStopAction(cell, true));
+        start.setOnAction((e) -> startStopAction(getSelectedThumbCells(cell), true));
         MenuItem stop = new MenuItem("Stop Recording");
-        stop.setOnAction((e) -> startStopAction(cell, false));
+        stop.setOnAction((e) -> startStopAction(getSelectedThumbCells(cell), false));
         MenuItem startStop = recorder.isRecording(cell.getModel()) ? stop : start;
 
         MenuItem follow = new MenuItem("Follow");
-        follow.setOnAction((e) -> follow(cell, true));
+        follow.setOnAction((e) -> follow(getSelectedThumbCells(cell), true));
         MenuItem unfollow = new MenuItem("Unfollow");
-        unfollow.setOnAction((e) -> follow(cell, false));
+        unfollow.setOnAction((e) -> follow(getSelectedThumbCells(cell), false));
 
         MenuItem copyUrl = new MenuItem("Copy URL");
         copyUrl.setOnAction((e) -> {
@@ -343,33 +343,32 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         return contextMenu;
     }
 
-    private void follow(ThumbCell cell, boolean follow) {
+    private List<ThumbCell> getSelectedThumbCells(ThumbCell cell) {
         if(selectedThumbCells.isEmpty()) {
-            cell.follow(follow);
+            return Collections.singletonList(cell);
         } else {
-            for (ThumbCell thumbCell : selectedThumbCells) {
-                thumbCell.follow(follow);
-            }
+            return selectedThumbCells;
         }
     }
 
-    private void startStopAction(ThumbCell cell, boolean start) {
-        if(selectedThumbCells.isEmpty()) {
-            cell.startStopAction(start);
-        } else {
-            for (ThumbCell thumbCell : selectedThumbCells) {
-                thumbCell.startStopAction(start);
-            }
+    void follow(List<ThumbCell> selection, boolean follow) {
+        for (ThumbCell thumbCell : selection) {
+            thumbCell.follow(follow);
+        }
+        if(!follow) {
+            selectedThumbCells.clear();
         }
     }
 
-    private void startPlayer(ThumbCell cell) {
-        if(selectedThumbCells.isEmpty()) {
-            cell.startPlayer();
-        } else {
-            for (ThumbCell thumbCell : selectedThumbCells) {
-                thumbCell.startPlayer();
-            }
+    private void startStopAction(List<ThumbCell> selection, boolean start) {
+        for (ThumbCell thumbCell : selection) {
+            thumbCell.startStopAction(start);
+        }
+    }
+
+    private void startPlayer(List<ThumbCell> selection) {
+        for (ThumbCell thumbCell : selection) {
+            thumbCell.startPlayer();
         }
     }
 

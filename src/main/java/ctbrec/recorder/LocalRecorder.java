@@ -532,7 +532,7 @@ public class LocalRecorder implements Recorder {
             boolean deletedAllFiles = true;
             for (File file : files) {
                 try {
-                    LOG.debug("Deleting {}", file.getAbsolutePath());
+                    LOG.trace("Deleting {}", file.getAbsolutePath());
                     Files.delete(file.toPath());
                 } catch (Exception e) {
                     deletedAllFiles = false;
@@ -542,9 +542,6 @@ public class LocalRecorder implements Recorder {
 
             if (deletedAllFiles) {
                 LOG.debug("All files deleted");
-                for (String file : directory.list()) {
-                    LOG.debug(file);
-                }
                 if (directory.list().length == 0) {
                     LOG.debug("Deleting directory {}", directory);
                     boolean deleted = directory.delete();

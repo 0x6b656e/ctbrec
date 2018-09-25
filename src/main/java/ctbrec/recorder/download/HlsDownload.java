@@ -109,7 +109,7 @@ public class HlsDownload extends AbstractHlsDownload {
                 throw new IOException("Couldn't determine segments uri");
             }
         } catch(ParseException e) {
-            throw new IOException("Couldn't parse stream information", e);
+            throw new IOException("Couldn't parse HLS playlist:\n" + e.getInput(), e);
         } catch(PlaylistException e) {
             throw new IOException("Couldn't parse HLS playlist", e);
         } catch(EOFException e) {

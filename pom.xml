@@ -21,6 +21,13 @@
 	            <filtering>false</filtering>
 	        </resource>
 	        <resource>
+	            <directory>src/main/java</directory>
+	            <filtering>false</filtering>
+	            <includes>
+	            	<include>**/*.css</include>
+	            </includes>
+	        </resource>
+	        <resource>
 	            <directory>src/main/resources</directory>
 	            <filtering>true</filtering>
 	            <includes>

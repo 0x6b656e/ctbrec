@@ -12,6 +12,7 @@ public class Model {
     private boolean online = false;
     private int streamUrlIndex = -1;
     private int streamResolution = -1;
+    private transient String onlineState;
 
     public String getUrl() {
         return url;
@@ -75,6 +76,14 @@ public class Model {
 
     public void setStreamResolution(int streamResolution) {
         this.streamResolution = streamResolution;
+    }
+
+    public String getOnlineState() {
+        return onlineState;
+    }
+
+    public void setOnlineState(String onlineState) {
+        this.onlineState = onlineState;
     }
 
     @Override

@@ -38,6 +38,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.Shape;
@@ -61,6 +62,8 @@ public class ThumbCell extends StackPane {
     private Model model;
     private ImageView iv;
     private Rectangle resolutionBackground;
+    private Paint resolutionOnlineColor = new Color(0.22, 0.8, 0.29, 1);
+    private Color resolutionOfflineColor = new Color(0.8, 0.28, 0.28, 1);
     private Rectangle nameBackground;
     private Rectangle topicBackground;
     private Rectangle selectionOverlay;
@@ -106,7 +109,7 @@ public class ThumbCell extends StackPane {
         getChildren().add(topicBackground);
 
         resolutionBackground = new Rectangle(34, 16);
-        resolutionBackground.setFill(new Color(0.22, 0.8, 0.29, 1));
+        resolutionBackground.setFill(resolutionOnlineColor );
         resolutionBackground.setVisible(false);
         resolutionBackground.setArcHeight(5);
         resolutionBackground.setArcWidth(resolutionBackground.getArcHeight());
@@ -192,7 +195,7 @@ public class ThumbCell extends StackPane {
 
     private void determineResolution() {
         if(ThumbOverviewTab.resolutionProcessing.contains(model)) {
-            LOG.debug("Already fetching resolution for model {}. Queue size {}", model.getName(), ThumbOverviewTab.resolutionProcessing.size());
+            LOG.trace("Already fetching resolution for model {}. Queue size {}", model.getName(), ThumbOverviewTab.resolutionProcessing.size());
             return;
         }
 
@@ -204,19 +207,7 @@ public class ThumbCell extends StackPane {
                     Thread.sleep(500); // throttle down, so that we don't do too many requests
                     int[] resolution = Chaturbate.getResolution(model, client);
                     resolutions.put(model.getName(), resolution);
-                    if (resolution[1] > 0) {
-                        LOG.trace("Model resolution {} {}x{}", model.getName(), resolution[0], resolution[1]);
-                        LOG.trace("Resolution queue size: {}", ThumbOverviewTab.queue.size());
-                        final int w = resolution[1];
-                        Platform.runLater(() -> {
-                            String _res = Integer.toString(w);
-                            resolutionTag.setText(_res);
-                            resolutionTag.setVisible(true);
-                            resolutionBackground.setVisible(true);
-                            resolutionBackground.setWidth(resolutionTag.getBoundsInLocal().getWidth() + 4);
-                            model.setStreamResolution(w);
-                        });
-                    }
+                    updateResolutionTag(resolution);
                 } catch (IOException | ParseException | PlaylistException | InterruptedException e) {
                     LOG.error("Coulnd't get resolution for model {}", model, e);
                 } finally {
@@ -225,13 +216,14 @@ public class ThumbCell extends StackPane {
             });
         } else {
             ThumbOverviewTab.resolutionProcessing.remove(model);
-            String _res = Integer.toString(res[1]);
-            model.setStreamResolution(res[1]);
-            Platform.runLater(() -> {
-                resolutionTag.setText(_res);
-                resolutionTag.setVisible(true);
-                resolutionBackground.setVisible(true);
-                resolutionBackground.setWidth(resolutionTag.getBoundsInLocal().getWidth() + 4);
+            ThumbOverviewTab.threadPool.submit(() -> {
+                try {
+                    updateResolutionTag(res);
+                } catch (IOException e) {
+                    LOG.error("Coulnd't get resolution for model {}", model, e);
+                } finally {
+                    ThumbOverviewTab.resolutionProcessing.remove(model);
+                }
             });
 
             // the model is online, but the resolution is 0. probably something went wrong
@@ -251,6 +243,32 @@ public class ThumbCell extends StackPane {
                 });
             }
         }
+    }
+
+    private void updateResolutionTag(int[] resolution) throws IOException {
+        String _res = "n/a";
+        Paint resolutionBackgroundColor = resolutionOnlineColor;
+        if (resolution[1] > 0) {
+            LOG.trace("Model resolution {} {}x{}", model.getName(), resolution[0], resolution[1]);
+            LOG.trace("Resolution queue size: {}", ThumbOverviewTab.queue.size());
+            final int w = resolution[1];
+            _res = Integer.toString(w);
+            model.setStreamResolution(w);
+            model.setOnlineState("online");
+        } else {
+            _res = Chaturbate.getStreamInfo(model, client).room_status;
+            resolutionBackgroundColor = resolutionOfflineColor;
+            model.setOnlineState(_res);
+        }
+        final String resText = _res;
+        final Paint c = resolutionBackgroundColor;
+        Platform.runLater(() -> {
+            resolutionTag.setText(resText);
+            resolutionTag.setVisible(true);
+            resolutionBackground.setVisible(true);
+            resolutionBackground.setWidth(resolutionTag.getBoundsInLocal().getWidth() + 4);
+            resolutionBackground.setFill(c);
+        });
     }
 
     private void setImage(String url) {

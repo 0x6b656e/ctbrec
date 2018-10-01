@@ -78,9 +78,9 @@ public class Model {
     public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException {
         StreamInfo info;
         if(ignoreCache) {
-            info = Chaturbate.INSTANCE.loadStreamInfo(name);
+            info = Chaturbate.INSTANCE.loadStreamInfo(getName());
         } else {
-            info = Chaturbate.INSTANCE.getStreamInfo(name);
+            info = Chaturbate.INSTANCE.getStreamInfo(getName());
         }
         return Objects.equals("public", info.room_status);
     }
@@ -102,16 +102,16 @@ public class Model {
     }
 
     public int[] getStreamResolution(boolean failFast) throws ExecutionException {
-        int[] resolution = Chaturbate.INSTANCE.streamResolutionCache.getIfPresent(name);
+        int[] resolution = Chaturbate.INSTANCE.streamResolutionCache.getIfPresent(getName());
         if(resolution != null) {
-            return Chaturbate.INSTANCE.getResolution(name);
+            return Chaturbate.INSTANCE.getResolution(getName());
         } else {
             return new int[2];
         }
     }
 
     public int[] getStreamResolution() throws ExecutionException {
-        return Chaturbate.INSTANCE.getResolution(name);
+        return Chaturbate.INSTANCE.getResolution(getName());
     }
 
     public String getOnlineState() throws IOException, ExecutionException {
@@ -119,15 +119,15 @@ public class Model {
     }
 
     public String getOnlineState(boolean failFast) throws IOException, ExecutionException {
-        StreamInfo info = Chaturbate.INSTANCE.streamInfoCache.getIfPresent(name);
+        StreamInfo info = Chaturbate.INSTANCE.streamInfoCache.getIfPresent(getName());
         return info != null ? info.room_status : "n/a";
     }
 
     public StreamInfo getStreamInfo() throws IOException, ExecutionException {
-        return Chaturbate.INSTANCE.getStreamInfo(name);
+        return Chaturbate.INSTANCE.getStreamInfo(getName());
     }
     public MasterPlaylist getMasterPlaylist() throws IOException, ParseException, PlaylistException, ExecutionException {
-        return Chaturbate.INSTANCE.getMasterPlaylist(name);
+        return Chaturbate.INSTANCE.getMasterPlaylist(getName());
     }
 
     @Override
@@ -163,7 +163,7 @@ public class Model {
 
     @Override
     public String toString() {
-        return name;
+        return getName();
     }
 
     private static class Chaturbate {

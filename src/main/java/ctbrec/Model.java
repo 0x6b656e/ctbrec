@@ -262,10 +262,11 @@ public class Model {
 
         private void throttleRequests() throws InterruptedException {
             long now = System.currentTimeMillis();
-            long diff = now-lastRequest;
+            long diff = now - lastRequest;
             if(diff < 500) {
                 Thread.sleep(diff);
             }
+            lastRequest = now;
         }
 
         public MasterPlaylist getMasterPlaylist(String modelName) throws IOException, ParseException, PlaylistException, ExecutionException {

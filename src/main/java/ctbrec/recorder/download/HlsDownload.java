@@ -25,7 +25,6 @@ import com.iheartradio.m3u8.PlaylistException;
 import ctbrec.Config;
 import ctbrec.HttpClient;
 import ctbrec.Model;
-import ctbrec.recorder.Chaturbate;
 import ctbrec.recorder.StreamInfo;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -42,7 +41,7 @@ public class HlsDownload extends AbstractHlsDownload {
     public void start(Model model, Config config) throws IOException {
         try {
             running = true;
-            StreamInfo streamInfo = Chaturbate.getStreamInfo(model, client);
+            StreamInfo streamInfo = model.getStreamInfo();
             if(!Objects.equals(streamInfo.room_status, "public")) {
                 throw new IOException(model.getName() +"'s room is not public");
             }

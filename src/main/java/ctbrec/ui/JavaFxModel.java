@@ -16,7 +16,6 @@ public class JavaFxModel extends Model {
 
     public JavaFxModel(Model delegate) {
         this.delegate = delegate;
-        setOnline(delegate.isOnline());
     }
 
     @Override
@@ -57,17 +56,6 @@ public class JavaFxModel extends Model {
     @Override
     public void setTags(List<String> tags) {
         delegate.setTags(tags);
-    }
-
-    @Override
-    public boolean isOnline() {
-        return delegate.isOnline();
-    }
-
-    @Override
-    public void setOnline(boolean online) {
-        delegate.setOnline(online);
-        this.onlineProperty.set(online);
     }
 
     @Override

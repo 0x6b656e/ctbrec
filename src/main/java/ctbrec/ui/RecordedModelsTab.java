@@ -5,6 +5,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -150,9 +151,6 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
             for (Model model : models) {
                 if (!observableModels.contains(model)) {
                     observableModels.add(new JavaFxModel(model));
-                } else {
-                    int index = observableModels.indexOf(model);
-                    observableModels.get(index).setOnline(model.isOnline());
                 }
             }
             for (Iterator<JavaFxModel> iterator = observableModels.iterator(); iterator.hasNext();) {
@@ -233,11 +231,20 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
     }
 
     private void switchStreamSource(JavaFxModel fxModel) {
-        if(!fxModel.isOnline()) {
+        try {
+            if(!fxModel.isOnline()) {
+                Alert alert = new AutosizeAlert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Switch resolution");
+                alert.setHeaderText("Couldn't switch stream resolution");
+                alert.setContentText("The resolution can only be changed, when the model is online");
+                alert.showAndWait();
+                return;
+            }
+        } catch (IOException | ExecutionException | InterruptedException e1) {
             Alert alert = new AutosizeAlert(Alert.AlertType.INFORMATION);
             alert.setTitle("Switch resolution");
             alert.setHeaderText("Couldn't switch stream resolution");
-            alert.setContentText("The resolution can only be changed, when the model is online");
+            alert.setContentText("An error occured while checking, if the model is online");
             alert.showAndWait();
             return;
         }

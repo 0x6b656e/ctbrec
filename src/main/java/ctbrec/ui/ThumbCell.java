@@ -1,21 +1,16 @@
 package ctbrec.ui;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.iheartradio.m3u8.ParseException;
-import com.iheartradio.m3u8.PlaylistException;
-
 import ctbrec.Config;
 import ctbrec.HttpClient;
 import ctbrec.Model;
-import ctbrec.recorder.Chaturbate;
 import ctbrec.recorder.Recorder;
 import ctbrec.recorder.StreamInfo;
 import javafx.animation.FadeTransition;
@@ -55,9 +50,6 @@ public class ThumbCell extends StackPane {
     private static final transient Logger LOG = LoggerFactory.getLogger(ThumbCell.class);
     public static int width = 180;
     private static final Duration ANIMATION_DURATION = new Duration(250);
-
-    // this acts like a cache, once the stream resolution for a model has been determined, we don't do it again (until ctbrec is restarted)
-    private static Map<String, int[]> resolutions = new HashMap<>();
 
     private Model model;
     private ImageView iv;
@@ -199,53 +191,33 @@ public class ThumbCell extends StackPane {
             return;
         }
 
-        ThumbOverviewTab.resolutionProcessing.add(model);
-        int[] res = resolutions.get(model.getName());
-        if(res == null) {
-            ThumbOverviewTab.threadPool.submit(() -> {
-                try {
-                    Thread.sleep(500); // throttle down, so that we don't do too many requests
-                    int[] resolution = Chaturbate.getResolution(model, client);
-                    resolutions.put(model.getName(), resolution);
-                    updateResolutionTag(resolution);
-                } catch (IOException | ParseException | PlaylistException | InterruptedException e) {
-                    LOG.error("Coulnd't get resolution for model {}", model, e);
-                } finally {
-                    ThumbOverviewTab.resolutionProcessing.remove(model);
-                }
-            });
-        } else {
-            ThumbOverviewTab.resolutionProcessing.remove(model);
-            ThumbOverviewTab.threadPool.submit(() -> {
-                try {
-                    updateResolutionTag(res);
-                } catch (IOException e) {
-                    LOG.error("Coulnd't get resolution for model {}", model, e);
-                } finally {
-                    ThumbOverviewTab.resolutionProcessing.remove(model);
-                }
-            });
+        ThumbOverviewTab.threadPool.submit(() -> {
+            try {
+                ThumbOverviewTab.resolutionProcessing.add(model);
+                int[] resolution = model.getStreamResolution();
+                updateResolutionTag(resolution);
 
-            // the model is online, but the resolution is 0. probably something went wrong
-            // when we first requested the stream info, so we remove this invalid value from the "cache"
-            // so that it is requested again
-            if(model.isOnline() && res[1] == 0) {
-                ThumbOverviewTab.threadPool.submit(() -> {
-                    try {
-                        Chaturbate.getStreamInfo(model, client);
-                        if(model.isOnline()) {
-                            LOG.debug("Removing invalid resolution value for {}", model.getName());
-                            resolutions.remove(model.getName());
-                        }
-                    } catch (IOException e) {
-                        LOG.error("Coulnd't get resolution for model {}", model, e);
+                // the model is online, but the resolution is 0. probably something went wrong
+                // when we first requested the stream info, so we remove this invalid value from the "cache"
+                // so that it is requested again
+                try {
+                    if (model.isOnline() && resolution[1] == 0) {
+                        LOG.debug("Removing invalid resolution value for {}", model.getName());
                     }
-                });
+                } catch (IOException | ExecutionException | InterruptedException e) {
+                    LOG.error("Coulnd't get resolution for model {}", model, e);
+                }
+            } catch (ExecutionException e1) {
+                LOG.warn("Couldn't update resolution tag for model {} - {}", model.getName(), e1.getCause().getMessage());
+            } catch (IOException e1) {
+                LOG.warn("Couldn't update resolution tag for model {} - {}", model.getName(), e1.getMessage());
+            } finally {
+                ThumbOverviewTab.resolutionProcessing.remove(model);
             }
-        }
+        });
     }
 
-    private void updateResolutionTag(int[] resolution) throws IOException {
+    private void updateResolutionTag(int[] resolution) throws IOException, ExecutionException {
         String _res = "n/a";
         Paint resolutionBackgroundColor = resolutionOnlineColor;
         if (resolution[1] > 0) {
@@ -253,12 +225,18 @@ public class ThumbCell extends StackPane {
             LOG.trace("Resolution queue size: {}", ThumbOverviewTab.queue.size());
             final int w = resolution[1];
             _res = Integer.toString(w);
-            model.setStreamResolution(w);
-            model.setOnlineState("online");
         } else {
-            _res = Chaturbate.getStreamInfo(model, client).room_status;
+            if(model.getOnlineState() != null) {
+                String state = model.getOnlineState();
+                Platform.runLater(() -> {
+                    resolutionTag.setText(state);
+                    resolutionTag.setVisible(true);
+                    resolutionBackground.setVisible(true);
+                    resolutionBackground.setWidth(resolutionTag.getBoundsInLocal().getWidth() + 4);
+                });
+            }
+            _res = model.getOnlineState();
             resolutionBackgroundColor = resolutionOfflineColor;
-            model.setOnlineState(_res);
         }
         final String resText = _res;
         final Paint c = resolutionBackgroundColor;
@@ -306,7 +284,7 @@ public class ThumbCell extends StackPane {
         // or maybe not, because the player should automatically switch between resolutions depending on the
         // network bandwidth
         try {
-            StreamInfo streamInfo = Chaturbate.getStreamInfo(model, client);
+            StreamInfo streamInfo = model.getStreamInfo();
             if(streamInfo.room_status.equals("public")) {
                 LOG.debug("Playing {}", streamInfo.url);
                 Player.play(streamInfo.url);
@@ -316,7 +294,7 @@ public class ThumbCell extends StackPane {
                 alert.setHeaderText("Room is currently not public");
                 alert.showAndWait();
             }
-        } catch (IOException e1) {
+        } catch (IOException | ExecutionException e1) {
             LOG.error("Couldn't get stream information for model {}", model, e1);
             Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
             alert.setTitle("Error");
@@ -456,9 +434,7 @@ public class ThumbCell extends StackPane {
         //this.model = model;
         this.model.setName(model.getName());
         this.model.setDescription(model.getDescription());
-        this.model.setOnline(model.isOnline());
         this.model.setPreview(model.getPreview());
-        this.model.setStreamResolution(model.getStreamResolution());
         this.model.setTags(model.getTags());
         this.model.setUrl(model.getUrl());
 
@@ -477,8 +453,18 @@ public class ThumbCell extends StackPane {
         setRecording(recorder.isRecording(model));
         setImage(model.getPreview());
         topic.setText(model.getDescription());
-        //Tooltip t = new Tooltip(model.getDescription());
-        //Tooltip.install(this, t);
+
+        //        ThumbOverviewTab.threadPool.submit(() -> {
+        //            StreamInfo streamInfo;
+        //            try {
+        //                streamInfo = Chaturbate.INSTANCE.getStreamInfo(model);
+        //                model.setOnline(streamInfo.room_status.equals("public"));
+        //                model.setOnlineState(streamInfo.room_status);
+        //            } catch (IOException | ExecutionException e) {
+        //                LOG.error("Couldn't retrieve stream information for model {}", model.getName());
+        //            }
+        //        });
+
         if(Config.getInstance().getSettings().determineResolution) {
             determineResolution();
         } else {

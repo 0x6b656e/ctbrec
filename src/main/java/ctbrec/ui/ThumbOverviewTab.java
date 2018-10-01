@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -111,8 +112,11 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                 gridLock.unlock();
             }
         });
-        search.setTooltip(new Tooltip("Filter the models by their name, stream description or #hashtags.\n\n"+""
-                + "If the display of stream resolution is enabled, you can even filter by resolution. Try \"1080\" or \">720\""));
+        Tooltip searchTooltip = new Tooltip("Filter the models by their name, stream description or #hashtags.\n\n"
+                + "If the display of stream resolution is enabled, you can even filter for public rooms or by resolution.\n\n"
+                + "Try \"1080\" or \">720\" or \"public\"");
+        search.setTooltip(searchTooltip);
+
         BorderPane.setMargin(search, new Insets(5));
 
         scrollPane.setContent(grid);
@@ -479,32 +483,41 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     }
 
     private boolean matches(Model m, String filter) {
-        String[] tokens = filter.split(" ");
-        StringBuilder searchTextBuilder = new StringBuilder(m.getName());
-        searchTextBuilder.append(' ');
-        for (String tag : m.getTags()) {
-            searchTextBuilder.append(tag).append(' ');
-        }
-        searchTextBuilder.append(m.getStreamResolution());
-        String searchText = searchTextBuilder.toString().trim();
-        //LOG.debug("{} -> {}", m.getName(), searchText);
-        boolean tokensMissing = false;
-        for (String token : tokens) {
-            if(token.matches(">\\d+")) {
-                int res = Integer.parseInt(token.substring(1));
-                if(m.getStreamResolution() < res) {
-                    tokensMissing = true;
-                }
-            } else if(token.matches("<\\d+")) {
-                int res = Integer.parseInt(token.substring(1));
-                if(m.getStreamResolution() > res) {
-                    tokensMissing = true;
-                }
-            } else if(!searchText.contains(token)) {
-                tokensMissing = true;
+        try {
+            String[] tokens = filter.split(" ");
+            StringBuilder searchTextBuilder = new StringBuilder(m.getName());
+            searchTextBuilder.append(' ');
+            for (String tag : m.getTags()) {
+                searchTextBuilder.append(tag).append(' ');
             }
+            int[] resolution = m.getStreamResolution(true);
+            searchTextBuilder.append(resolution[1]);
+            String searchText = searchTextBuilder.toString().trim();
+            boolean tokensMissing = false;
+            for (String token : tokens) {
+                if(token.matches(">\\d+")) {
+                    int res = Integer.parseInt(token.substring(1));
+                    if(resolution[1] < res) {
+                        tokensMissing = true;
+                    }
+                } else if(token.matches("<\\d+")) {
+                    int res = Integer.parseInt(token.substring(1));
+                    if(resolution[1] > res) {
+                        tokensMissing = true;
+                    }
+                } else if(token.equals("public")) {
+                    if(!m.getOnlineState(true).equals(token)) {
+                        tokensMissing = true;
+                    }
+                } else if(!searchText.contains(token)) {
+                    tokensMissing = true;
+                }
+            }
+            return !tokensMissing;
+        } catch (NumberFormatException | ExecutionException | IOException e) {
+            LOG.error("Error while filtering model list", e);
+            return false;
         }
-        return !tokensMissing;
     }
 
     private ScheduledService<List<Model>> createUpdateService() {

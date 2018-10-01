@@ -39,7 +39,6 @@ import ctbrec.Config;
 import ctbrec.HttpClient;
 import ctbrec.Model;
 import ctbrec.Recording;
-import ctbrec.recorder.Chaturbate;
 import ctbrec.recorder.ProgressListener;
 import ctbrec.recorder.StreamInfo;
 import okhttp3.Request;
@@ -84,7 +83,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
         try {
             running = true;
             startTime = ZonedDateTime.now();
-            StreamInfo streamInfo = Chaturbate.getStreamInfo(model, client);
+            StreamInfo streamInfo = model.getStreamInfo();
             if(!Objects.equals(streamInfo.room_status, "public")) {
                 throw new IOException(model.getName() +"'s room is not public");
             }

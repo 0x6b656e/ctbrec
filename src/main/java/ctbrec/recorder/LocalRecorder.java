@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +59,6 @@ public class LocalRecorder implements Recorder {
     public LocalRecorder(Config config) {
         this.config = config;
         config.getSettings().models.stream().forEach((m) -> {
-            m.setOnline(false);
             models.add(m);
         });
 
@@ -193,13 +191,6 @@ public class LocalRecorder implements Recorder {
         }
     }
 
-    private boolean checkIfOnline(Model model) throws IOException {
-        StreamInfo streamInfo = Chaturbate.getStreamInfo(model, client);
-        boolean online = Objects.equals(streamInfo.room_status, "public");
-        model.setOnline(online);
-        return online;
-    }
-
     private void tryRestartRecording(Model model) {
         if (!recording) {
             // recorder is not in recording state
@@ -208,7 +199,7 @@ public class LocalRecorder implements Recorder {
 
         try {
             boolean modelInRecordingList = isRecording(model);
-            boolean online = checkIfOnline(model);
+            boolean online = model.isOnline();
             if (modelInRecordingList && online) {
                 LOG.info("Restarting recording for model {}", model);
                 recordingProcesses.remove(model);
@@ -354,7 +345,8 @@ public class LocalRecorder implements Recorder {
                 for (Model model : getModelsRecording()) {
                     try {
                         if (!recordingProcesses.containsKey(model)) {
-                            boolean isOnline = checkIfOnline(model);
+                            boolean ignoreCache = true;
+                            boolean isOnline = model.isOnline(ignoreCache);
                             LOG.trace("Checking online state for {}: {}", model, (isOnline ? "online" : "offline"));
                             if (isOnline) {
                                 LOG.info("Model {}'s room back to public. Starting recording", model);
@@ -363,7 +355,6 @@ public class LocalRecorder implements Recorder {
                         }
                     } catch (Exception e) {
                         LOG.error("Couldn't check if model {} is online", model.getName(), e);
-                        model.setOnline(false);
                     }
                 }
 

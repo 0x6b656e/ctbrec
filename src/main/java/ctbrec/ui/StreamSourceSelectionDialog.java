@@ -14,7 +14,6 @@ import com.iheartradio.m3u8.data.PlaylistData;
 
 import ctbrec.HttpClient;
 import ctbrec.Model;
-import ctbrec.recorder.Chaturbate;
 import ctbrec.recorder.StreamInfo;
 import ctbrec.recorder.download.StreamSource;
 import javafx.concurrent.Task;
@@ -27,8 +26,8 @@ public class StreamSourceSelectionDialog {
         Task<List<StreamSource>> selectStreamSource = new Task<List<StreamSource>>() {
             @Override
             protected List<StreamSource> call() throws Exception {
-                StreamInfo streamInfo = Chaturbate.getStreamInfo(model, client);
-                MasterPlaylist masterPlaylist = Chaturbate.getMasterPlaylist(streamInfo, client);
+                StreamInfo streamInfo = model.getStreamInfo();
+                MasterPlaylist masterPlaylist = model.getMasterPlaylist();
                 List<StreamSource> sources = new ArrayList<>();
                 for (PlaylistData playlist : masterPlaylist.getPlaylists()) {
                     if (playlist.hasStreamInfo()) {

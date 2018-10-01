@@ -1,6 +1,9 @@
 package ctbrec.ui;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 
 import ctbrec.Model;
 import javafx.beans.property.BooleanProperty;
@@ -16,6 +19,9 @@ public class JavaFxModel extends Model {
 
     public JavaFxModel(Model delegate) {
         this.delegate = delegate;
+        try {
+            onlineProperty.set(Objects.equals("public", delegate.getOnlineState(true)));
+        } catch (IOException | ExecutionException e) {}
     }
 
     @Override

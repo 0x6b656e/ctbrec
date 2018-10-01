@@ -5,6 +5,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -149,8 +150,15 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
                 return;
             }
             for (Model model : models) {
-                if (!observableModels.contains(model)) {
+                int index = observableModels.indexOf(model);
+                if (index == -1) {
                     observableModels.add(new JavaFxModel(model));
+                } else {
+                    // make sure to update the JavaFX online property, so that the table cell is updated
+                    try {
+                        JavaFxModel javaFxModel = observableModels.get(index);
+                        javaFxModel.getOnlineProperty().set(Objects.equals("public", javaFxModel.getOnlineState()));
+                    } catch (IOException | ExecutionException e) {}
                 }
             }
             for (Iterator<JavaFxModel> iterator = observableModels.iterator(); iterator.hasNext();) {

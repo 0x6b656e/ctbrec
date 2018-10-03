@@ -82,7 +82,7 @@ public class Model {
         StreamInfo info;
         if(ignoreCache) {
             info = Chaturbate.INSTANCE.loadStreamInfo(getName());
-            LOG.debug("Model {} room status: {}", getName(), info.room_status);
+            LOG.trace("Model {} room status: {}", getName(), info.room_status);
         } else {
             info = Chaturbate.INSTANCE.getStreamInfo(getName());
         }

@@ -26,6 +26,7 @@ public class StreamSourceSelectionDialog {
         Task<List<StreamSource>> selectStreamSource = new Task<List<StreamSource>>() {
             @Override
             protected List<StreamSource> call() throws Exception {
+                model.invalidateCacheEntries();
                 StreamInfo streamInfo = model.getStreamInfo();
                 MasterPlaylist masterPlaylist = model.getMasterPlaylist();
                 List<StreamSource> sources = new ArrayList<>();

@@ -78,6 +78,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     String url;
     boolean loginRequired;
     HttpClient client = HttpClient.getInstance();
+    HBox pagination;
     int page = 1;
     TextField pageInput = new TextField(Integer.toString(page));
     Button pagePrev = new Button("◀");
@@ -96,7 +97,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         initializeUpdateService();
     }
 
-    private void createGui() {
+    void createGui() {
         grid.setPadding(new Insets(5));
         grid.setHgap(5);
         grid.setVgap(5);
@@ -108,6 +109,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
             gridLock.lock();
             try {
                 filter();
+                moveActiveRecordingsToFront();
             } finally {
                 gridLock.unlock();
             }
@@ -124,7 +126,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         scrollPane.setFitToWidth(true);
         BorderPane.setMargin(scrollPane, new Insets(5));
 
-        HBox pagination = new HBox(5);
+        pagination = new HBox(5);
         pagination.getChildren().add(pagePrev);
         pagination.getChildren().add(pageNext);
         pagination.getChildren().add(pageInput);

@@ -203,6 +203,7 @@ public class ThumbCell extends StackPane {
                 try {
                     if (model.isOnline() && resolution[1] == 0) {
                         LOG.debug("Removing invalid resolution value for {}", model.getName());
+                        model.invalidateCacheEntries();
                     }
                 } catch (IOException | ExecutionException | InterruptedException e) {
                     LOG.error("Coulnd't get resolution for model {}", model, e);

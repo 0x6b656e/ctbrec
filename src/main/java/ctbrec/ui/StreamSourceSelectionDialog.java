@@ -52,6 +52,7 @@ public class StreamSourceSelectionDialog {
                 ChoiceDialog<StreamSource> choiceDialog = new ChoiceDialog<StreamSource>(sources.get(sources.size()-1), sources);
                 choiceDialog.setTitle("Stream Quality");
                 choiceDialog.setHeaderText("Select your preferred stream quality");
+                choiceDialog.setResizable(true);
                 Optional<StreamSource> selectedSource = choiceDialog.showAndWait();
                 if(selectedSource.isPresent()) {
                     int index = sources.indexOf(selectedSource.get());

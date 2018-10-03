@@ -1,5 +1,6 @@
 package ctbrec;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -116,6 +117,15 @@ public class Model {
 
     public int[] getStreamResolution() throws ExecutionException {
         return Chaturbate.INSTANCE.getResolution(getName());
+    }
+
+    /**
+     * Invalidates the entries in StreamInfo and resolution cache for this model
+     * and thus causes causes the LoadingCache to update them
+     */
+    public void invalidateCacheEntries() {
+        Chaturbate.INSTANCE.streamInfoCache.invalidate(getName());
+        Chaturbate.INSTANCE.streamResolutionCache.invalidate(getName());
     }
 
     public String getOnlineState() throws IOException, ExecutionException {
@@ -251,17 +261,34 @@ public class Model {
                 return res;
             }
 
-            MasterPlaylist master = getMasterPlaylist(modelName);
-            for (PlaylistData playlistData : master.getPlaylists()) {
-                if(playlistData.hasStreamInfo() && playlistData.getStreamInfo().hasResolution()) {
-                    int h = playlistData.getStreamInfo().getResolution().height;
-                    int w = playlistData.getStreamInfo().getResolution().width;
-                    if(w > res[1]) {
-                        res[0] = w;
-                        res[1] = h;
+            EOFException ex = null;
+            for(int i=0; i<2; i++) {
+                try {
+                    MasterPlaylist master = getMasterPlaylist(modelName);
+                    for (PlaylistData playlistData : master.getPlaylists()) {
+                        if(playlistData.hasStreamInfo() && playlistData.getStreamInfo().hasResolution()) {
+                            int h = playlistData.getStreamInfo().getResolution().height;
+                            int w = playlistData.getStreamInfo().getResolution().width;
+                            if(w > res[1]) {
+                                res[0] = w;
+                                res[1] = h;
+                            }
+                        }
                     }
+                    ex = null;
+                    break; // this attempt worked, exit loop
+                } catch(EOFException e) {
+                    // the cause might be, that the playlist url in streaminfo is outdated,
+                    // so let's remove it from cache and retry in the next iteration
+                    streamInfoCache.invalidate(modelName);
+                    ex = e;
                 }
             }
+
+            if(ex != null) {
+                throw ex;
+            }
+
             streamResolutionCache.put(modelName, res);
             return res;
         }

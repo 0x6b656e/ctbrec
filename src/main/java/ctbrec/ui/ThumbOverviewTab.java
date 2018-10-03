@@ -565,6 +565,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
 
     @Override
     public void selected() {
+        queue.clear();
         if(updateService != null) {
             State s = updateService.getState();
             if (s != State.SCHEDULED && s != State.RUNNING) {

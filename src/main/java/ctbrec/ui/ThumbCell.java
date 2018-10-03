@@ -208,9 +208,9 @@ public class ThumbCell extends StackPane {
                     LOG.error("Coulnd't get resolution for model {}", model, e);
                 }
             } catch (ExecutionException e1) {
-                LOG.warn("Couldn't update resolution tag for model {} - {}", model.getName(), e1.getCause().getMessage());
+                LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e1);
             } catch (IOException e1) {
-                LOG.warn("Couldn't update resolution tag for model {} - {}", model.getName(), e1.getMessage());
+                LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e1);
             } finally {
                 ThumbOverviewTab.resolutionProcessing.remove(model);
             }
@@ -220,21 +220,13 @@ public class ThumbCell extends StackPane {
     private void updateResolutionTag(int[] resolution) throws IOException, ExecutionException {
         String _res = "n/a";
         Paint resolutionBackgroundColor = resolutionOnlineColor;
-        if (resolution[1] > 0) {
+        String state = model.getOnlineState();
+        if ("public".equals(state)) {
             LOG.trace("Model resolution {} {}x{}", model.getName(), resolution[0], resolution[1]);
             LOG.trace("Resolution queue size: {}", ThumbOverviewTab.queue.size());
             final int w = resolution[1];
-            _res = Integer.toString(w);
+            _res = w > 0 ? Integer.toString(w) : state;
         } else {
-            if(model.getOnlineState() != null) {
-                String state = model.getOnlineState();
-                Platform.runLater(() -> {
-                    resolutionTag.setText(state);
-                    resolutionTag.setVisible(true);
-                    resolutionBackground.setVisible(true);
-                    resolutionBackground.setWidth(resolutionTag.getBoundsInLocal().getWidth() + 4);
-                });
-            }
             _res = model.getOnlineState();
             resolutionBackgroundColor = resolutionOfflineColor;
         }
@@ -284,8 +276,8 @@ public class ThumbCell extends StackPane {
         // or maybe not, because the player should automatically switch between resolutions depending on the
         // network bandwidth
         try {
-            StreamInfo streamInfo = model.getStreamInfo();
-            if(streamInfo.room_status.equals("public")) {
+            if(model.isOnline(true)) {
+                StreamInfo streamInfo = model.getStreamInfo();
                 LOG.debug("Playing {}", streamInfo.url);
                 Player.play(streamInfo.url);
             } else {
@@ -294,7 +286,7 @@ public class ThumbCell extends StackPane {
                 alert.setHeaderText("Room is currently not public");
                 alert.showAndWait();
             }
-        } catch (IOException | ExecutionException e1) {
+        } catch (IOException | ExecutionException | InterruptedException e1) {
             LOG.error("Couldn't get stream information for model {}", model, e1);
             Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
             alert.setTitle("Error");
@@ -346,8 +338,10 @@ public class ThumbCell extends StackPane {
                 try {
                     if(start) {
                         recorder.startRecording(model);
+                        setRecording(true);
                     } else {
                         recorder.stopRecording(model);
+                        setRecording(false);
                     }
                 } catch (Exception e1) {
                     LOG.error("Couldn't start/stop recording", e1);

@@ -20,7 +20,6 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.LinkedList;
-import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 
@@ -47,6 +46,7 @@ import okhttp3.Response;
 public class MergedHlsDownload extends AbstractHlsDownload {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(MergedHlsDownload.class);
+    private static final boolean IGNORE_CACHE = true;
     private BlockingMultiMTSSource multiSource;
     private Thread mergeThread;
     private Streamer streamer;
@@ -63,6 +63,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
     public void start(String segmentPlaylistUri, File targetFile, ProgressListener progressListener) throws IOException {
         try {
             running = true;
+            downloadDir = targetFile.getParentFile().toPath();
             mergeThread = createMergeThread(targetFile, progressListener, false);
             mergeThread.start();
             downloadSegments(segmentPlaylistUri, false);
@@ -83,17 +84,14 @@ public class MergedHlsDownload extends AbstractHlsDownload {
         try {
             running = true;
             startTime = ZonedDateTime.now();
-            StreamInfo streamInfo = model.getStreamInfo();
-            if(!Objects.equals(streamInfo.room_status, "public")) {
-                throw new IOException(model.getName() +"'s room is not public");
-            }
-
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm");
             String startTime = sdf.format(new Date());
             Path modelDir = FileSystems.getDefault().getPath(config.getSettings().recordingsDir, model.getName());
             downloadDir = FileSystems.getDefault().getPath(modelDir.toString(), startTime);
-            if (!Files.exists(downloadDir, LinkOption.NOFOLLOW_LINKS)) {
-                Files.createDirectories(downloadDir);
+
+            StreamInfo streamInfo = model.getStreamInfo();
+            if(!model.isOnline(IGNORE_CACHE)) {
+                throw new IOException(model.getName() +"'s room is not public");
             }
 
             targetFile = Recording.mergedFileFromDirectory(downloadDir.toFile());
@@ -102,10 +100,10 @@ public class MergedHlsDownload extends AbstractHlsDownload {
                 LOG.debug("Splitting recordings every {} seconds", config.getSettings().splitRecordings);
                 target = new File(targetFile.getAbsolutePath().replaceAll("\\.ts", "-00000.ts"));
             }
-            mergeThread = createMergeThread(target, null, true);
-            mergeThread.start();
 
             String segments = parseMaster(streamInfo.url, model.getStreamUrlIndex());
+            mergeThread = createMergeThread(target, null, true);
+            mergeThread.start();
             if(segments != null) {
                 downloadSegments(segments, true);
             } else {
@@ -122,7 +120,9 @@ public class MergedHlsDownload extends AbstractHlsDownload {
             throw new IOException("Couldn't download segment", e);
         } finally {
             alive = false;
-            streamer.stop();
+            if(streamer != null) {
+                streamer.stop();
+            }
             LOG.debug("Download for {} terminated", model);
         }
     }
@@ -249,6 +249,9 @@ public class MergedHlsDownload extends AbstractHlsDownload {
 
             FileChannel channel = null;
             try {
+                if (!Files.exists(downloadDir, LinkOption.NOFOLLOW_LINKS)) {
+                    Files.createDirectories(downloadDir);
+                }
                 channel = FileChannel.open(targetFile.toPath(), CREATE, WRITE);
                 MTSSink sink = ByteChannelSink.builder().setByteChannel(channel).build();
 
@@ -269,16 +272,34 @@ public class MergedHlsDownload extends AbstractHlsDownload {
             }  catch(Exception e) {
                 LOG.error("Error while saving stream to file", e);
             } finally {
-                try {
-                    channel.close();
-                } catch (IOException e) {
-                    LOG.error("Error while closing file {}", targetFile);
-                }
+                closeFile(channel);
+                deleteEmptyRecording(targetFile);
             }
         });
         t.setName("Segment Merger Thread");
         t.setDaemon(true);
         return t;
+    }
+
+    private void deleteEmptyRecording(File targetFile) {
+        try {
+            if (targetFile.exists() && targetFile.length() == 0) {
+                Files.delete(targetFile.toPath());
+                Files.delete(targetFile.getParentFile().toPath());
+            }
+        } catch (IOException e) {
+            LOG.error("Error while deleting empty recording {}", targetFile);
+        }
+    }
+
+    private void closeFile(FileChannel channel) {
+        try {
+            if (channel != null) {
+                channel.close();
+            }
+        } catch (IOException e) {
+            LOG.error("Error while closing file channel", e);
+        }
     }
 
     private static class SegmentDownload implements Callable<byte[]> {

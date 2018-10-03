@@ -5,11 +5,13 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -51,6 +53,9 @@ import javafx.util.Duration;
 
 public class RecordedModelsTab extends Tab implements TabSelectionListener {
     private static final transient Logger LOG = LoggerFactory.getLogger(RecordedModelsTab.class);
+
+    static BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
+    static ExecutorService threadPool = new ThreadPoolExecutor(2, 2, 10, TimeUnit.MINUTES, queue);
 
     private ScheduledService<List<Model>> updateService;
     private Recorder recorder;
@@ -149,16 +154,19 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
             if(models == null) {
                 return;
             }
+            queue.clear();
             for (Model model : models) {
                 int index = observableModels.indexOf(model);
                 if (index == -1) {
                     observableModels.add(new JavaFxModel(model));
                 } else {
                     // make sure to update the JavaFX online property, so that the table cell is updated
-                    try {
-                        JavaFxModel javaFxModel = observableModels.get(index);
-                        javaFxModel.getOnlineProperty().set(Objects.equals("public", javaFxModel.getOnlineState()));
-                    } catch (IOException | ExecutionException e) {}
+                    JavaFxModel javaFxModel = observableModels.get(index);
+                    threadPool.submit(() -> {
+                        try {
+                            javaFxModel.getOnlineProperty().set(javaFxModel.isOnline());
+                        } catch (IOException | ExecutionException | InterruptedException e) {}
+                    });
                 }
             }
             for (Iterator<JavaFxModel> iterator = observableModels.iterator(); iterator.hasNext();) {

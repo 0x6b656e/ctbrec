@@ -32,6 +32,9 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class Model {
+
+    private static final transient Logger LOG = LoggerFactory.getLogger(Model.class);
+
     private String url;
     private String name;
     private String preview;
@@ -79,6 +82,7 @@ public class Model {
         StreamInfo info;
         if(ignoreCache) {
             info = Chaturbate.INSTANCE.loadStreamInfo(getName());
+            LOG.debug("Model {} room status: {}", getName(), info.room_status);
         } else {
             info = Chaturbate.INSTANCE.getStreamInfo(getName());
         }
@@ -224,6 +228,7 @@ public class Model {
                     Moshi moshi = new Moshi.Builder().build();
                     JsonAdapter<StreamInfo> adapter = moshi.adapter(StreamInfo.class);
                     StreamInfo streamInfo = adapter.fromJson(content);
+                    streamInfoCache.put(modelName, streamInfo);
                     return streamInfo;
                 } else {
                     int code = response.code();
@@ -257,6 +262,7 @@ public class Model {
                     }
                 }
             }
+            streamResolutionCache.put(modelName, res);
             return res;
         }
 

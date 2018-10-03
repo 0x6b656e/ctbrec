@@ -43,6 +43,7 @@ public class LocalRecorder implements Recorder {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(LocalRecorder.class);
 
+    private static final boolean IGNORE_CACHE = true;
     private List<Model> followedModels = Collections.synchronizedList(new ArrayList<>());
     private List<Model> models = Collections.synchronizedList(new ArrayList<>());
     private Map<Model, Download> recordingProcesses = Collections.synchronizedMap(new HashMap<>());
@@ -92,7 +93,6 @@ public class LocalRecorder implements Recorder {
             }
             models.add(model);
             config.getSettings().models.add(model);
-            onlineMonitor.interrupt();
         }
     }
 
@@ -199,7 +199,7 @@ public class LocalRecorder implements Recorder {
 
         try {
             boolean modelInRecordingList = isRecording(model);
-            boolean online = model.isOnline();
+            boolean online = model.isOnline(IGNORE_CACHE);
             if (modelInRecordingList && online) {
                 LOG.info("Restarting recording for model {}", model);
                 recordingProcesses.remove(model);
@@ -231,7 +231,9 @@ public class LocalRecorder implements Recorder {
                         LOG.debug("Recording terminated for model {}", m.getName());
                         iterator.remove();
                         restart.add(m);
-                        finishRecording(d.getDirectory());
+                        try {
+                            finishRecording(d.getDirectory());
+                        } catch(NullPointerException e) {}//fail silently
                     }
                 }
                 for (Model m : restart) {
@@ -345,8 +347,7 @@ public class LocalRecorder implements Recorder {
                 for (Model model : getModelsRecording()) {
                     try {
                         if (!recordingProcesses.containsKey(model)) {
-                            boolean ignoreCache = true;
-                            boolean isOnline = model.isOnline(ignoreCache);
+                            boolean isOnline = model.isOnline(IGNORE_CACHE);
                             LOG.trace("Checking online state for {}: {}", model, (isOnline ? "online" : "offline"));
                             if (isOnline) {
                                 LOG.info("Model {}'s room back to public. Starting recording", model);
@@ -488,7 +489,7 @@ public class LocalRecorder implements Recorder {
                         }
                         recordings.add(recording);
                     } catch (Exception e) {
-                        LOG.debug("Ignoring {}", rec.getAbsolutePath());
+                        LOG.debug("Ignoring {} - {}", rec.getAbsolutePath(), e.getMessage());
                     }
                 }
             }

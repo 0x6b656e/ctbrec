@@ -41,21 +41,21 @@ public class HlsDownload extends AbstractHlsDownload {
     public void start(Model model, Config config) throws IOException {
         try {
             running = true;
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm");
+            String startTime = sdf.format(new Date());
+            Path modelDir = FileSystems.getDefault().getPath(config.getSettings().recordingsDir, model.getName());
+            downloadDir = FileSystems.getDefault().getPath(modelDir.toString(), startTime);
+
             StreamInfo streamInfo = model.getStreamInfo();
             if(!Objects.equals(streamInfo.room_status, "public")) {
                 throw new IOException(model.getName() +"'s room is not public");
             }
 
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm");
-            String startTime = sdf.format(new Date());
-            Path modelDir = FileSystems.getDefault().getPath(config.getSettings().recordingsDir, model.getName());
-            downloadDir = FileSystems.getDefault().getPath(modelDir.toString(), startTime);
-            if (!Files.exists(downloadDir, LinkOption.NOFOLLOW_LINKS)) {
-                Files.createDirectories(downloadDir);
-            }
-
             String segments = parseMaster(streamInfo.url, model.getStreamUrlIndex());
             if(segments != null) {
+                if (!Files.exists(downloadDir, LinkOption.NOFOLLOW_LINKS)) {
+                    Files.createDirectories(downloadDir);
+                }
                 int lastSegment = 0;
                 int nextSegment = 0;
                 while(running) {

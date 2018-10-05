@@ -40,6 +40,7 @@ public class CtbrecApplication extends Application {
 
     static final transient Logger LOG = LoggerFactory.getLogger(CtbrecApplication.class);
     public static final String BASE_URI = "https://chaturbate.com";
+    public static final String AFFILIATE_LINK = BASE_URI + "/in/?track=default&tour=LQps&campaign=55vTi&room=0xb00bface";
 
     private Config config;
     private Recorder recorder;

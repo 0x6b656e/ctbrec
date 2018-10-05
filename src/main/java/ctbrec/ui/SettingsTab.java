@@ -187,23 +187,29 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         GridPane.setColumnSpan(password, 2);
         layout.add(password, 1, 1);
 
+        Button createAccount = new Button("Create new Account");
+        createAccount.setOnAction((e) -> DesktopIntergation.open(CtbrecApplication.AFFILIATE_LINK));
+        layout.add(createAccount, 1, 2);
+        GridPane.setColumnSpan(createAccount, 2);
+
         l = new Label("Record all followed models");
-        layout.add(l, 0, 2);
+        layout.add(l, 0, 3);
         autoRecordFollowed = new CheckBox();
         autoRecordFollowed.setSelected(Config.getInstance().getSettings().recordFollowed);
         autoRecordFollowed.setOnAction((e) -> {
             Config.getInstance().getSettings().recordFollowed = autoRecordFollowed.isSelected();
             showRestartRequired();
         });
-        layout.add(autoRecordFollowed, 1, 2);
+        layout.add(autoRecordFollowed, 1, 3);
         Label warning = new Label("Don't do this, if you follow many models. You have been warned ;) !");
         warning.setTextFill(Color.RED);
-        layout.add(warning, 2, 2);
+        layout.add(warning, 2, 3);
         GridPane.setMargin(l, new Insets(3, 0, 0, 0));
         GridPane.setMargin(warning, new Insets(3, 0, 0, 0));
         GridPane.setMargin(autoRecordFollowed, new Insets(3, 0, 0, CHECKBOX_MARGIN));
         GridPane.setMargin(username, new Insets(0, 0, 0, CHECKBOX_MARGIN));
         GridPane.setMargin(password, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        GridPane.setMargin(createAccount, new Insets(0, 0, 0, CHECKBOX_MARGIN));
 
         ctb = new TitledPane("Chaturbate", layout);
         ctb.setCollapsible(false);

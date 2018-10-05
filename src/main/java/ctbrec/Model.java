@@ -144,6 +144,10 @@ public class Model {
         return Chaturbate.INSTANCE.getMasterPlaylist(getName());
     }
 
+    public void receiveTip(int tokens) throws IOException {
+        Chaturbate.INSTANCE.sendTip(getName(), tokens);
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -213,6 +217,25 @@ public class Model {
 
         public Chaturbate(HttpClient client) {
             this.client = client;
+        }
+
+        public void sendTip(String name, int tokens) throws IOException {
+            RequestBody body = new FormBody.Builder()
+                    .add("csrfmiddlewaretoken", client.getToken())
+                    .add("tip_amount", Integer.toString(tokens))
+                    .add("tip_room_type", "public")
+                    .build();
+            Request req = new Request.Builder()
+                    .url("https://chaturbate.com/tipping/send_tip/"+name+"/")
+                    .post(body)
+                    .addHeader("Referer", "https://chaturbate.com/"+name+"/")
+                    .addHeader("X-Requested-With", "XMLHttpRequest")
+                    .build();
+            try(Response response = client.execute(req, true)) {
+                if(!response.isSuccessful()) {
+                    throw new IOException(response.code() + " " + response.message());
+                }
+            }
         }
 
         private StreamInfo getStreamInfo(String modelName) throws IOException, ExecutionException {

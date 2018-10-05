@@ -326,6 +326,35 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
             clipboard.setContent(content);
         });
 
+        MenuItem sendTip = new MenuItem("Send Tip");
+        sendTip.setOnAction((e) -> {
+            TipDialog tipDialog = new TipDialog(cell.getModel());
+            tipDialog.showAndWait();
+            String tipText = tipDialog.getResult();
+            if(tipText != null) {
+                if(tipText.matches("[1-9]\\d*")) {
+                    int tokens = Integer.parseInt(tipText);
+                    try {
+                        cell.getModel().receiveTip(tokens);
+                    } catch (IOException e1) {
+                        Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+                        alert.setTitle("Error");
+                        alert.setHeaderText("Couldn't send tip");
+                        alert.setContentText("An error occured while sending tip: " + e1.getLocalizedMessage());
+                        alert.showAndWait();
+                    }
+                } else {
+                    Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+                    alert.setTitle("Error");
+                    alert.setHeaderText("Couldn't send tip");
+                    alert.setContentText("You entered an invalid amount of tokens");
+                    alert.showAndWait();
+                }
+            }
+        });
+        String username = Config.getInstance().getSettings().username;
+        sendTip.setDisable(username == null || username.trim().isEmpty());
+
         // check, if other cells are selected, too. in that case, we have to disable menu item, which make sense only for
         // single selections. but only do that, if the popup has been triggered on a selected cell. otherwise remove the
         // selection and show the normal menu
@@ -335,6 +364,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                     openInPlayer.setDisable(true);
                 }
                 copyUrl.setDisable(true);
+                sendTip.setDisable(true);
             } else {
                 removeSelection();
             }
@@ -345,7 +375,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         contextMenu.setHideOnEscape(true);
         contextMenu.setAutoFix(true);
         MenuItem followOrUnFollow = this instanceof FollowedTab ? unfollow : follow;
-        contextMenu.getItems().addAll(openInPlayer, startStop , followOrUnFollow, copyUrl);
+        contextMenu.getItems().addAll(openInPlayer, startStop , followOrUnFollow, copyUrl, sendTip);
         return contextMenu;
     }
 

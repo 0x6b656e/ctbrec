@@ -48,7 +48,7 @@ public class PlaylistGenerator {
         LOG.debug("Starting playlist generation for {}", directory);
         // get a list of all ts files and sort them by sequence
         File[] files = directory.listFiles((f) -> f.getName().endsWith(".ts"));
-        if(files.length == 0) {
+        if(files == null || files.length == 0) {
             LOG.debug("{} is empty. Not going to generate a playlist", directory);
             return null;
         }

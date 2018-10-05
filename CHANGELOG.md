@@ -7,6 +7,7 @@
   the display of resolution is enabled
 * Added possibility to switch between online and offline models in the
   followed tab
+* Added possibility to send tips
 
 1.5.2
 ========================

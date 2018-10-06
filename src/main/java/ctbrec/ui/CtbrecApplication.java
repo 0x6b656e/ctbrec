@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,12 +27,20 @@ import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.concurrent.Task;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TabPane.TabClosingPolicy;
 import javafx.scene.image.Image;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
+import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -95,9 +104,31 @@ public class CtbrecApplication extends Application {
         tabPane.getTabs().add(settingsTab);
         tabPane.getTabs().add(new DonateTabFx());
 
+        StackPane stackPane = new StackPane();
+        stackPane.getChildren().add(tabPane);
+
+        String username = Config.getInstance().getSettings().username;
+        if(username != null && !username.trim().isEmpty()) {
+            Button buyTokens = new Button("Buy Tokens");
+            buyTokens.setFont(Font.font(11));
+            buyTokens.setOnAction((e) -> DesktopIntergation.open(AFFILIATE_LINK));
+            Label tokenBalance = new Label("Tokens: loading…");
+            tokenBalance.setFont(Font.font(11));
+            HBox tokenPanel = new HBox(5, tokenBalance, buyTokens);
+            //tokenPanel.setBackground(new Background(new BackgroundFill(Color.GREEN, CornerRadii.EMPTY, new Insets(0))));
+            tokenPanel.setAlignment(Pos.BASELINE_RIGHT);
+            tokenPanel.setMaxWidth(200);
+            tokenPanel.setMaxHeight(25);
+            HBox.setMargin(tokenBalance, new Insets(5, 5, 0, 0));
+            stackPane.getChildren().add(tokenPanel);
+            StackPane.setAlignment(tokenPanel, Pos.TOP_RIGHT);
+            StackPane.setMargin(tokenPanel, new Insets(5));
+            loadTokenBalance(tokenBalance);
+        }
+
         int windowWidth = Config.getInstance().getSettings().windowWidth;
         int windowHeight = Config.getInstance().getSettings().windowHeight;
-        primaryStage.setScene(new Scene(tabPane, windowWidth, windowHeight));
+        primaryStage.setScene(new Scene(stackPane, windowWidth, windowHeight));
         followedTab.setScene(primaryStage.getScene());
         primaryStage.getScene().getStylesheets().add("/ctbrec/ui/ThumbCell.css");
         primaryStage.getScene().widthProperty().addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowWidth = newVal.intValue());
@@ -140,6 +171,45 @@ public class CtbrecApplication extends Application {
                 }
             }.start();
         });
+    }
+
+    private void loadTokenBalance(Label label) {
+        Task<Integer> task = new Task<Integer>() {
+            @Override
+            protected Integer call() throws Exception {
+                String username = Config.getInstance().getSettings().username;
+                if (username == null || username.trim().isEmpty()) {
+                    throw new IOException("Not logged in");
+                }
+
+                String url = "https://chaturbate.com/p/" + username + "/";
+                HttpClient client = HttpClient.getInstance();
+                Request req = new Request.Builder().url(url).build();
+                Response resp = client.execute(req, true);
+                if (resp.isSuccessful()) {
+                    String profilePage = resp.body().string();
+                    String tokenText = HtmlParser.getText(profilePage, "span.tokencount");
+                    int tokens = Integer.parseInt(tokenText);
+                    return tokens;
+                } else {
+                    throw new IOException("HTTP response: " + resp.code() + " - " + resp.message());
+                }
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    int tokens = get();
+                    Platform.runLater(() -> {
+                        label.setText("Tokens: " + tokens);
+                    });
+                } catch (InterruptedException | ExecutionException e) {
+                    LOG.error("Couldn't retrieve account balance", e);
+                    label.setText("Tokens: error");
+                }
+            }
+        };
+        new Thread(task).start();
     }
 
     private void doInitialLogin() {

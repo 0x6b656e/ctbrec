@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +43,7 @@ public class LocalRecorder implements Recorder {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(LocalRecorder.class);
 
+    private static final boolean IGNORE_CACHE = true;
     private List<Model> followedModels = Collections.synchronizedList(new ArrayList<>());
     private List<Model> models = Collections.synchronizedList(new ArrayList<>());
     private Map<Model, Download> recordingProcesses = Collections.synchronizedMap(new HashMap<>());
@@ -60,7 +60,6 @@ public class LocalRecorder implements Recorder {
     public LocalRecorder(Config config) {
         this.config = config;
         config.getSettings().models.stream().forEach((m) -> {
-            m.setOnline(false);
             models.add(m);
         });
 
@@ -94,7 +93,6 @@ public class LocalRecorder implements Recorder {
             }
             models.add(model);
             config.getSettings().models.add(model);
-            onlineMonitor.interrupt();
         }
     }
 
@@ -193,13 +191,6 @@ public class LocalRecorder implements Recorder {
         }
     }
 
-    private boolean checkIfOnline(Model model) throws IOException {
-        StreamInfo streamInfo = Chaturbate.getStreamInfo(model, client);
-        boolean online = Objects.equals(streamInfo.room_status, "public");
-        model.setOnline(online);
-        return online;
-    }
-
     private void tryRestartRecording(Model model) {
         if (!recording) {
             // recorder is not in recording state
@@ -208,7 +199,7 @@ public class LocalRecorder implements Recorder {
 
         try {
             boolean modelInRecordingList = isRecording(model);
-            boolean online = checkIfOnline(model);
+            boolean online = model.isOnline(IGNORE_CACHE);
             if (modelInRecordingList && online) {
                 LOG.info("Restarting recording for model {}", model);
                 recordingProcesses.remove(model);
@@ -240,7 +231,9 @@ public class LocalRecorder implements Recorder {
                         LOG.debug("Recording terminated for model {}", m.getName());
                         iterator.remove();
                         restart.add(m);
-                        finishRecording(d.getDirectory());
+                        try {
+                            finishRecording(d.getDirectory());
+                        } catch(NullPointerException e) {}//fail silently
                     }
                 }
                 for (Model m : restart) {
@@ -354,7 +347,7 @@ public class LocalRecorder implements Recorder {
                 for (Model model : getModelsRecording()) {
                     try {
                         if (!recordingProcesses.containsKey(model)) {
-                            boolean isOnline = checkIfOnline(model);
+                            boolean isOnline = model.isOnline(IGNORE_CACHE);
                             LOG.trace("Checking online state for {}: {}", model, (isOnline ? "online" : "offline"));
                             if (isOnline) {
                                 LOG.info("Model {}'s room back to public. Starting recording", model);
@@ -363,7 +356,6 @@ public class LocalRecorder implements Recorder {
                         }
                     } catch (Exception e) {
                         LOG.error("Couldn't check if model {} is online", model.getName(), e);
-                        model.setOnline(false);
                     }
                 }
 
@@ -497,7 +489,7 @@ public class LocalRecorder implements Recorder {
                         }
                         recordings.add(recording);
                     } catch (Exception e) {
-                        LOG.debug("Ignoring {}", rec.getAbsolutePath());
+                        LOG.debug("Ignoring {} - {}", rec.getAbsolutePath(), e.getMessage());
                     }
                 }
             }

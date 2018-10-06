@@ -5,9 +5,13 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -49,6 +53,9 @@ import javafx.util.Duration;
 
 public class RecordedModelsTab extends Tab implements TabSelectionListener {
     private static final transient Logger LOG = LoggerFactory.getLogger(RecordedModelsTab.class);
+
+    static BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
+    static ExecutorService threadPool = new ThreadPoolExecutor(2, 2, 10, TimeUnit.MINUTES, queue);
 
     private ScheduledService<List<Model>> updateService;
     private Recorder recorder;
@@ -147,12 +154,19 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
             if(models == null) {
                 return;
             }
+            queue.clear();
             for (Model model : models) {
-                if (!observableModels.contains(model)) {
+                int index = observableModels.indexOf(model);
+                if (index == -1) {
                     observableModels.add(new JavaFxModel(model));
                 } else {
-                    int index = observableModels.indexOf(model);
-                    observableModels.get(index).setOnline(model.isOnline());
+                    // make sure to update the JavaFX online property, so that the table cell is updated
+                    JavaFxModel javaFxModel = observableModels.get(index);
+                    threadPool.submit(() -> {
+                        try {
+                            javaFxModel.getOnlineProperty().set(javaFxModel.isOnline());
+                        } catch (IOException | ExecutionException | InterruptedException e) {}
+                    });
                 }
             }
             for (Iterator<JavaFxModel> iterator = observableModels.iterator(); iterator.hasNext();) {
@@ -233,11 +247,20 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
     }
 
     private void switchStreamSource(JavaFxModel fxModel) {
-        if(!fxModel.isOnline()) {
+        try {
+            if(!fxModel.isOnline()) {
+                Alert alert = new AutosizeAlert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Switch resolution");
+                alert.setHeaderText("Couldn't switch stream resolution");
+                alert.setContentText("The resolution can only be changed, when the model is online");
+                alert.showAndWait();
+                return;
+            }
+        } catch (IOException | ExecutionException | InterruptedException e1) {
             Alert alert = new AutosizeAlert(Alert.AlertType.INFORMATION);
             alert.setTitle("Switch resolution");
             alert.setHeaderText("Couldn't switch stream resolution");
-            alert.setContentText("The resolution can only be changed, when the model is online");
+            alert.setContentText("An error occured while checking, if the model is online");
             alert.showAndWait();
             return;
         }

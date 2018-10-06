@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -77,6 +78,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     String url;
     boolean loginRequired;
     HttpClient client = HttpClient.getInstance();
+    HBox pagination;
     int page = 1;
     TextField pageInput = new TextField(Integer.toString(page));
     Button pagePrev = new Button("◀");
@@ -95,7 +97,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         initializeUpdateService();
     }
 
-    private void createGui() {
+    void createGui() {
         grid.setPadding(new Insets(5));
         grid.setHgap(5);
         grid.setVgap(5);
@@ -107,12 +109,16 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
             gridLock.lock();
             try {
                 filter();
+                moveActiveRecordingsToFront();
             } finally {
                 gridLock.unlock();
             }
         });
-        search.setTooltip(new Tooltip("Filter the models by their name, stream description or #hashtags.\n\n"+""
-                + "If the display of stream resolution is enabled, you can even filter by resolution. Try \"1080\" or \">720\""));
+        Tooltip searchTooltip = new Tooltip("Filter the models by their name, stream description or #hashtags.\n\n"
+                + "If the display of stream resolution is enabled, you can even filter for public rooms or by resolution.\n\n"
+                + "Try \"1080\" or \">720\" or \"public\"");
+        search.setTooltip(searchTooltip);
+
         BorderPane.setMargin(search, new Insets(5));
 
         scrollPane.setContent(grid);
@@ -120,7 +126,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         scrollPane.setFitToWidth(true);
         BorderPane.setMargin(scrollPane, new Insets(5));
 
-        HBox pagination = new HBox(5);
+        pagination = new HBox(5);
         pagination.getChildren().add(pagePrev);
         pagination.getChildren().add(pageNext);
         pagination.getChildren().add(pageInput);
@@ -320,6 +326,35 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
             clipboard.setContent(content);
         });
 
+        MenuItem sendTip = new MenuItem("Send Tip");
+        sendTip.setOnAction((e) -> {
+            TipDialog tipDialog = new TipDialog(cell.getModel());
+            tipDialog.showAndWait();
+            String tipText = tipDialog.getResult();
+            if(tipText != null) {
+                if(tipText.matches("[1-9]\\d*")) {
+                    int tokens = Integer.parseInt(tipText);
+                    try {
+                        cell.getModel().receiveTip(tokens);
+                    } catch (IOException e1) {
+                        Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+                        alert.setTitle("Error");
+                        alert.setHeaderText("Couldn't send tip");
+                        alert.setContentText("An error occured while sending tip: " + e1.getLocalizedMessage());
+                        alert.showAndWait();
+                    }
+                } else {
+                    Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+                    alert.setTitle("Error");
+                    alert.setHeaderText("Couldn't send tip");
+                    alert.setContentText("You entered an invalid amount of tokens");
+                    alert.showAndWait();
+                }
+            }
+        });
+        String username = Config.getInstance().getSettings().username;
+        sendTip.setDisable(username == null || username.trim().isEmpty());
+
         // check, if other cells are selected, too. in that case, we have to disable menu item, which make sense only for
         // single selections. but only do that, if the popup has been triggered on a selected cell. otherwise remove the
         // selection and show the normal menu
@@ -329,6 +364,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                     openInPlayer.setDisable(true);
                 }
                 copyUrl.setDisable(true);
+                sendTip.setDisable(true);
             } else {
                 removeSelection();
             }
@@ -339,7 +375,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         contextMenu.setHideOnEscape(true);
         contextMenu.setAutoFix(true);
         MenuItem followOrUnFollow = this instanceof FollowedTab ? unfollow : follow;
-        contextMenu.getItems().addAll(openInPlayer, startStop , followOrUnFollow, copyUrl);
+        contextMenu.getItems().addAll(openInPlayer, startStop , followOrUnFollow, copyUrl, sendTip);
         return contextMenu;
     }
 
@@ -479,32 +515,41 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     }
 
     private boolean matches(Model m, String filter) {
-        String[] tokens = filter.split(" ");
-        StringBuilder searchTextBuilder = new StringBuilder(m.getName());
-        searchTextBuilder.append(' ');
-        for (String tag : m.getTags()) {
-            searchTextBuilder.append(tag).append(' ');
-        }
-        searchTextBuilder.append(m.getStreamResolution());
-        String searchText = searchTextBuilder.toString().trim();
-        //LOG.debug("{} -> {}", m.getName(), searchText);
-        boolean tokensMissing = false;
-        for (String token : tokens) {
-            if(token.matches(">\\d+")) {
-                int res = Integer.parseInt(token.substring(1));
-                if(m.getStreamResolution() < res) {
-                    tokensMissing = true;
-                }
-            } else if(token.matches("<\\d+")) {
-                int res = Integer.parseInt(token.substring(1));
-                if(m.getStreamResolution() > res) {
-                    tokensMissing = true;
-                }
-            } else if(!searchText.contains(token)) {
-                tokensMissing = true;
+        try {
+            String[] tokens = filter.split(" ");
+            StringBuilder searchTextBuilder = new StringBuilder(m.getName());
+            searchTextBuilder.append(' ');
+            for (String tag : m.getTags()) {
+                searchTextBuilder.append(tag).append(' ');
             }
+            int[] resolution = m.getStreamResolution(true);
+            searchTextBuilder.append(resolution[1]);
+            String searchText = searchTextBuilder.toString().trim();
+            boolean tokensMissing = false;
+            for (String token : tokens) {
+                if(token.matches(">\\d+")) {
+                    int res = Integer.parseInt(token.substring(1));
+                    if(resolution[1] < res) {
+                        tokensMissing = true;
+                    }
+                } else if(token.matches("<\\d+")) {
+                    int res = Integer.parseInt(token.substring(1));
+                    if(resolution[1] > res) {
+                        tokensMissing = true;
+                    }
+                } else if(token.equals("public")) {
+                    if(!m.getOnlineState(true).equals(token)) {
+                        tokensMissing = true;
+                    }
+                } else if(!searchText.contains(token)) {
+                    tokensMissing = true;
+                }
+            }
+            return !tokensMissing;
+        } catch (NumberFormatException | ExecutionException | IOException e) {
+            LOG.error("Error while filtering model list", e);
+            return false;
         }
-        return !tokensMissing;
     }
 
     private ScheduledService<List<Model>> createUpdateService() {
@@ -550,6 +595,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
 
     @Override
     public void selected() {
+        queue.clear();
         if(updateService != null) {
             State s = updateService.getState();
             if (s != State.SCHEDULED && s != State.RUNNING) {

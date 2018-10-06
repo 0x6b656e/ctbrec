@@ -1,5 +1,6 @@
 package ctbrec.recorder.download;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,6 +10,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.iheartradio.m3u8.Encoding;
 import com.iheartradio.m3u8.Format;
@@ -27,6 +31,8 @@ import okhttp3.Response;
 
 public abstract class AbstractHlsDownload implements Download {
 
+    private static final transient Logger LOG = LoggerFactory.getLogger(AbstractHlsDownload.class);
+
     ExecutorService downloadThreadPool = Executors.newFixedThreadPool(5);
     HttpClient client;
     volatile boolean running = false;
@@ -40,9 +46,14 @@ public abstract class AbstractHlsDownload implements Download {
     String parseMaster(String url, int streamUrlIndex) throws IOException, ParseException, PlaylistException {
         Request request = new Request.Builder().url(url).addHeader("connection", "keep-alive").build();
         Response response = client.execute(request);
+        String playlistContent = "";
         try {
-            InputStream inputStream = response.body().byteStream();
-
+            if(response.code() != 200) {
+                LOG.debug("HTTP response {}, {}\n{}\n{}", response.code(), response.message(), response.headers(), response.body().string());
+                throw new IOException("HTTP response " + response.code() + " " + response.message());
+            }
+            playlistContent = response.body().string();
+            InputStream inputStream = new ByteArrayInputStream(playlistContent.getBytes());
             PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
             Playlist playlist = parser.parse();
             if(playlist.hasMasterPlaylist()) {
@@ -62,6 +73,9 @@ public abstract class AbstractHlsDownload implements Download {
                 }
             }
             return null;
+        } catch(Exception e) {
+            LOG.debug("Playlist: {}", playlistContent, e);
+            throw e;
         } finally {
             response.close();
         }

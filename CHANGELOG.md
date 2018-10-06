@@ -1,3 +1,14 @@
+1.5.3
+========================
+* Recording time is now converted to local timezone and formatted nicely
+* The state is now displayed in the resolution tag, if the room is not
+  public (e.g. private, group, offline, away)
+* You can now filter for public rooms with the keyword "public", if
+  the display of resolution is enabled
+* Added possibility to switch between online and offline models in the
+  followed tab
+* Added possibility to send tips
+
 1.5.2
 ========================
 * Added possibility to select multiple models in the overview tabs by

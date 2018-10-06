@@ -14,7 +14,6 @@ import com.iheartradio.m3u8.data.PlaylistData;
 
 import ctbrec.HttpClient;
 import ctbrec.Model;
-import ctbrec.recorder.Chaturbate;
 import ctbrec.recorder.StreamInfo;
 import ctbrec.recorder.download.StreamSource;
 import javafx.concurrent.Task;
@@ -27,8 +26,9 @@ public class StreamSourceSelectionDialog {
         Task<List<StreamSource>> selectStreamSource = new Task<List<StreamSource>>() {
             @Override
             protected List<StreamSource> call() throws Exception {
-                StreamInfo streamInfo = Chaturbate.getStreamInfo(model, client);
-                MasterPlaylist masterPlaylist = Chaturbate.getMasterPlaylist(streamInfo, client);
+                model.invalidateCacheEntries();
+                StreamInfo streamInfo = model.getStreamInfo();
+                MasterPlaylist masterPlaylist = model.getMasterPlaylist();
                 List<StreamSource> sources = new ArrayList<>();
                 for (PlaylistData playlist : masterPlaylist.getPlaylists()) {
                     if (playlist.hasStreamInfo()) {
@@ -53,6 +53,7 @@ public class StreamSourceSelectionDialog {
                 ChoiceDialog<StreamSource> choiceDialog = new ChoiceDialog<StreamSource>(sources.get(sources.size()-1), sources);
                 choiceDialog.setTitle("Stream Quality");
                 choiceDialog.setHeaderText("Select your preferred stream quality");
+                choiceDialog.setResizable(true);
                 Optional<StreamSource> selectedSource = choiceDialog.showAndWait();
                 if(selectedSource.isPresent()) {
                     int index = sources.indexOf(selectedSource.get());

@@ -17,6 +17,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.scene.text.TextAlignment;
 
 public class DonateTabFx extends Tab {
 
@@ -40,6 +41,17 @@ public class DonateTabFx extends Tab {
         header.getChildren().add(headerVbox);
         header.setPadding(new Insets(20, 0, 0, 0));
         container.setTop(header);
+
+        ImageView tokenImage = new ImageView(getClass().getResource("/html/token.png").toString());
+        Button tokenButton = new Button("Buy tokens");
+        tokenButton.setOnAction((e) -> { DesktopIntergation.open(CtbrecApplication.AFFILIATE_LINK); });
+        VBox tokenBox = new VBox(5);
+        tokenBox.setAlignment(Pos.TOP_CENTER);
+        Label tokenDesc = new Label("If you buy tokens by using this button,\n"
+                + "Chaturbate will award me 20% of the tokens' value for sending you over.\n"
+                + "You get the full tokens and it doesn't cost you any more!");
+        tokenDesc.setTextAlignment(TextAlignment.CENTER);
+        tokenBox.getChildren().addAll(tokenImage, tokenButton, tokenDesc);
 
         ImageView coffeeImage = new ImageView(getClass().getResource("/html/buymeacoffee-fancy.png").toString());
         Button coffeeButton = new Button("Buy me a coffee");
@@ -79,13 +91,18 @@ public class DonateTabFx extends Tab {
         moneroBox.setAlignment(Pos.TOP_CENTER);
         moneroBox.getChildren().addAll(moneroLabel, moneroAddress, moneroQrCode);
 
+        HBox topBox = new HBox(5);
+        topBox.setAlignment(Pos.CENTER);
+        topBox.setSpacing(50);
+        topBox.getChildren().addAll(tokenBox, buyCoffeeBox);
+
         HBox coinBox = new HBox(5);
         coinBox.setAlignment(Pos.CENTER);
         coinBox.setSpacing(50);
         coinBox.getChildren().addAll(bitcoinBox, ethereumBox, moneroBox);
 
         VBox centerBox = new VBox(50);
-        centerBox.getChildren().addAll(buyCoffeeBox, coinBox);
+        centerBox.getChildren().addAll(topBox, coinBox);
         container.setCenter(centerBox);
     }
 }

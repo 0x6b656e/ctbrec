@@ -111,12 +111,9 @@ public class CtbrecApplication extends Application {
         tabPane.getTabs().add(settingsTab);
         tabPane.getTabs().add(new DonateTabFx());
 
-        StackPane stackPane = new StackPane();
-        stackPane.getChildren().add(tabPane);
-
         int windowWidth = Config.getInstance().getSettings().windowWidth;
         int windowHeight = Config.getInstance().getSettings().windowHeight;
-        primaryStage.setScene(new Scene(stackPane, windowWidth, windowHeight));
+        primaryStage.setScene(new Scene(tabPane, windowWidth, windowHeight));
         followedTab.setScene(primaryStage.getScene());
         primaryStage.getScene().getStylesheets().add("/ctbrec/ui/ThumbCell.css");
         primaryStage.getScene().widthProperty().addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowWidth = newVal.intValue());
@@ -174,9 +171,8 @@ public class CtbrecApplication extends Application {
             tokenPanel.setMaxHeight(tabPane.getTabMaxHeight());
             tokenPanel.setMaxWidth(200);
             tokenBalance.setFont(Font.font(fontSize));
-            HBox.setMargin(tokenBalance, new Insets(5, 5, 0, 0));
-            StackPane.setAlignment(tokenPanel, Pos.TOP_RIGHT);
-            StackPane.setMargin(tokenPanel, new Insets(5));
+            HBox.setMargin(tokenBalance, new Insets(0, 5, 0, 0));
+            HBox.setMargin(buyTokens, new Insets(0, 5, 0, 0));
             for (Node node : tabPane.getChildrenUnmodifiable()) {
                 if(node.getStyleClass().contains("tab-header-area")) {
                     Parent header = (Parent) node;

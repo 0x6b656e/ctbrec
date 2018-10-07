@@ -220,7 +220,7 @@ public class CtbrecApplication extends Application {
                     label.update(tokens);
                 } catch (InterruptedException | ExecutionException e) {
                     LOG.error("Couldn't retrieve account balance", e);
-                    label.setText("Tokens: error");
+                    Platform.runLater(() -> label.setText("Tokens: error"));
                 }
             }
         };

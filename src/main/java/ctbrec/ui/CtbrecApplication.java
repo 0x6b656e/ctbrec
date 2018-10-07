@@ -33,6 +33,8 @@ import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -60,6 +62,7 @@ public class CtbrecApplication extends Application {
     private SettingsTab settingsTab;
     private TabPane tabPane = new TabPane();
     static EventBus bus;
+    private HBox tokenPanel;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -111,25 +114,6 @@ public class CtbrecApplication extends Application {
         StackPane stackPane = new StackPane();
         stackPane.getChildren().add(tabPane);
 
-        String username = Config.getInstance().getSettings().username;
-        if(username != null && !username.trim().isEmpty()) {
-            Button buyTokens = new Button("Buy Tokens");
-            buyTokens.setFont(Font.font(11));
-            buyTokens.setOnAction((e) -> DesktopIntergation.open(AFFILIATE_LINK));
-            TokenLabel tokenBalance = new TokenLabel();
-            tokenBalance.setFont(Font.font(11));
-            HBox tokenPanel = new HBox(5, tokenBalance, buyTokens);
-            //tokenPanel.setBackground(new Background(new BackgroundFill(Color.GREEN, CornerRadii.EMPTY, new Insets(0))));
-            tokenPanel.setAlignment(Pos.BASELINE_RIGHT);
-            tokenPanel.setMaxWidth(200);
-            tokenPanel.setMaxHeight(25);
-            HBox.setMargin(tokenBalance, new Insets(5, 5, 0, 0));
-            stackPane.getChildren().add(tokenPanel);
-            StackPane.setAlignment(tokenPanel, Pos.TOP_RIGHT);
-            StackPane.setMargin(tokenPanel, new Insets(5));
-            loadTokenBalance(tokenBalance);
-        }
-
         int windowWidth = Config.getInstance().getSettings().windowWidth;
         int windowHeight = Config.getInstance().getSettings().windowHeight;
         primaryStage.setScene(new Scene(stackPane, windowWidth, windowHeight));
@@ -175,6 +159,39 @@ public class CtbrecApplication extends Application {
                 }
             }.start();
         });
+
+        String username = Config.getInstance().getSettings().username;
+        if(username != null && !username.trim().isEmpty()) {
+            double fontSize = tabPane.getTabMaxHeight() / 2 - 1;
+            Button buyTokens = new Button("Buy Tokens");
+            buyTokens.setFont(Font.font(fontSize));
+            buyTokens.setOnAction((e) -> DesktopIntergation.open(AFFILIATE_LINK));
+            buyTokens.setMaxHeight(tabPane.getTabMaxHeight());
+            TokenLabel tokenBalance = new TokenLabel();
+            tokenPanel = new HBox(5, tokenBalance, buyTokens);
+            //tokenPanel.setBackground(new Background(new BackgroundFill(Color.GREEN, CornerRadii.EMPTY, new Insets(0))));
+            tokenPanel.setAlignment(Pos.BASELINE_RIGHT);
+            tokenPanel.setMaxHeight(tabPane.getTabMaxHeight());
+            tokenPanel.setMaxWidth(200);
+            tokenBalance.setFont(Font.font(fontSize));
+            HBox.setMargin(tokenBalance, new Insets(5, 5, 0, 0));
+            StackPane.setAlignment(tokenPanel, Pos.TOP_RIGHT);
+            StackPane.setMargin(tokenPanel, new Insets(5));
+            for (Node node : tabPane.getChildrenUnmodifiable()) {
+                if(node.getStyleClass().contains("tab-header-area")) {
+                    Parent header = (Parent) node;
+                    for (Node nd : header.getChildrenUnmodifiable()) {
+                        if(nd.getStyleClass().contains("tab-header-background")) {
+                            StackPane pane = (StackPane) nd;
+                            StackPane.setAlignment(tokenPanel, Pos.CENTER_RIGHT);
+                            pane.getChildren().add(tokenPanel);
+                        }
+                    }
+
+                }
+            }
+            loadTokenBalance(tokenBalance);
+        }
     }
 
     private void loadTokenBalance(TokenLabel label) {

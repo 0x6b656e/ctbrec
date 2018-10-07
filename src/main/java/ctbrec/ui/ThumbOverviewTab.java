@@ -6,9 +6,11 @@ import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
@@ -336,6 +338,10 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                     int tokens = Integer.parseInt(tipText);
                     try {
                         cell.getModel().receiveTip(tokens);
+                        Map<String, Object> event = new HashMap<>();
+                        event.put("event", "tokens.sent");
+                        event.put("amount", tokens);
+                        CtbrecApplication.bus.post(event);
                     } catch (IOException e1) {
                         Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
                         alert.setTitle("Error");

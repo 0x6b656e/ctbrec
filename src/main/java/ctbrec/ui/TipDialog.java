@@ -1,6 +1,8 @@
 package ctbrec.ui;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import org.slf4j.Logger;
@@ -47,6 +49,10 @@ public class TipDialog extends TextInputDialog {
                     String profilePage = resp.body().string();
                     String tokenText = HtmlParser.getText(profilePage, "span.tokencount");
                     int tokens = Integer.parseInt(tokenText);
+                    Map<String, Object> event = new HashMap<>();
+                    event.put("event", "tokens");
+                    event.put("amount", tokens);
+                    CtbrecApplication.bus.post(event);
                     return tokens;
                 } else {
                     throw new IOException("HTTP response: " + resp.code() + " - " + resp.message());

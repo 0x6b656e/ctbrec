@@ -8,10 +8,13 @@ import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.eventbus.AsyncEventBus;
+import com.google.common.eventbus.EventBus;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 import com.squareup.moshi.Types;
@@ -33,7 +36,6 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TabPane.TabClosingPolicy;
@@ -57,10 +59,12 @@ public class CtbrecApplication extends Application {
     static HostServices hostServices;
     private SettingsTab settingsTab;
     private TabPane tabPane = new TabPane();
+    static EventBus bus;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
         loadConfig();
+        bus = new AsyncEventBus(Executors.newSingleThreadExecutor());
         hostServices = getHostServices();
         client = HttpClient.getInstance();
         createRecorder();
@@ -112,7 +116,7 @@ public class CtbrecApplication extends Application {
             Button buyTokens = new Button("Buy Tokens");
             buyTokens.setFont(Font.font(11));
             buyTokens.setOnAction((e) -> DesktopIntergation.open(AFFILIATE_LINK));
-            Label tokenBalance = new Label("Tokens: loading…");
+            TokenLabel tokenBalance = new TokenLabel();
             tokenBalance.setFont(Font.font(11));
             HBox tokenPanel = new HBox(5, tokenBalance, buyTokens);
             //tokenPanel.setBackground(new Background(new BackgroundFill(Color.GREEN, CornerRadii.EMPTY, new Insets(0))));
@@ -173,7 +177,7 @@ public class CtbrecApplication extends Application {
         });
     }
 
-    private void loadTokenBalance(Label label) {
+    private void loadTokenBalance(TokenLabel label) {
         Task<Integer> task = new Task<Integer>() {
             @Override
             protected Integer call() throws Exception {
@@ -200,9 +204,7 @@ public class CtbrecApplication extends Application {
             protected void done() {
                 try {
                     int tokens = get();
-                    Platform.runLater(() -> {
-                        label.setText("Tokens: " + tokens);
-                    });
+                    label.update(tokens);
                 } catch (InterruptedException | ExecutionException e) {
                     LOG.error("Couldn't retrieve account balance", e);
                     label.setText("Tokens: error");

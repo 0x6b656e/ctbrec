@@ -330,7 +330,6 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         server.setDisable(local);
         port.setDisable(local);
         secureCommunication.setDisable(local);
-        ctb.setDisable(!local);
         recordingsDirectory.setDisable(!local);
         recordingsDirectoryButton.setDisable(!local);
         splitAfter.setDisable(!local);

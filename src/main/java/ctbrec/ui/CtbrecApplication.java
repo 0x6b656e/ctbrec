@@ -194,22 +194,26 @@ public class CtbrecApplication extends Application {
         Task<Integer> task = new Task<Integer>() {
             @Override
             protected Integer call() throws Exception {
-                String username = Config.getInstance().getSettings().username;
-                if (username == null || username.trim().isEmpty()) {
-                    throw new IOException("Not logged in");
-                }
+                if (!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
+                    String username = Config.getInstance().getSettings().username;
+                    if (username == null || username.trim().isEmpty()) {
+                        throw new IOException("Not logged in");
+                    }
 
-                String url = "https://chaturbate.com/p/" + username + "/";
-                HttpClient client = HttpClient.getInstance();
-                Request req = new Request.Builder().url(url).build();
-                Response resp = client.execute(req, true);
-                if (resp.isSuccessful()) {
-                    String profilePage = resp.body().string();
-                    String tokenText = HtmlParser.getText(profilePage, "span.tokencount");
-                    int tokens = Integer.parseInt(tokenText);
-                    return tokens;
+                    String url = "https://chaturbate.com/p/" + username + "/";
+                    HttpClient client = HttpClient.getInstance();
+                    Request req = new Request.Builder().url(url).build();
+                    Response resp = client.execute(req, true);
+                    if (resp.isSuccessful()) {
+                        String profilePage = resp.body().string();
+                        String tokenText = HtmlParser.getText(profilePage, "span.tokencount");
+                        int tokens = Integer.parseInt(tokenText);
+                        return tokens;
+                    } else {
+                        throw new IOException("HTTP response: " + resp.code() + " - " + resp.message());
+                    }
                 } else {
-                    throw new IOException("HTTP response: " + resp.code() + " - " + resp.message());
+                    return 1_000_000;
                 }
             }
 

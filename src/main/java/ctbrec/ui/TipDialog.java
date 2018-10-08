@@ -3,6 +3,7 @@ package ctbrec.ui;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 import org.slf4j.Logger;
@@ -36,26 +37,30 @@ public class TipDialog extends TextInputDialog {
         Task<Integer> task = new Task<Integer>() {
             @Override
             protected Integer call() throws Exception {
-                String username = Config.getInstance().getSettings().username;
-                if (username == null || username.trim().isEmpty()) {
-                    throw new IOException("Not logged in");
-                }
+                if (!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
+                    String username = Config.getInstance().getSettings().username;
+                    if (username == null || username.trim().isEmpty()) {
+                        throw new IOException("Not logged in");
+                    }
 
-                String url = "https://chaturbate.com/p/" + username + "/";
-                HttpClient client = HttpClient.getInstance();
-                Request req = new Request.Builder().url(url).build();
-                Response resp = client.execute(req, true);
-                if (resp.isSuccessful()) {
-                    String profilePage = resp.body().string();
-                    String tokenText = HtmlParser.getText(profilePage, "span.tokencount");
-                    int tokens = Integer.parseInt(tokenText);
-                    Map<String, Object> event = new HashMap<>();
-                    event.put("event", "tokens");
-                    event.put("amount", tokens);
-                    CtbrecApplication.bus.post(event);
-                    return tokens;
+                    String url = "https://chaturbate.com/p/" + username + "/";
+                    HttpClient client = HttpClient.getInstance();
+                    Request req = new Request.Builder().url(url).build();
+                    Response resp = client.execute(req, true);
+                    if (resp.isSuccessful()) {
+                        String profilePage = resp.body().string();
+                        String tokenText = HtmlParser.getText(profilePage, "span.tokencount");
+                        int tokens = Integer.parseInt(tokenText);
+                        Map<String, Object> event = new HashMap<>();
+                        event.put("event", "tokens");
+                        event.put("amount", tokens);
+                        CtbrecApplication.bus.post(event);
+                        return tokens;
+                    } else {
+                        throw new IOException("HTTP response: " + resp.code() + " - " + resp.message());
+                    }
                 } else {
-                    throw new IOException("HTTP response: " + resp.code() + " - " + resp.message());
+                    return 1_000_000;
                 }
             }
 

@@ -220,20 +220,22 @@ public class Model {
         }
 
         public void sendTip(String name, int tokens) throws IOException {
-            RequestBody body = new FormBody.Builder()
-                    .add("csrfmiddlewaretoken", client.getToken())
-                    .add("tip_amount", Integer.toString(tokens))
-                    .add("tip_room_type", "public")
-                    .build();
-            Request req = new Request.Builder()
-                    .url("https://chaturbate.com/tipping/send_tip/"+name+"/")
-                    .post(body)
-                    .addHeader("Referer", "https://chaturbate.com/"+name+"/")
-                    .addHeader("X-Requested-With", "XMLHttpRequest")
-                    .build();
-            try(Response response = client.execute(req, true)) {
-                if(!response.isSuccessful()) {
-                    throw new IOException(response.code() + " " + response.message());
+            if (!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
+                RequestBody body = new FormBody.Builder()
+                        .add("csrfmiddlewaretoken", client.getToken())
+                        .add("tip_amount", Integer.toString(tokens))
+                        .add("tip_room_type", "public")
+                        .build();
+                Request req = new Request.Builder()
+                        .url("https://chaturbate.com/tipping/send_tip/"+name+"/")
+                        .post(body)
+                        .addHeader("Referer", "https://chaturbate.com/"+name+"/")
+                        .addHeader("X-Requested-With", "XMLHttpRequest")
+                        .build();
+                try(Response response = client.execute(req, true)) {
+                    if(!response.isSuccessful()) {
+                        throw new IOException(response.code() + " " + response.message());
+                    }
                 }
             }
         }

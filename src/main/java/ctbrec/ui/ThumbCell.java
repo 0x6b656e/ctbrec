@@ -75,6 +75,7 @@ public class ThumbCell extends StackPane {
     private HttpClient client;
 
     private ObservableList<Node> thumbCellList;
+    private boolean mouseHovering = false;
 
     public ThumbCell(ThumbOverviewTab parent, Model model, Recorder recorder, HttpClient client) {
         this.thumbCellList = parent.grid.getChildren();
@@ -156,12 +157,22 @@ public class ThumbCell extends StackPane {
         getChildren().add(selectionOverlay);
 
         setOnMouseEntered((e) -> {
+            mouseHovering = true;
             new ParallelTransition(changeColor(nameBackground, colorNormal, colorHighlight), changeColor(name, colorHighlight, colorNormal)).playFromStart();
             new ParallelTransition(changeOpacity(topicBackground, 0.7), changeOpacity(topic, 0.7)).playFromStart();
+            if(Config.getInstance().getSettings().determineResolution) {
+                resolutionBackground.setVisible(false);
+                resolutionTag.setVisible(false);
+            }
         });
         setOnMouseExited((e) -> {
+            mouseHovering = false;
             new ParallelTransition(changeColor(nameBackground, colorHighlight, colorNormal), changeColor(name, colorNormal, colorHighlight)).playFromStart();
             new ParallelTransition(changeOpacity(topicBackground, 0), changeOpacity(topic, 0)).playFromStart();
+            if(Config.getInstance().getSettings().determineResolution) {
+                resolutionBackground.setVisible(true);
+                resolutionTag.setVisible(true);
+            }
         });
         setThumbWidth(width);
 
@@ -235,8 +246,10 @@ public class ThumbCell extends StackPane {
         final Paint c = resolutionBackgroundColor;
         Platform.runLater(() -> {
             resolutionTag.setText(resText);
-            resolutionTag.setVisible(true);
-            resolutionBackground.setVisible(true);
+            if(!mouseHovering) {
+                resolutionTag.setVisible(true);
+                resolutionBackground.setVisible(true);
+            }
             resolutionBackground.setWidth(resolutionTag.getBoundsInLocal().getWidth() + 4);
             resolutionBackground.setFill(c);
         });

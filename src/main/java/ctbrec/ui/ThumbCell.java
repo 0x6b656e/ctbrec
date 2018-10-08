@@ -54,8 +54,8 @@ public class ThumbCell extends StackPane {
     private Model model;
     private ImageView iv;
     private Rectangle resolutionBackground;
-    private Paint resolutionOnlineColor = new Color(0.22, 0.8, 0.29, 1);
-    private Color resolutionOfflineColor = new Color(0.8, 0.28, 0.28, 1);
+    private final Paint resolutionOnlineColor = new Color(0.22, 0.8, 0.29, 1);
+    private final Color resolutionOfflineColor = new Color(0.8, 0.28, 0.28, 1);
     private Rectangle nameBackground;
     private Rectangle topicBackground;
     private Rectangle selectionOverlay;
@@ -67,22 +67,23 @@ public class ThumbCell extends StackPane {
     private FadeTransition recordingAnimation;
     private int index = 0;
     ContextMenu popup;
-    private Color colorNormal = Color.BLACK;
-    private Color colorHighlight = Color.WHITE;
-    private Color colorRecording = new Color(0.8, 0.28, 0.28, 1);
+    private final Color colorNormal = Color.BLACK;
+    private final Color colorHighlight = Color.WHITE;
+    private final Color colorRecording = new Color(0.8, 0.28, 0.28, 1);
     private SimpleBooleanProperty selectionProperty = new SimpleBooleanProperty(false);
 
     private HttpClient client;
 
     private ObservableList<Node> thumbCellList;
     private boolean mouseHovering = false;
+    private boolean recording = false;
 
     public ThumbCell(ThumbOverviewTab parent, Model model, Recorder recorder, HttpClient client) {
         this.thumbCellList = parent.grid.getChildren();
         this.model = model;
         this.recorder = recorder;
         this.client = client;
-        boolean recording = recorder.isRecording(model);
+        recording = recorder.isRecording(model);
 
         iv = new ImageView();
         setImage(model.getPreview());
@@ -158,7 +159,8 @@ public class ThumbCell extends StackPane {
 
         setOnMouseEntered((e) -> {
             mouseHovering = true;
-            new ParallelTransition(changeColor(nameBackground, colorNormal, colorHighlight), changeColor(name, colorHighlight, colorNormal)).playFromStart();
+            Color normal = recording ? colorRecording : colorNormal;
+            new ParallelTransition(changeColor(nameBackground, normal, colorHighlight), changeColor(name, colorHighlight, normal)).playFromStart();
             new ParallelTransition(changeOpacity(topicBackground, 0.7), changeOpacity(topic, 0.7)).playFromStart();
             if(Config.getInstance().getSettings().determineResolution) {
                 resolutionBackground.setVisible(false);
@@ -167,9 +169,10 @@ public class ThumbCell extends StackPane {
         });
         setOnMouseExited((e) -> {
             mouseHovering = false;
-            new ParallelTransition(changeColor(nameBackground, colorHighlight, colorNormal), changeColor(name, colorNormal, colorHighlight)).playFromStart();
+            Color normal = recording ? colorRecording : colorNormal;
+            new ParallelTransition(changeColor(nameBackground, colorHighlight, normal), changeColor(name, normal, colorHighlight)).playFromStart();
             new ParallelTransition(changeOpacity(topicBackground, 0), changeOpacity(topic, 0)).playFromStart();
-            if(Config.getInstance().getSettings().determineResolution) {
+            if(Config.getInstance().getSettings().determineResolution && !resolutionTag.getText().isEmpty()) {
                 resolutionBackground.setVisible(true);
                 resolutionTag.setVisible(true);
             }
@@ -310,14 +313,13 @@ public class ThumbCell extends StackPane {
     }
 
     private void setRecording(boolean recording) {
+        this.recording = recording;
         if(recording) {
-            //recordingAnimation.playFromStart();
-            colorNormal = colorRecording;
-            nameBackground.setFill(colorNormal);
+            Color c = mouseHovering ? colorHighlight : colorRecording;
+            nameBackground.setFill(c);
         } else {
-            colorNormal = Color.BLACK;
-            nameBackground.setFill(colorNormal);
-            //recordingAnimation.stop();
+            Color c = mouseHovering ? colorHighlight : colorNormal;
+            nameBackground.setFill(c);
         }
         recordingIndicator.setVisible(recording);
     }

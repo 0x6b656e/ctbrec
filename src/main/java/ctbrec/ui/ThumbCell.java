@@ -15,7 +15,6 @@ import ctbrec.recorder.Recorder;
 import ctbrec.recorder.StreamInfo;
 import javafx.animation.FadeTransition;
 import javafx.animation.FillTransition;
-import javafx.animation.Interpolator;
 import javafx.animation.ParallelTransition;
 import javafx.animation.Transition;
 import javafx.application.Platform;
@@ -64,7 +63,6 @@ public class ThumbCell extends StackPane {
     private Text resolutionTag;
     private Recorder recorder;
     private Circle recordingIndicator;
-    private FadeTransition recordingAnimation;
     private int index = 0;
     ContextMenu popup;
     private final Color colorNormal = Color.BLACK;
@@ -142,17 +140,8 @@ public class ThumbCell extends StackPane {
         StackPane.setMargin(recordingIndicator, new Insets(3));
         StackPane.setAlignment(recordingIndicator, Pos.TOP_LEFT);
         getChildren().add(recordingIndicator);
-        recordingAnimation = new FadeTransition(Duration.millis(1000), recordingIndicator);
-        recordingAnimation.setInterpolator(Interpolator.EASE_BOTH);
-        recordingAnimation.setFromValue(1.0);
-        recordingAnimation.setToValue(0);
-        recordingAnimation.setCycleCount(FadeTransition.INDEFINITE);
-        recordingAnimation.setAutoReverse(true);
 
         selectionOverlay = new Rectangle();
-        //selectionOverlay.setFill(new Color(0, 150f/255, 201f/255, .75));
-        //selectionOverlay.setStyle("-fx-background-color: -fx-accent");
-        //selectionOverlay.getStyleClass().add("table-view");
         selectionOverlay.setOpacity(0);
         StackPane.setAlignment(selectionOverlay, Pos.TOP_LEFT);
         getChildren().add(selectionOverlay);
@@ -289,9 +278,6 @@ public class ThumbCell extends StackPane {
     }
 
     void startPlayer() {
-        // TODO if manual choice of stream quality is enabled, do the same thing as starting a download here?!?
-        // or maybe not, because the player should automatically switch between resolutions depending on the
-        // network bandwidth
         try {
             if(model.isOnline(true)) {
                 StreamInfo streamInfo = model.getStreamInfo();
@@ -397,7 +383,6 @@ public class ThumbCell extends StackPane {
                             .url(url)
                             .method("POST", body)
                             .header("Accept", "*/*")
-                            //.header("Accept-Encoding", "gzip, deflate, br")
                             .header("Accept-Language", "en-US,en;q=0.5")
                             .header("Referer", model.getUrl())
                             .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:59.0) Gecko/20100101 Firefox/59.0")
@@ -463,17 +448,6 @@ public class ThumbCell extends StackPane {
         setRecording(recorder.isRecording(model));
         setImage(model.getPreview());
         topic.setText(model.getDescription());
-
-        //        ThumbOverviewTab.threadPool.submit(() -> {
-        //            StreamInfo streamInfo;
-        //            try {
-        //                streamInfo = Chaturbate.INSTANCE.getStreamInfo(model);
-        //                model.setOnline(streamInfo.room_status.equals("public"));
-        //                model.setOnlineState(streamInfo.room_status);
-        //            } catch (IOException | ExecutionException e) {
-        //                LOG.error("Couldn't retrieve stream information for model {}", model.getName());
-        //            }
-        //        });
 
         if(Config.getInstance().getSettings().determineResolution) {
             determineResolution();

@@ -47,6 +47,7 @@ public class FollowedTab extends ThumbOverviewTab {
             } else {
                 super.url = offlineUrl;
             }
+            queue.clear();
             updateService.restart();
         });
     }

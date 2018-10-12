@@ -1,3 +1,7 @@
+1.5.4
+========================
+* Lots of little tweaks for the GUI
+
 1.5.3
 ========================
 * Recording time is now converted to local timezone and formatted nicely

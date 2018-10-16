@@ -8,7 +8,7 @@ import com.squareup.moshi.JsonReader;
 import com.squareup.moshi.JsonReader.Token;
 import com.squareup.moshi.JsonWriter;
 
-public class ModelAdapter extends JsonAdapter<Model> {
+public class ModelJsonAdapter extends JsonAdapter<Model> {
 
     @Override
     public Model fromJson(JsonReader reader) throws IOException {

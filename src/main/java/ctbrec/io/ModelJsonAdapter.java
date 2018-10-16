@@ -6,11 +6,10 @@ import java.util.Optional;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.JsonReader;
 import com.squareup.moshi.JsonReader.Token;
+import com.squareup.moshi.JsonWriter;
 
 import ctbrec.Model;
 import ctbrec.sites.chaturbate.ChaturbateModel;
-
-import com.squareup.moshi.JsonWriter;
 
 public class ModelJsonAdapter extends JsonAdapter<Model> {
 
@@ -21,6 +20,7 @@ public class ModelJsonAdapter extends JsonAdapter<Model> {
         String description = null;
         String url = null;
         String type = null;
+        int streamUrlIndex = -1;
         while(reader.hasNext()) {
             Token token = reader.peek();
             if(token == Token.NAME) {
@@ -33,6 +33,8 @@ public class ModelJsonAdapter extends JsonAdapter<Model> {
                     url = reader.nextString();
                 } else if(key.equals("type")) {
                     type = reader.nextString();
+                } else if(key.equals("streamUrlIndex")) {
+                    streamUrlIndex = reader.nextInt();
                 }
             } else {
                 reader.skipValue();
@@ -46,6 +48,7 @@ public class ModelJsonAdapter extends JsonAdapter<Model> {
             model.setName(name);
             model.setDescription(description);
             model.setUrl(url);
+            model.setStreamUrlIndex(streamUrlIndex);
             return model;
         } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
             throw new IOException("Couldn't instantiate mode class [" + type + "]", e);
@@ -59,6 +62,7 @@ public class ModelJsonAdapter extends JsonAdapter<Model> {
         writeValueIfSet(writer, "name", model.getName());
         writeValueIfSet(writer, "description", model.getDescription());
         writeValueIfSet(writer, "url", model.getUrl());
+        writer.name("streamUrlIndex").value(model.getStreamUrlIndex());
         writer.endObject();
     }
 

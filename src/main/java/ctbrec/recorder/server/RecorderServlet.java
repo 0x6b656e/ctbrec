@@ -20,8 +20,10 @@ import org.slf4j.LoggerFactory;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 
+import ctbrec.ChaturbateModel;
 import ctbrec.InstantJsonAdapter;
 import ctbrec.Model;
+import ctbrec.ModelAdapter;
 import ctbrec.Recording;
 import ctbrec.recorder.Recorder;
 
@@ -53,6 +55,7 @@ public class RecorderServlet extends AbstractCtbrecServlet {
             LOG.debug("Request: {}", json);
             Moshi moshi = new Moshi.Builder()
                     .add(Instant.class, new InstantJsonAdapter())
+                    .add(Model.class, new ModelAdapter())
                     .build();
             JsonAdapter<Request> requestAdapter = moshi.adapter(Request.class);
             Request request = requestAdapter.fromJson(json);
@@ -130,7 +133,7 @@ public class RecorderServlet extends AbstractCtbrecServlet {
 
     private static class Request {
         public String action;
-        public Model model;
+        public ChaturbateModel model;
         public String recording;
     }
 }

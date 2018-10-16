@@ -23,6 +23,7 @@ public class Settings {
     public String username = "";
     public String password = "";
     public String lastDownloadDir = "";
+
     public List<Model> models = new ArrayList<Model>();
     public boolean determineResolution = false;
     public boolean requireAuthentication = false;

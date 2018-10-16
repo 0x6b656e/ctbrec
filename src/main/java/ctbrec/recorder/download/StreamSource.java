@@ -2,7 +2,7 @@ package ctbrec.recorder.download;
 
 import java.text.DecimalFormat;
 
-public class StreamSource {
+public class StreamSource implements Comparable<StreamSource> {
     public int bandwidth;
     public int height;
     public String mediaPlaylistUrl;
@@ -36,5 +36,19 @@ public class StreamSource {
         DecimalFormat df = new DecimalFormat("0.00");
         float mbit = bandwidth / 1024.0f / 1024.0f;
         return height + "p (" + df.format(mbit) + " Mbit/s)";
+    }
+
+    /**
+     * First compares the sources by height, if the heights are the same
+     * it compares the bandwidth values
+     */
+    @Override
+    public int compareTo(StreamSource o) {
+        int heightDiff = height - o.height;
+        if(heightDiff != 0) {
+            return heightDiff;
+        } else {
+            return bandwidth - o.bandwidth;
+        }
     }
 }

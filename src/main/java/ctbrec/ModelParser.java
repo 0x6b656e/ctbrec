@@ -15,13 +15,13 @@ import ctbrec.ui.HtmlParser;
 public class ModelParser {
     private static final transient Logger LOG = LoggerFactory.getLogger(ModelParser.class);
 
-    public static List<Model> parseModels(String html) {
-        List<Model> models = new ArrayList<>();
+    public static List<ChaturbateModel> parseModels(String html) {
+        List<ChaturbateModel> models = new ArrayList<>();
         Elements cells = HtmlParser.getTags(html, "ul.list > li");
         for (Element cell : cells) {
             String cellHtml = cell.html();
             try {
-                Model model = new Model();
+                ChaturbateModel model = new ChaturbateModel();
                 model.setName(HtmlParser.getText(cellHtml, "div.title > a").trim());
                 model.setPreview(HtmlParser.getTag(cellHtml, "a img").attr("src"));
                 model.setUrl(BASE_URI + HtmlParser.getTag(cellHtml, "a").attr("href"));

@@ -30,7 +30,7 @@ import com.iheartradio.m3u8.PlaylistException;
 
 import ctbrec.Config;
 import ctbrec.HttpClient;
-import ctbrec.Model;
+import ctbrec.ChaturbateModel;
 import ctbrec.Recording;
 import ctbrec.Recording.STATUS;
 import ctbrec.recorder.Recorder;
@@ -246,7 +246,7 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
 
         MenuItem stopRecording = new MenuItem("Stop recording");
         stopRecording.setOnAction((e) -> {
-            Model m = new Model();
+            ChaturbateModel m = new ChaturbateModel();
             m.setName(recording.getModelName());
             m.setUrl(CtbrecApplication.BASE_URI + '/' + recording.getModelName() + '/');
             try {

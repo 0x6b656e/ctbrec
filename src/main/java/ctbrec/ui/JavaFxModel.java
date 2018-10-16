@@ -5,14 +5,19 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
+import com.iheartradio.m3u8.ParseException;
+import com.iheartradio.m3u8.PlaylistException;
+
+import ctbrec.AbstractModel;
 import ctbrec.Model;
+import ctbrec.recorder.download.StreamSource;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 
 /**
  * Just a wrapper for Model, which augments it with JavaFX value binding properties, so that UI widgets get updated proeprly
  */
-public class JavaFxModel extends Model {
+public class JavaFxModel extends AbstractModel {
     private transient BooleanProperty onlineProperty = new SimpleBooleanProperty();
 
     private Model delegate;
@@ -85,5 +90,25 @@ public class JavaFxModel extends Model {
 
     Model getDelegate() {
         return delegate;
+    }
+
+    @Override
+    public boolean isOnline() throws IOException, ExecutionException, InterruptedException {
+        return delegate.isOnline();
+    }
+
+    @Override
+    public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException {
+        return delegate.isOnline(ignoreCache);
+    }
+
+    @Override
+    public String getOnlineState(boolean failFast) throws IOException, ExecutionException {
+        return delegate.getOnlineState(failFast);
+    }
+
+    @Override
+    public List<StreamSource> getStreamSources() throws IOException, ExecutionException, ParseException, PlaylistException {
+        return delegate.getStreamSources();
     }
 }

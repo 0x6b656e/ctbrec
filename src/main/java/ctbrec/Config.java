@@ -39,7 +39,9 @@ public class Config {
     }
 
     private void load() throws FileNotFoundException, IOException {
-        Moshi moshi = new Moshi.Builder().build();
+        Moshi moshi = new Moshi.Builder()
+                .add(Model.class, new ModelAdapter())
+                .build();
         JsonAdapter<Settings> adapter = moshi.adapter(Settings.class);
         File configDir = OS.getConfigDir();
         File configFile = new File(configDir, filename);
@@ -73,7 +75,9 @@ public class Config {
     }
 
     public void save() throws IOException {
-        Moshi moshi = new Moshi.Builder().build();
+        Moshi moshi = new Moshi.Builder()
+                .add(Model.class, new ModelAdapter())
+                .build();
         JsonAdapter<Settings> adapter = moshi.adapter(Settings.class).indent("  ");
         String json = adapter.toJson(settings);
         File configDir = OS.getConfigDir();

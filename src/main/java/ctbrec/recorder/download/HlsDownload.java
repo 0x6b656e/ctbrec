@@ -25,7 +25,6 @@ import com.iheartradio.m3u8.PlaylistException;
 import ctbrec.Config;
 import ctbrec.HttpClient;
 import ctbrec.Model;
-import ctbrec.recorder.StreamInfo;
 import okhttp3.Request;
 import okhttp3.Response;
 
@@ -46,12 +45,11 @@ public class HlsDownload extends AbstractHlsDownload {
             Path modelDir = FileSystems.getDefault().getPath(config.getSettings().recordingsDir, model.getName());
             downloadDir = FileSystems.getDefault().getPath(modelDir.toString(), startTime);
 
-            StreamInfo streamInfo = model.getStreamInfo();
-            if(!Objects.equals(streamInfo.room_status, "public")) {
+            if(!Objects.equals(model.getOnlineState(false), "public")) {
                 throw new IOException(model.getName() +"'s room is not public");
             }
 
-            String segments = parseMaster(streamInfo.url, model.getStreamUrlIndex());
+            String segments = model.getSegmentPlaylistUrl();
             if(segments != null) {
                 if (!Files.exists(downloadDir, LinkOption.NOFOLLOW_LINKS)) {
                     Files.createDirectories(downloadDir);

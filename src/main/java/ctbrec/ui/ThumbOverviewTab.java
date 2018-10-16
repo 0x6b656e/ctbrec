@@ -29,7 +29,7 @@ import com.sun.javafx.collections.ObservableListWrapper;
 
 import ctbrec.Config;
 import ctbrec.HttpClient;
-import ctbrec.Model;
+import ctbrec.ChaturbateModel;
 import ctbrec.ModelParser;
 import ctbrec.recorder.Recorder;
 import javafx.collections.ObservableList;
@@ -65,11 +65,11 @@ import okhttp3.Response;
 public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     private static final transient Logger LOG = LoggerFactory.getLogger(ThumbOverviewTab.class);
 
-    static Set<Model> resolutionProcessing = Collections.synchronizedSet(new HashSet<>());
+    static Set<ChaturbateModel> resolutionProcessing = Collections.synchronizedSet(new HashSet<>());
     static BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     static ExecutorService threadPool = new ThreadPoolExecutor(2, 2, 10, TimeUnit.MINUTES, queue);
 
-    ScheduledService<List<Model>> updateService;
+    ScheduledService<List<ChaturbateModel>> updateService;
     Recorder recorder;
     List<ThumbCell> filteredThumbCells = Collections.synchronizedList(new ArrayList<>());
     List<ThumbCell> selectedThumbCells = Collections.synchronizedList(new ArrayList<>());
@@ -223,7 +223,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         }
         gridLock.lock();
         try {
-            List<Model> models = updateService.getValue();
+            List<ChaturbateModel> models = updateService.getValue();
             ObservableList<Node> nodes = grid.getChildren();
 
             // first remove models, which are not in the updated list
@@ -238,7 +238,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
 
             List<ThumbCell> positionChangedOrNew = new ArrayList<>();
             int index = 0;
-            for (Model model : models) {
+            for (ChaturbateModel model : models) {
                 boolean found = false;
                 for (Iterator<Node> iterator = nodes.iterator(); iterator.hasNext();) {
                     Node node = iterator.next();
@@ -278,7 +278,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
 
     }
 
-    ThumbCell createThumbCell(ThumbOverviewTab thumbOverviewTab, Model model, Recorder recorder2, HttpClient client2) {
+    ThumbCell createThumbCell(ThumbOverviewTab thumbOverviewTab, ChaturbateModel model, Recorder recorder2, HttpClient client2) {
         ThumbCell newCell = new ThumbCell(this, model, recorder, client);
         newCell.addEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> {
             suspendUpdates(true);
@@ -476,7 +476,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         for (Iterator<Node> iterator = grid.getChildren().iterator(); iterator.hasNext();) {
             Node node = iterator.next();
             ThumbCell cell = (ThumbCell) node;
-            Model m = cell.getModel();
+            ChaturbateModel m = cell.getModel();
             if(!matches(m, filter)) {
                 iterator.remove();
                 filteredThumbCells.add(cell);
@@ -487,7 +487,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         // add the ones, which might have been filtered before, but now match
         for (Iterator<ThumbCell> iterator = filteredThumbCells.iterator(); iterator.hasNext();) {
             ThumbCell thumbCell = iterator.next();
-            Model m = thumbCell.getModel();
+            ChaturbateModel m = thumbCell.getModel();
             if(matches(m, filter)) {
                 iterator.remove();
                 insert(thumbCell);
@@ -520,7 +520,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         }
     }
 
-    private boolean matches(Model m, String filter) {
+    private boolean matches(ChaturbateModel m, String filter) {
         try {
             String[] tokens = filter.split(" ");
             StringBuilder searchTextBuilder = new StringBuilder(m.getName());
@@ -558,19 +558,19 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         }
     }
 
-    private ScheduledService<List<Model>> createUpdateService() {
-        ScheduledService<List<Model>> updateService = new ScheduledService<List<Model>>() {
+    private ScheduledService<List<ChaturbateModel>> createUpdateService() {
+        ScheduledService<List<ChaturbateModel>> updateService = new ScheduledService<List<ChaturbateModel>>() {
             @Override
-            protected Task<List<Model>> createTask() {
-                return new Task<List<Model>>() {
+            protected Task<List<ChaturbateModel>> createTask() {
+                return new Task<List<ChaturbateModel>>() {
                     @Override
-                    public List<Model> call() throws IOException {
+                    public List<ChaturbateModel> call() throws IOException {
                         String url = ThumbOverviewTab.this.url + "?page="+page+"&keywords=&_=" + System.currentTimeMillis();
                         LOG.debug("Fetching page {}", url);
                         Request request = new Request.Builder().url(url).build();
                         Response response = client.execute(request, loginRequired);
                         if (response.isSuccessful()) {
-                            List<Model> models = ModelParser.parseModels(response.body().string());
+                            List<ChaturbateModel> models = ModelParser.parseModels(response.body().string());
                             response.close();
                             return models;
                         } else {

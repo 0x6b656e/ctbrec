@@ -1,6 +1,5 @@
 package ctbrec.recorder.download;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,18 +10,13 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.iheartradio.m3u8.Encoding;
 import com.iheartradio.m3u8.Format;
 import com.iheartradio.m3u8.ParseException;
 import com.iheartradio.m3u8.PlaylistException;
 import com.iheartradio.m3u8.PlaylistParser;
-import com.iheartradio.m3u8.data.MasterPlaylist;
 import com.iheartradio.m3u8.data.MediaPlaylist;
 import com.iheartradio.m3u8.data.Playlist;
-import com.iheartradio.m3u8.data.PlaylistData;
 import com.iheartradio.m3u8.data.TrackData;
 
 import ctbrec.HttpClient;
@@ -30,8 +24,6 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public abstract class AbstractHlsDownload implements Download {
-
-    private static final transient Logger LOG = LoggerFactory.getLogger(AbstractHlsDownload.class);
 
     ExecutorService downloadThreadPool = Executors.newFixedThreadPool(5);
     HttpClient client;
@@ -41,44 +33,6 @@ public abstract class AbstractHlsDownload implements Download {
 
     public AbstractHlsDownload(HttpClient client) {
         this.client = client;
-    }
-
-    String parseMaster(String url, int streamUrlIndex) throws IOException, ParseException, PlaylistException {
-        Request request = new Request.Builder().url(url).addHeader("connection", "keep-alive").build();
-        Response response = client.execute(request);
-        String playlistContent = "";
-        try {
-            if(response.code() != 200) {
-                LOG.debug("HTTP response {}, {}\n{}\n{}", response.code(), response.message(), response.headers(), response.body().string());
-                throw new IOException("HTTP response " + response.code() + " " + response.message());
-            }
-            playlistContent = response.body().string();
-            InputStream inputStream = new ByteArrayInputStream(playlistContent.getBytes());
-            PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
-            Playlist playlist = parser.parse();
-            if(playlist.hasMasterPlaylist()) {
-                MasterPlaylist master = playlist.getMasterPlaylist();
-                PlaylistData bestQuality = null;
-                if(streamUrlIndex >= 0 && streamUrlIndex < master.getPlaylists().size()) {
-                    bestQuality = master.getPlaylists().get(streamUrlIndex);
-                } else {
-                    bestQuality = master.getPlaylists().get(master.getPlaylists().size()-1);
-                }
-                String uri = bestQuality.getUri();
-                if(!uri.startsWith("http")) {
-                    String masterUrl = url;
-                    String baseUri = masterUrl.substring(0, masterUrl.lastIndexOf('/') + 1);
-                    String segmentUri = baseUri + uri;
-                    return segmentUri;
-                }
-            }
-            return null;
-        } catch(Exception e) {
-            LOG.debug("Playlist: {}", playlistContent, e);
-            throw e;
-        } finally {
-            response.close();
-        }
     }
 
     SegmentPlaylist getNextSegments(String segments) throws IOException, ParseException, PlaylistException {

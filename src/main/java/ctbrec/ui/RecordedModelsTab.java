@@ -18,6 +18,7 @@ import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ctbrec.ChaturbateModel;
 import ctbrec.HttpClient;
 import ctbrec.Model;
 import ctbrec.recorder.Recorder;
@@ -125,7 +126,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         model.setPrefWidth(300);
         BorderPane.setMargin(addModelBox, new Insets(5));
         addModelButton.setOnAction((e) -> {
-            Model m = new Model();
+            ChaturbateModel m = new ChaturbateModel();
             m.setName(model.getText());
             m.setUrl("https://chaturbate.com/" + m.getName() + "/");
             try {

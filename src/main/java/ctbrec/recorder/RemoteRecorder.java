@@ -19,6 +19,7 @@ import ctbrec.Hmac;
 import ctbrec.HttpClient;
 import ctbrec.InstantJsonAdapter;
 import ctbrec.Model;
+import ctbrec.ModelAdapter;
 import ctbrec.Recording;
 import okhttp3.MediaType;
 import okhttp3.Request;
@@ -33,6 +34,7 @@ public class RemoteRecorder implements Recorder {
     public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     private Moshi moshi = new Moshi.Builder()
             .add(Instant.class, new InstantJsonAdapter())
+            .add(Model.class, new ModelAdapter())
             .build();
     private JsonAdapter<ModelListResponse> modelListResponseAdapter = moshi.adapter(ModelListResponse.class);
     private JsonAdapter<RecordingListResponse> recordingListResponseAdapter = moshi.adapter(RecordingListResponse.class);

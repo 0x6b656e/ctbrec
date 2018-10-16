@@ -39,7 +39,6 @@ import ctbrec.HttpClient;
 import ctbrec.Model;
 import ctbrec.Recording;
 import ctbrec.recorder.ProgressListener;
-import ctbrec.recorder.StreamInfo;
 import okhttp3.Request;
 import okhttp3.Response;
 
@@ -89,7 +88,6 @@ public class MergedHlsDownload extends AbstractHlsDownload {
             Path modelDir = FileSystems.getDefault().getPath(config.getSettings().recordingsDir, model.getName());
             downloadDir = FileSystems.getDefault().getPath(modelDir.toString(), startTime);
 
-            StreamInfo streamInfo = model.getStreamInfo();
             if(!model.isOnline(IGNORE_CACHE)) {
                 throw new IOException(model.getName() +"'s room is not public");
             }
@@ -101,7 +99,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
                 target = new File(targetFile.getAbsolutePath().replaceAll("\\.ts", "-00000.ts"));
             }
 
-            String segments = parseMaster(streamInfo.url, model.getStreamUrlIndex());
+            String segments = model.getSegmentPlaylistUrl();
             mergeThread = createMergeThread(target, null, true);
             mergeThread.start();
             if(segments != null) {

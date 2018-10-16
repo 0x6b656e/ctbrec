@@ -1,49 +1,22 @@
 package ctbrec.ui;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.iheartradio.m3u8.data.MasterPlaylist;
-import com.iheartradio.m3u8.data.PlaylistData;
-
 import ctbrec.HttpClient;
 import ctbrec.Model;
-import ctbrec.recorder.StreamInfo;
 import ctbrec.recorder.download.StreamSource;
 import javafx.concurrent.Task;
 import javafx.scene.control.ChoiceDialog;
 
 public class StreamSourceSelectionDialog {
-    private static final transient Logger LOG = LoggerFactory.getLogger(StreamSourceSelectionDialog.class);
-
     public static void show(Model model, HttpClient client, Function<Model,Void> onSuccess, Function<Throwable, Void> onFail) {
         Task<List<StreamSource>> selectStreamSource = new Task<List<StreamSource>>() {
             @Override
             protected List<StreamSource> call() throws Exception {
-                model.invalidateCacheEntries();
-                StreamInfo streamInfo = model.getStreamInfo();
-                MasterPlaylist masterPlaylist = model.getMasterPlaylist();
-                List<StreamSource> sources = new ArrayList<>();
-                for (PlaylistData playlist : masterPlaylist.getPlaylists()) {
-                    if (playlist.hasStreamInfo()) {
-                        StreamSource src = new StreamSource();
-                        src.bandwidth = playlist.getStreamInfo().getBandwidth();
-                        src.height = playlist.getStreamInfo().getResolution().height;
-                        String masterUrl = streamInfo.url;
-                        String baseUrl = masterUrl.substring(0, masterUrl.lastIndexOf('/') + 1);
-                        String segmentUri = baseUrl + playlist.getUri();
-                        src.mediaPlaylistUrl = segmentUri;
-                        LOG.trace("Media playlist {}", src.mediaPlaylistUrl);
-                        sources.add(src);
-                    }
-                }
-                return sources;
+                return model.getStreamSources();
             }
         };
         selectStreamSource.setOnSucceeded((e) -> {

@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import com.iheartradio.m3u8.ParseException;
 import com.iheartradio.m3u8.PlaylistException;
 
+import ctbrec.ChaturbateModel;
 import ctbrec.Config;
 import ctbrec.HttpClient;
 import ctbrec.Model;
@@ -222,7 +223,7 @@ public class LocalRecorder implements Recorder {
         public void run() {
             running = true;
             while (running) {
-                List<Model> restart = new ArrayList<Model>();
+                List<Model> restart = new ArrayList<>();
                 for (Iterator<Entry<Model, Download>> iterator = recordingProcesses.entrySet().iterator(); iterator.hasNext();) {
                     Entry<Model, Download> entry = iterator.next();
                     Model m = entry.getKey();
@@ -269,10 +270,10 @@ public class LocalRecorder implements Recorder {
                     Request request = new Request.Builder().url(url).build();
                     Response response = client.execute(request, true);
                     if (response.isSuccessful()) {
-                        List<Model> followed = ModelParser.parseModels(response.body().string());
+                        List<ChaturbateModel> followed = ModelParser.parseModels(response.body().string());
                         response.close();
                         followedModels.clear();
-                        for (Model model : followed) {
+                        for (ChaturbateModel model : followed) {
                             if (!followedModels.contains(model) && !models.contains(model)) {
                                 LOG.info("Model {} added", model);
                                 followedModels.add(model);

@@ -8,6 +8,7 @@ import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ctbrec.ChaturbateModel;
 import ctbrec.Config;
 import ctbrec.HttpClient;
 import ctbrec.Model;
@@ -50,7 +51,7 @@ public class ThumbCell extends StackPane {
     public static int width = 180;
     private static final Duration ANIMATION_DURATION = new Duration(250);
 
-    private Model model;
+    private ChaturbateModel model;
     private ImageView iv;
     private Rectangle resolutionBackground;
     private final Paint resolutionOnlineColor = new Color(0.22, 0.8, 0.29, 1);
@@ -76,7 +77,7 @@ public class ThumbCell extends StackPane {
     private boolean mouseHovering = false;
     private boolean recording = false;
 
-    public ThumbCell(ThumbOverviewTab parent, Model model, Recorder recorder, HttpClient client) {
+    public ThumbCell(ThumbOverviewTab parent, ChaturbateModel model, Recorder recorder, HttpClient client) {
         this.thumbCellList = parent.grid.getChildren();
         this.model = model;
         this.recorder = recorder;
@@ -421,7 +422,7 @@ public class ThumbCell extends StackPane {
         }.start();
     }
 
-    public Model getModel() {
+    public ChaturbateModel getModel() {
         return model;
     }
 

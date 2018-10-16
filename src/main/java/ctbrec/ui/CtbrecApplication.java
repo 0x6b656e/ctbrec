@@ -260,6 +260,7 @@ public class CtbrecApplication extends Application {
         try {
             Config.init();
         } catch (Exception e) {
+            LOG.error("Couldn't load settings", e);
             Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
             alert.setTitle("Whoopsie");
             alert.setContentText("Couldn't load settings.");

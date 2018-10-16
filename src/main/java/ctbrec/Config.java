@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 
+import ctbrec.io.ModelJsonAdapter;
 import ctbrec.recorder.OS;
 import okio.Buffer;
 import okio.BufferedSource;

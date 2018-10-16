@@ -5,8 +5,8 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
-import ctbrec.HttpClient;
 import ctbrec.Model;
+import ctbrec.io.HttpClient;
 import ctbrec.recorder.download.StreamSource;
 import javafx.concurrent.Task;
 import javafx.scene.control.ChoiceDialog;

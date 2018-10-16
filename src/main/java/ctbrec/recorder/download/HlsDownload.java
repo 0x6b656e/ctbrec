@@ -23,8 +23,8 @@ import com.iheartradio.m3u8.ParseException;
 import com.iheartradio.m3u8.PlaylistException;
 
 import ctbrec.Config;
-import ctbrec.HttpClient;
 import ctbrec.Model;
+import ctbrec.io.HttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 

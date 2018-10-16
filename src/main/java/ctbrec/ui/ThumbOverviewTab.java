@@ -28,9 +28,9 @@ import org.slf4j.LoggerFactory;
 import com.sun.javafx.collections.ObservableListWrapper;
 
 import ctbrec.Config;
-import ctbrec.HttpClient;
 import ctbrec.ChaturbateModel;
 import ctbrec.ModelParser;
+import ctbrec.io.HttpClient;
 import ctbrec.recorder.Recorder;
 import javafx.collections.ObservableList;
 import javafx.concurrent.ScheduledService;

@@ -29,10 +29,10 @@ import com.iheartradio.m3u8.PlaylistException;
 
 import ctbrec.ChaturbateModel;
 import ctbrec.Config;
-import ctbrec.HttpClient;
 import ctbrec.Model;
 import ctbrec.ModelParser;
 import ctbrec.Recording;
+import ctbrec.io.HttpClient;
 import ctbrec.recorder.PlaylistGenerator.InvalidPlaylistException;
 import ctbrec.recorder.download.Download;
 import ctbrec.recorder.download.HlsDownload;

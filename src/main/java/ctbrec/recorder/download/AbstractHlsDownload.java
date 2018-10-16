@@ -19,7 +19,7 @@ import com.iheartradio.m3u8.data.MediaPlaylist;
 import com.iheartradio.m3u8.data.Playlist;
 import com.iheartradio.m3u8.data.TrackData;
 
-import ctbrec.HttpClient;
+import ctbrec.io.HttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 

@@ -16,11 +16,11 @@ import com.squareup.moshi.Moshi;
 
 import ctbrec.Config;
 import ctbrec.Hmac;
-import ctbrec.HttpClient;
-import ctbrec.InstantJsonAdapter;
 import ctbrec.Model;
-import ctbrec.ModelJsonAdapter;
 import ctbrec.Recording;
+import ctbrec.io.HttpClient;
+import ctbrec.io.InstantJsonAdapter;
+import ctbrec.io.ModelJsonAdapter;
 import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.Request.Builder;

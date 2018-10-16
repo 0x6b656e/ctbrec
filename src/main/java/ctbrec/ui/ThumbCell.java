@@ -10,8 +10,8 @@ import org.slf4j.LoggerFactory;
 
 import ctbrec.ChaturbateModel;
 import ctbrec.Config;
-import ctbrec.HttpClient;
 import ctbrec.Model;
+import ctbrec.io.HttpClient;
 import ctbrec.recorder.Recorder;
 import ctbrec.recorder.StreamInfo;
 import javafx.animation.FadeTransition;

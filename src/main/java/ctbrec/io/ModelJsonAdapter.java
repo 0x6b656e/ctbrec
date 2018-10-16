@@ -1,4 +1,4 @@
-package ctbrec;
+package ctbrec.io;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -6,6 +6,10 @@ import java.util.Optional;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.JsonReader;
 import com.squareup.moshi.JsonReader.Token;
+
+import ctbrec.ChaturbateModel;
+import ctbrec.Model;
+
 import com.squareup.moshi.JsonWriter;
 
 public class ModelJsonAdapter extends JsonAdapter<Model> {

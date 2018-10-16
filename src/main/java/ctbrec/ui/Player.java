@@ -6,10 +6,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
-import ctbrec.DevNull;
 import ctbrec.Recording;
+import ctbrec.io.DevNull;
+import ctbrec.io.StreamRedirectThread;
 import ctbrec.recorder.OS;
-import ctbrec.recorder.StreamRedirectThread;
 
 public class Player {
     private static final transient Logger LOG = LoggerFactory.getLogger(Player.class);

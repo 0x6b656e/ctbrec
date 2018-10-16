@@ -21,10 +21,10 @@ import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 
 import ctbrec.ChaturbateModel;
-import ctbrec.InstantJsonAdapter;
 import ctbrec.Model;
-import ctbrec.ModelJsonAdapter;
 import ctbrec.Recording;
+import ctbrec.io.InstantJsonAdapter;
+import ctbrec.io.ModelJsonAdapter;
 import ctbrec.recorder.Recorder;
 
 public class RecorderServlet extends AbstractCtbrecServlet {

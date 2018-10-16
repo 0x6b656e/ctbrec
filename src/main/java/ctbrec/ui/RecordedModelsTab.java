@@ -19,8 +19,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.ChaturbateModel;
-import ctbrec.HttpClient;
 import ctbrec.Model;
+import ctbrec.io.HttpClient;
 import ctbrec.recorder.Recorder;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;

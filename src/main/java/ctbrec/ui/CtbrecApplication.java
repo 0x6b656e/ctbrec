@@ -20,8 +20,8 @@ import com.squareup.moshi.Moshi;
 import com.squareup.moshi.Types;
 
 import ctbrec.Config;
-import ctbrec.HttpClient;
 import ctbrec.Version;
+import ctbrec.io.HttpClient;
 import ctbrec.recorder.LocalRecorder;
 import ctbrec.recorder.Recorder;
 import ctbrec.recorder.RemoteRecorder;

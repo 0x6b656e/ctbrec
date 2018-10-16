@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
-import ctbrec.Settings;
 import ctbrec.Settings.ProxyType;
 import ctbrec.ui.CookieJarImpl;
 import ctbrec.ui.CtbrecApplication;

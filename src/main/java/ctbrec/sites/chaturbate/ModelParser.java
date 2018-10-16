@@ -1,4 +1,4 @@
-package ctbrec;
+package ctbrec.sites.chaturbate;
 
 import static ctbrec.ui.CtbrecApplication.BASE_URI;
 

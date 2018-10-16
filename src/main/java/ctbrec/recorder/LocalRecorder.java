@@ -27,16 +27,16 @@ import org.slf4j.LoggerFactory;
 import com.iheartradio.m3u8.ParseException;
 import com.iheartradio.m3u8.PlaylistException;
 
-import ctbrec.ChaturbateModel;
 import ctbrec.Config;
 import ctbrec.Model;
-import ctbrec.ModelParser;
 import ctbrec.Recording;
 import ctbrec.io.HttpClient;
 import ctbrec.recorder.PlaylistGenerator.InvalidPlaylistException;
 import ctbrec.recorder.download.Download;
 import ctbrec.recorder.download.HlsDownload;
 import ctbrec.recorder.download.MergedHlsDownload;
+import ctbrec.sites.chaturbate.ChaturbateModel;
+import ctbrec.sites.chaturbate.ModelParser;
 import okhttp3.Request;
 import okhttp3.Response;
 

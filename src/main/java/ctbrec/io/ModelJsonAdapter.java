@@ -7,8 +7,8 @@ import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.JsonReader;
 import com.squareup.moshi.JsonReader.Token;
 
-import ctbrec.ChaturbateModel;
 import ctbrec.Model;
+import ctbrec.sites.chaturbate.ChaturbateModel;
 
 import com.squareup.moshi.JsonWriter;
 

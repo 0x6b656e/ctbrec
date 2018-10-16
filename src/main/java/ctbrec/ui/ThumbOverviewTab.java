@@ -28,10 +28,10 @@ import org.slf4j.LoggerFactory;
 import com.sun.javafx.collections.ObservableListWrapper;
 
 import ctbrec.Config;
-import ctbrec.ChaturbateModel;
-import ctbrec.ModelParser;
 import ctbrec.io.HttpClient;
 import ctbrec.recorder.Recorder;
+import ctbrec.sites.chaturbate.ChaturbateModel;
+import ctbrec.sites.chaturbate.ModelParser;
 import javafx.collections.ObservableList;
 import javafx.concurrent.ScheduledService;
 import javafx.concurrent.Task;

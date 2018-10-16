@@ -1,4 +1,4 @@
-package ctbrec.recorder;
+package ctbrec.sites.chaturbate;
 
 public class StreamInfo {
     public String url;

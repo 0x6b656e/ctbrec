@@ -20,12 +20,12 @@ import org.slf4j.LoggerFactory;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 
-import ctbrec.ChaturbateModel;
 import ctbrec.Model;
 import ctbrec.Recording;
 import ctbrec.io.InstantJsonAdapter;
 import ctbrec.io.ModelJsonAdapter;
 import ctbrec.recorder.Recorder;
+import ctbrec.sites.chaturbate.ChaturbateModel;
 
 public class RecorderServlet extends AbstractCtbrecServlet {
 

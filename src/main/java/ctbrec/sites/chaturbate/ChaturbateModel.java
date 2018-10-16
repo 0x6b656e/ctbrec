@@ -1,4 +1,4 @@
-package ctbrec;
+package ctbrec.sites.chaturbate;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -26,8 +26,8 @@ import com.iheartradio.m3u8.data.PlaylistData;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 
+import ctbrec.AbstractModel;
 import ctbrec.io.HttpClient;
-import ctbrec.recorder.StreamInfo;
 import ctbrec.recorder.download.StreamSource;
 import okhttp3.FormBody;
 import okhttp3.Request;

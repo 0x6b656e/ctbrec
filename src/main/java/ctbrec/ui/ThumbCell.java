@@ -8,12 +8,12 @@ import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ctbrec.ChaturbateModel;
 import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.io.HttpClient;
 import ctbrec.recorder.Recorder;
-import ctbrec.recorder.StreamInfo;
+import ctbrec.sites.chaturbate.ChaturbateModel;
+import ctbrec.sites.chaturbate.StreamInfo;
 import javafx.animation.FadeTransition;
 import javafx.animation.FillTransition;
 import javafx.animation.ParallelTransition;

@@ -29,12 +29,12 @@ import com.iheartradio.m3u8.ParseException;
 import com.iheartradio.m3u8.PlaylistException;
 
 import ctbrec.Config;
-import ctbrec.ChaturbateModel;
 import ctbrec.Recording;
 import ctbrec.Recording.STATUS;
 import ctbrec.io.HttpClient;
 import ctbrec.recorder.Recorder;
 import ctbrec.recorder.download.MergedHlsDownload;
+import ctbrec.sites.chaturbate.ChaturbateModel;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;

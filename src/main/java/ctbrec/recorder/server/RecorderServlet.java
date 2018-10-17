@@ -25,7 +25,6 @@ import ctbrec.Recording;
 import ctbrec.io.InstantJsonAdapter;
 import ctbrec.io.ModelJsonAdapter;
 import ctbrec.recorder.Recorder;
-import ctbrec.sites.chaturbate.ChaturbateModel;
 
 public class RecorderServlet extends AbstractCtbrecServlet {
 
@@ -74,7 +73,7 @@ public class RecorderServlet extends AbstractCtbrecServlet {
                     break;
                 case "list":
                     resp.getWriter().write("{\"status\": \"success\", \"msg\": \"List of models\", \"models\": [");
-                    JsonAdapter<Model> modelAdapter = moshi.adapter(Model.class);
+                    JsonAdapter<Model> modelAdapter = new ModelJsonAdapter();
                     List<Model> models = recorder.getModelsRecording();
                     for (Iterator<Model> iterator = models.iterator(); iterator.hasNext();) {
                         Model model = iterator.next();
@@ -133,7 +132,7 @@ public class RecorderServlet extends AbstractCtbrecServlet {
 
     private static class Request {
         public String action;
-        public ChaturbateModel model;
+        public Model model;
         public String recording;
     }
 }

@@ -44,7 +44,7 @@ public class DonateTabFx extends Tab {
 
         ImageView tokenImage = new ImageView(getClass().getResource("/html/token.png").toString());
         Button tokenButton = new Button("Buy tokens");
-        tokenButton.setOnAction((e) -> { DesktopIntergation.open(CtbrecApplication.AFFILIATE_LINK); });
+        tokenButton.setOnAction((e) -> { DesktopIntergation.open(CamrecApplication.AFFILIATE_LINK); });
         VBox tokenBox = new VBox(5);
         tokenBox.setAlignment(Pos.TOP_CENTER);
         Label tokenDesc = new Label("If you buy tokens by using this button,\n"

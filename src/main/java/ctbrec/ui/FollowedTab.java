@@ -1,5 +1,6 @@
 package ctbrec.ui;
 
+import ctbrec.sites.chaturbate.ChaturbateUpdateService;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
@@ -16,7 +17,7 @@ public class FollowedTab extends ThumbOverviewTab {
     private String offlineUrl;
 
     public FollowedTab(String title, String url) {
-        super(title, url, true);
+        super(title, new ChaturbateUpdateService(url, true));
         onlineUrl = url;
         offlineUrl = url + "offline/";
 
@@ -43,9 +44,9 @@ public class FollowedTab extends ThumbOverviewTab {
         online.setSelected(true);
         group.selectedToggleProperty().addListener((e) -> {
             if(online.isSelected()) {
-                super.url = onlineUrl;
+                ((ChaturbateUpdateService)updateService).setUrl(onlineUrl);
             } else {
-                super.url = offlineUrl;
+                ((ChaturbateUpdateService)updateService).setUrl(offlineUrl);
             }
             queue.clear();
             updateService.restart();

@@ -35,8 +35,7 @@ import ctbrec.recorder.PlaylistGenerator.InvalidPlaylistException;
 import ctbrec.recorder.download.Download;
 import ctbrec.recorder.download.HlsDownload;
 import ctbrec.recorder.download.MergedHlsDownload;
-import ctbrec.sites.chaturbate.ChaturbateModel;
-import ctbrec.sites.chaturbate.ModelParser;
+import ctbrec.sites.chaturbate.ChaturbateModelParser;
 import okhttp3.Request;
 import okhttp3.Response;
 
@@ -270,10 +269,10 @@ public class LocalRecorder implements Recorder {
                     Request request = new Request.Builder().url(url).build();
                     Response response = client.execute(request, true);
                     if (response.isSuccessful()) {
-                        List<ChaturbateModel> followed = ModelParser.parseModels(response.body().string());
+                        List<Model> followed = ChaturbateModelParser.parseModels(response.body().string());
                         response.close();
                         followedModels.clear();
-                        for (ChaturbateModel model : followed) {
+                        for (Model model : followed) {
                             if (!followedModels.contains(model) && !models.contains(model)) {
                                 LOG.info("Model {} added", model);
                                 followedModels.add(model);

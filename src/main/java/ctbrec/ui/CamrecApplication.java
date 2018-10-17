@@ -20,11 +20,13 @@ import com.squareup.moshi.Moshi;
 import com.squareup.moshi.Types;
 
 import ctbrec.Config;
+import ctbrec.Site;
 import ctbrec.Version;
 import ctbrec.io.HttpClient;
 import ctbrec.recorder.LocalRecorder;
 import ctbrec.recorder.Recorder;
 import ctbrec.recorder.RemoteRecorder;
+import ctbrec.sites.chaturbate.Chaturbate;
 import javafx.application.Application;
 import javafx.application.HostServices;
 import javafx.application.Platform;
@@ -49,9 +51,9 @@ import javafx.stage.Stage;
 import okhttp3.Request;
 import okhttp3.Response;
 
-public class CtbrecApplication extends Application {
+public class CamrecApplication extends Application {
 
-    static final transient Logger LOG = LoggerFactory.getLogger(CtbrecApplication.class);
+    static final transient Logger LOG = LoggerFactory.getLogger(CamrecApplication.class);
     public static final String BASE_URI = "https://chaturbate.com";
     public static final String AFFILIATE_LINK = BASE_URI + "/in/?track=default&tour=LQps&campaign=55vTi&room=0xb00bface";
 
@@ -63,6 +65,7 @@ public class CtbrecApplication extends Application {
     private TabPane tabPane = new TabPane();
     static EventBus bus;
     private HBox tokenPanel;
+    private Site site;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -71,6 +74,8 @@ public class CtbrecApplication extends Application {
         hostServices = getHostServices();
         client = HttpClient.getInstance();
         createRecorder();
+        site = new Chaturbate();
+        site.setRecorder(recorder);
         doInitialLogin();
         createGui(primaryStage);
         checkForUpdates();
@@ -81,8 +86,12 @@ public class CtbrecApplication extends Application {
         primaryStage.setTitle("CTB Recorder " + getVersion());
         InputStream icon = getClass().getResourceAsStream("/icon.png");
         primaryStage.getIcons().add(new Image(icon));
-
+        int windowWidth = Config.getInstance().getSettings().windowWidth;
+        int windowHeight = Config.getInstance().getSettings().windowHeight;
         tabPane = new TabPane();
+        Scene scene = new Scene(tabPane, windowWidth, windowHeight);
+        primaryStage.setScene(scene);
+
         tabPane.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<Tab>() {
             @Override
             public void changed(ObservableValue<? extends Tab> ov, Tab from, Tab to) {
@@ -95,26 +104,18 @@ public class CtbrecApplication extends Application {
             }
         });
         tabPane.setTabClosingPolicy(TabClosingPolicy.SELECTED_TAB);
-        tabPane.getTabs().add(createTab("Featured", BASE_URI + "/"));
-        tabPane.getTabs().add(createTab("Female", BASE_URI + "/female-cams/"));
-        tabPane.getTabs().add(createTab("Male", BASE_URI + "/male-cams/"));
-        tabPane.getTabs().add(createTab("Couples", BASE_URI + "/couple-cams/"));
-        tabPane.getTabs().add(createTab("Trans", BASE_URI + "/trans-cams/"));
-        FollowedTab followedTab = new FollowedTab("Followed", BASE_URI + "/followed-cams/");
-        followedTab.setRecorder(recorder);
-        tabPane.getTabs().add(followedTab);
-        RecordedModelsTab modelsTab = new RecordedModelsTab("Recording", recorder);
+        for (Tab tab : site.getTabProvider().getTabs(scene)) {
+            tabPane.getTabs().add(tab);
+        }
+        RecordedModelsTab modelsTab = new RecordedModelsTab("Recording", recorder, site);
         tabPane.getTabs().add(modelsTab);
-        RecordingsTab recordingsTab = new RecordingsTab("Recordings", recorder, config);
+        RecordingsTab recordingsTab = new RecordingsTab("Recordings", recorder, config, site);
         tabPane.getTabs().add(recordingsTab);
         settingsTab = new SettingsTab();
         tabPane.getTabs().add(settingsTab);
         tabPane.getTabs().add(new DonateTabFx());
 
-        int windowWidth = Config.getInstance().getSettings().windowWidth;
-        int windowHeight = Config.getInstance().getSettings().windowHeight;
-        primaryStage.setScene(new Scene(tabPane, windowWidth, windowHeight));
-        followedTab.setScene(primaryStage.getScene());
+
         primaryStage.getScene().getStylesheets().add("/ctbrec/ui/ThumbCell.css");
         primaryStage.getScene().widthProperty().addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowWidth = newVal.intValue());
         primaryStage.getScene().heightProperty().addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowHeight = newVal.intValue());
@@ -268,12 +269,6 @@ public class CtbrecApplication extends Application {
             System.exit(1);
         }
         config = Config.getInstance();
-    }
-
-    Tab createTab(String title, String url) {
-        ThumbOverviewTab tab = new ThumbOverviewTab(title, url, false);
-        tab.setRecorder(recorder);
-        return tab;
     }
 
     public static void main(String[] args) {

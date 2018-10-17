@@ -3,7 +3,7 @@ package ctbrec.ui;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ctbrec.ui.CtbrecApplication.Release;
+import ctbrec.ui.CamrecApplication.Release;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;

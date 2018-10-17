@@ -1,6 +1,8 @@
 package ctbrec.ui;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -8,12 +10,14 @@ import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.iheartradio.m3u8.ParseException;
+import com.iheartradio.m3u8.PlaylistException;
+
 import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.io.HttpClient;
 import ctbrec.recorder.Recorder;
-import ctbrec.sites.chaturbate.ChaturbateModel;
-import ctbrec.sites.chaturbate.StreamInfo;
+import ctbrec.recorder.download.StreamSource;
 import javafx.animation.FadeTransition;
 import javafx.animation.FillTransition;
 import javafx.animation.ParallelTransition;
@@ -51,7 +55,7 @@ public class ThumbCell extends StackPane {
     public static int width = 180;
     private static final Duration ANIMATION_DURATION = new Duration(250);
 
-    private ChaturbateModel model;
+    private Model model;
     private ImageView iv;
     private Rectangle resolutionBackground;
     private final Paint resolutionOnlineColor = new Color(0.22, 0.8, 0.29, 1);
@@ -77,7 +81,7 @@ public class ThumbCell extends StackPane {
     private boolean mouseHovering = false;
     private boolean recording = false;
 
-    public ThumbCell(ThumbOverviewTab parent, ChaturbateModel model, Recorder recorder, HttpClient client) {
+    public ThumbCell(ThumbOverviewTab parent, Model model, Recorder recorder, HttpClient client) {
         this.thumbCellList = parent.grid.getChildren();
         this.model = model;
         this.recorder = recorder;
@@ -198,7 +202,7 @@ public class ThumbCell extends StackPane {
         ThumbOverviewTab.threadPool.submit(() -> {
             try {
                 ThumbOverviewTab.resolutionProcessing.add(model);
-                int[] resolution = model.getStreamResolution();
+                int[] resolution = model.getStreamResolution(false);
                 updateResolutionTag(resolution);
 
                 // the model is online, but the resolution is 0. probably something went wrong
@@ -225,14 +229,14 @@ public class ThumbCell extends StackPane {
     private void updateResolutionTag(int[] resolution) throws IOException, ExecutionException {
         String _res = "n/a";
         Paint resolutionBackgroundColor = resolutionOnlineColor;
-        String state = model.getOnlineState();
+        String state = model.getOnlineState(false);
         if ("public".equals(state)) {
             LOG.trace("Model resolution {} {}x{}", model.getName(), resolution[0], resolution[1]);
             LOG.trace("Resolution queue size: {}", ThumbOverviewTab.queue.size());
             final int w = resolution[1];
             _res = w > 0 ? Integer.toString(w) : state;
         } else {
-            _res = model.getOnlineState();
+            _res = model.getOnlineState(false);
             resolutionBackgroundColor = resolutionOfflineColor;
         }
         final String resText = _res;
@@ -281,16 +285,18 @@ public class ThumbCell extends StackPane {
     void startPlayer() {
         try {
             if(model.isOnline(true)) {
-                StreamInfo streamInfo = model.getStreamInfo();
-                LOG.debug("Playing {}", streamInfo.url);
-                Player.play(streamInfo.url);
+                List<StreamSource> sources = model.getStreamSources();
+                Collections.sort(sources);
+                StreamSource best = sources.get(sources.size()-1);
+                LOG.debug("Playing {}", best.getMediaPlaylistUrl());
+                Player.play(best.getMediaPlaylistUrl());
             } else {
                 Alert alert = new AutosizeAlert(Alert.AlertType.INFORMATION);
                 alert.setTitle("Room not public");
                 alert.setHeaderText("Room is currently not public");
                 alert.showAndWait();
             }
-        } catch (IOException | ExecutionException | InterruptedException e1) {
+        } catch (IOException | ExecutionException | InterruptedException | ParseException | PlaylistException e1) {
             LOG.error("Couldn't get stream information for model {}", model, e1);
             Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
             alert.setTitle("Error");
@@ -374,9 +380,9 @@ public class ThumbCell extends StackPane {
 
                     String url = null;
                     if(follow) {
-                        url = CtbrecApplication.BASE_URI + "/follow/follow/" + model.getName() + "/";
+                        url = CamrecApplication.BASE_URI + "/follow/follow/" + model.getName() + "/";
                     } else {
-                        url = CtbrecApplication.BASE_URI + "/follow/unfollow/" + model.getName() + "/";
+                        url = CamrecApplication.BASE_URI + "/follow/unfollow/" + model.getName() + "/";
                     }
 
                     RequestBody body = RequestBody.create(null, new byte[0]);
@@ -422,7 +428,7 @@ public class ThumbCell extends StackPane {
         }.start();
     }
 
-    public ChaturbateModel getModel() {
+    public Model getModel() {
         return model;
     }
 

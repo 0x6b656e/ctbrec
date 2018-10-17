@@ -55,23 +55,25 @@ public class ChaturbateModel extends AbstractModel {
         return Objects.equals("public", info.room_status);
     }
 
+    @Override
     public int[] getStreamResolution(boolean failFast) throws ExecutionException {
         int[] resolution = Chaturbate.INSTANCE.streamResolutionCache.getIfPresent(getName());
         if(resolution != null) {
             return Chaturbate.INSTANCE.getResolution(getName());
         } else {
-            return new int[2];
+            if(failFast) {
+                return new int[2];
+            } else {
+                return Chaturbate.INSTANCE.getResolution(getName());
+            }
         }
-    }
-
-    public int[] getStreamResolution() throws ExecutionException {
-        return Chaturbate.INSTANCE.getResolution(getName());
     }
 
     /**
      * Invalidates the entries in StreamInfo and resolution cache for this model
      * and thus causes causes the LoadingCache to update them
      */
+    @Override
     public void invalidateCacheEntries() {
         Chaturbate.INSTANCE.streamInfoCache.invalidate(getName());
         Chaturbate.INSTANCE.streamResolutionCache.invalidate(getName());
@@ -94,6 +96,7 @@ public class ChaturbateModel extends AbstractModel {
         return Chaturbate.INSTANCE.getMasterPlaylist(getName());
     }
 
+    @Override
     public void receiveTip(int tokens) throws IOException {
         Chaturbate.INSTANCE.sendTip(getName(), tokens);
     }

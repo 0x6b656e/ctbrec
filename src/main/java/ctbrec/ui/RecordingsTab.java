@@ -29,12 +29,13 @@ import com.iheartradio.m3u8.ParseException;
 import com.iheartradio.m3u8.PlaylistException;
 
 import ctbrec.Config;
+import ctbrec.Model;
 import ctbrec.Recording;
 import ctbrec.Recording.STATUS;
+import ctbrec.Site;
 import ctbrec.io.HttpClient;
 import ctbrec.recorder.Recorder;
 import ctbrec.recorder.download.MergedHlsDownload;
-import ctbrec.sites.chaturbate.ChaturbateModel;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -67,6 +68,7 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
     private ScheduledService<List<JavaFxRecording>> updateService;
     private Config config;
     private Recorder recorder;
+    private Site site;
 
     FlowPane grid = new FlowPane();
     ScrollPane scrollPane = new ScrollPane();
@@ -74,10 +76,11 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
     ObservableList<JavaFxRecording> observableRecordings = FXCollections.observableArrayList();
     ContextMenu popup;
 
-    public RecordingsTab(String title, Recorder recorder, Config config) {
+    public RecordingsTab(String title, Recorder recorder, Config config, Site site) {
         super(title);
         this.recorder = recorder;
         this.config = config;
+        this.site = site;
         createGui();
         setClosable(false);
         initializeUpdateService();
@@ -246,9 +249,7 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
 
         MenuItem stopRecording = new MenuItem("Stop recording");
         stopRecording.setOnAction((e) -> {
-            ChaturbateModel m = new ChaturbateModel();
-            m.setName(recording.getModelName());
-            m.setUrl(CtbrecApplication.BASE_URI + '/' + recording.getModelName() + '/');
+            Model m = site.createModel(recording.getModelName());
             try {
                 recorder.stopRecording(m);
             } catch (Exception e1) {

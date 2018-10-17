@@ -188,7 +188,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         layout.add(password, 1, 1);
 
         Button createAccount = new Button("Create new Account");
-        createAccount.setOnAction((e) -> DesktopIntergation.open(CtbrecApplication.AFFILIATE_LINK));
+        createAccount.setOnAction((e) -> DesktopIntergation.open(CamrecApplication.AFFILIATE_LINK));
         layout.add(createAccount, 1, 2);
         GridPane.setColumnSpan(createAccount, 2);
 

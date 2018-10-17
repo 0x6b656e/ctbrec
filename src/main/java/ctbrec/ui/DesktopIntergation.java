@@ -19,7 +19,7 @@ public class DesktopIntergation {
 
     public static void open(String uri) {
         try {
-            CtbrecApplication.hostServices.showDocument(uri);
+            CamrecApplication.hostServices.showDocument(uri);
             return;
         } catch (Exception e) {
             LOG.debug("Couldn't open URL with host services {}", uri);

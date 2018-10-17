@@ -19,9 +19,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.Model;
+import ctbrec.Site;
 import ctbrec.io.HttpClient;
 import ctbrec.recorder.Recorder;
-import ctbrec.sites.chaturbate.ChaturbateModel;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -60,6 +60,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
 
     private ScheduledService<List<Model>> updateService;
     private Recorder recorder;
+    private Site site;
 
     FlowPane grid = new FlowPane();
     ScrollPane scrollPane = new ScrollPane();
@@ -71,9 +72,10 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
     TextField model = new TextField();
     Button addModelButton = new Button("Record");
 
-    public RecordedModelsTab(String title, Recorder recorder) {
+    public RecordedModelsTab(String title, Recorder recorder, Site site) {
         super(title);
         this.recorder = recorder;
+        this.site = site;
         createGui();
         setClosable(false);
         initializeUpdateService();
@@ -126,9 +128,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         model.setPrefWidth(300);
         BorderPane.setMargin(addModelBox, new Insets(5));
         addModelButton.setOnAction((e) -> {
-            ChaturbateModel m = new ChaturbateModel();
-            m.setName(model.getText());
-            m.setUrl("https://chaturbate.com/" + m.getName() + "/");
+            Model m = site.createModel(model.getText());
             try {
                 recorder.startRecording(m);
             } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e1) {

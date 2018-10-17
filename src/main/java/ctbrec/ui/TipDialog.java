@@ -54,7 +54,7 @@ public class TipDialog extends TextInputDialog {
                         Map<String, Object> event = new HashMap<>();
                         event.put("event", "tokens");
                         event.put("amount", tokens);
-                        CtbrecApplication.bus.post(event);
+                        CamrecApplication.bus.post(event);
                         return tokens;
                     } else {
                         throw new IOException("HTTP response: " + resp.code() + " - " + resp.message());
@@ -78,7 +78,7 @@ public class TipDialog extends TextInputDialog {
                             buyTokens.showAndWait();
                             TipDialog.this.close();
                             if(buyTokens.getResult() == ButtonType.YES) {
-                                DesktopIntergation.open(CtbrecApplication.AFFILIATE_LINK);
+                                DesktopIntergation.open(CamrecApplication.AFFILIATE_LINK);
                             }
                         } else {
                             getEditor().setDisable(false);

@@ -15,9 +15,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
@@ -28,13 +26,10 @@ import org.slf4j.LoggerFactory;
 import com.sun.javafx.collections.ObservableListWrapper;
 
 import ctbrec.Config;
+import ctbrec.Model;
 import ctbrec.io.HttpClient;
 import ctbrec.recorder.Recorder;
-import ctbrec.sites.chaturbate.ChaturbateModel;
-import ctbrec.sites.chaturbate.ModelParser;
 import javafx.collections.ObservableList;
-import javafx.concurrent.ScheduledService;
-import javafx.concurrent.Task;
 import javafx.concurrent.Worker.State;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.event.EventHandler;
@@ -59,17 +54,15 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.util.Duration;
-import okhttp3.Request;
-import okhttp3.Response;
 
 public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     private static final transient Logger LOG = LoggerFactory.getLogger(ThumbOverviewTab.class);
 
-    static Set<ChaturbateModel> resolutionProcessing = Collections.synchronizedSet(new HashSet<>());
+    static Set<Model> resolutionProcessing = Collections.synchronizedSet(new HashSet<>());
     static BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     static ExecutorService threadPool = new ThreadPoolExecutor(2, 2, 10, TimeUnit.MINUTES, queue);
 
-    ScheduledService<List<ChaturbateModel>> updateService;
+    PaginatedScheduledService updateService;
     Recorder recorder;
     List<ThumbCell> filteredThumbCells = Collections.synchronizedList(new ArrayList<>());
     List<ThumbCell> selectedThumbCells = Collections.synchronizedList(new ArrayList<>());
@@ -77,12 +70,10 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     FlowPane grid = new FlowPane();
     ReentrantLock gridLock = new ReentrantLock();
     ScrollPane scrollPane = new ScrollPane();
-    String url;
     boolean loginRequired;
     HttpClient client = HttpClient.getInstance();
     HBox pagination;
-    int page = 1;
-    TextField pageInput = new TextField(Integer.toString(page));
+    TextField pageInput = new TextField(Integer.toString(1));
     Button pagePrev = new Button("◀");
     Button pageNext = new Button("▶");
     private volatile boolean updatesSuspended = false;
@@ -90,10 +81,9 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
 
     private ComboBox<Integer> thumbWidth;
 
-    public ThumbOverviewTab(String title, String url, boolean loginRequired) {
+    public ThumbOverviewTab(String title, PaginatedScheduledService updateService) {
         super(title);
-        this.url = url;
-        this.loginRequired = loginRequired;
+        this.updateService = updateService;
         setClosable(false);
         createGui();
         initializeUpdateService();
@@ -136,13 +126,17 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         pageInput.setPrefWidth(50);
         pageInput.setOnAction((e) -> handlePageNumberInput());
         pagePrev.setOnAction((e) -> {
+            int page = updateService.getPage();
             page = Math.max(1, --page);
             pageInput.setText(Integer.toString(page));
+            updateService.setPage(page);
             restartUpdateService();
         });
         pageNext.setOnAction((e) -> {
+            int page = updateService.getPage();
             page++;
             pageInput.setText(Integer.toString(page));
+            updateService.setPage(page);
             restartUpdateService();
         });
 
@@ -189,12 +183,13 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
 
     private void handlePageNumberInput() {
         try {
-            page = Integer.parseInt(pageInput.getText());
+            int page = Integer.parseInt(pageInput.getText());
             page = Math.max(1, page);
+            updateService.setPage(page);
             restartUpdateService();
         } catch(NumberFormatException e) {
         } finally {
-            pageInput.setText(Integer.toString(page));
+            pageInput.setText(Integer.toString(updateService.getPage()));
         }
     }
 
@@ -211,7 +206,6 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     }
 
     void initializeUpdateService() {
-        updateService = createUpdateService();
         updateService.setPeriod(new Duration(TimeUnit.SECONDS.toMillis(10)));
         updateService.setOnSucceeded((event) -> onSuccess());
         updateService.setOnFailed((event) -> onFail(event));
@@ -223,7 +217,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         }
         gridLock.lock();
         try {
-            List<ChaturbateModel> models = updateService.getValue();
+            List<Model> models = updateService.getValue();
             ObservableList<Node> nodes = grid.getChildren();
 
             // first remove models, which are not in the updated list
@@ -238,7 +232,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
 
             List<ThumbCell> positionChangedOrNew = new ArrayList<>();
             int index = 0;
-            for (ChaturbateModel model : models) {
+            for (Model model : models) {
                 boolean found = false;
                 for (Iterator<Node> iterator = nodes.iterator(); iterator.hasNext();) {
                     Node node = iterator.next();
@@ -278,7 +272,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
 
     }
 
-    ThumbCell createThumbCell(ThumbOverviewTab thumbOverviewTab, ChaturbateModel model, Recorder recorder2, HttpClient client2) {
+    ThumbCell createThumbCell(ThumbOverviewTab thumbOverviewTab, Model model, Recorder recorder2, HttpClient client2) {
         ThumbCell newCell = new ThumbCell(this, model, recorder, client);
         newCell.addEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> {
             suspendUpdates(true);
@@ -341,7 +335,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                         Map<String, Object> event = new HashMap<>();
                         event.put("event", "tokens.sent");
                         event.put("amount", tokens);
-                        CtbrecApplication.bus.post(event);
+                        CamrecApplication.bus.post(event);
                     } catch (IOException e1) {
                         Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
                         alert.setTitle("Error");
@@ -476,7 +470,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         for (Iterator<Node> iterator = grid.getChildren().iterator(); iterator.hasNext();) {
             Node node = iterator.next();
             ThumbCell cell = (ThumbCell) node;
-            ChaturbateModel m = cell.getModel();
+            Model m = cell.getModel();
             if(!matches(m, filter)) {
                 iterator.remove();
                 filteredThumbCells.add(cell);
@@ -487,7 +481,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         // add the ones, which might have been filtered before, but now match
         for (Iterator<ThumbCell> iterator = filteredThumbCells.iterator(); iterator.hasNext();) {
             ThumbCell thumbCell = iterator.next();
-            ChaturbateModel m = thumbCell.getModel();
+            Model m = thumbCell.getModel();
             if(matches(m, filter)) {
                 iterator.remove();
                 insert(thumbCell);
@@ -520,7 +514,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         }
     }
 
-    private boolean matches(ChaturbateModel m, String filter) {
+    private boolean matches(Model m, String filter) {
         try {
             String[] tokens = filter.split(" ");
             StringBuilder searchTextBuilder = new StringBuilder(m.getName());
@@ -556,43 +550,6 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
             LOG.error("Error while filtering model list", e);
             return false;
         }
-    }
-
-    private ScheduledService<List<ChaturbateModel>> createUpdateService() {
-        ScheduledService<List<ChaturbateModel>> updateService = new ScheduledService<List<ChaturbateModel>>() {
-            @Override
-            protected Task<List<ChaturbateModel>> createTask() {
-                return new Task<List<ChaturbateModel>>() {
-                    @Override
-                    public List<ChaturbateModel> call() throws IOException {
-                        String url = ThumbOverviewTab.this.url + "?page="+page+"&keywords=&_=" + System.currentTimeMillis();
-                        LOG.debug("Fetching page {}", url);
-                        Request request = new Request.Builder().url(url).build();
-                        Response response = client.execute(request, loginRequired);
-                        if (response.isSuccessful()) {
-                            List<ChaturbateModel> models = ModelParser.parseModels(response.body().string());
-                            response.close();
-                            return models;
-                        } else {
-                            int code = response.code();
-                            response.close();
-                            throw new IOException("HTTP status " + code);
-                        }
-                    }
-                };
-            }
-        };
-        ExecutorService executor = Executors.newSingleThreadExecutor(new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                Thread t = new Thread(r);
-                t.setDaemon(true);
-                t.setName("ThumbOverviewTab UpdateService");
-                return t;
-            }
-        });
-        updateService.setExecutor(executor);
-        return updateService;
     }
 
     public void setRecorder(Recorder recorder) {

@@ -14,7 +14,7 @@ public class TokenLabel extends Label {
 
     public TokenLabel() {
         setText("Tokens: loading…");
-        CtbrecApplication.bus.register(new Object() {
+        CamrecApplication.bus.register(new Object() {
             @Subscribe
             public void tokensUpdates(Map<String, Object> e) {
                 if(Objects.equals("tokens", e.get("event"))) {

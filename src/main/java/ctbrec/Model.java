@@ -27,5 +27,8 @@ public interface Model {
     public String getOnlineState(boolean failFast) throws IOException, ExecutionException;
     public List<StreamSource> getStreamSources() throws IOException, ExecutionException, ParseException, PlaylistException;
     public String getSegmentPlaylistUrl() throws IOException, ExecutionException, ParseException, PlaylistException;
+    public void invalidateCacheEntries();
+    public void receiveTip(int tokens) throws IOException;
+    public int[] getStreamResolution(boolean failFast) throws ExecutionException;
 
 }

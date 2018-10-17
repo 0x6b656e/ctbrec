@@ -13,7 +13,7 @@ public class Launcher {
             // check for OpenJFX
             try {
                 Class.forName("javafx.application.Application");
-                CtbrecApplication.main(args);
+                CamrecApplication.main(args);
             } catch (ClassNotFoundException e) {
                 LOG.error("You are running ctbrec with OpenJDK, but OpenJFX can not be found.\n"
                         + "Please either install OpenJFX or use the Oracle JRE, which you can download at\n"
@@ -21,7 +21,7 @@ public class Launcher {
                 System.exit(1);
             }
         } else {
-            CtbrecApplication.main(args);
+            CamrecApplication.main(args);
         }
     }
 }

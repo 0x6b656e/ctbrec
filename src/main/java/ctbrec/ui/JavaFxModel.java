@@ -111,4 +111,19 @@ public class JavaFxModel extends AbstractModel {
     public List<StreamSource> getStreamSources() throws IOException, ExecutionException, ParseException, PlaylistException {
         return delegate.getStreamSources();
     }
+
+    @Override
+    public void invalidateCacheEntries() {
+        delegate.invalidateCacheEntries();
+    }
+
+    @Override
+    public void receiveTip(int tokens) throws IOException {
+        delegate.receiveTip(tokens);
+    }
+
+    @Override
+    public int[] getStreamResolution(boolean b) throws ExecutionException {
+        return delegate.getStreamResolution(b);
+    }
 }

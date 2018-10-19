@@ -62,7 +62,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     static BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     static ExecutorService threadPool = new ThreadPoolExecutor(2, 2, 10, TimeUnit.MINUTES, queue);
 
-    PaginatedScheduledService updateService;
+    protected PaginatedScheduledService updateService;
     Recorder recorder;
     List<ThumbCell> filteredThumbCells = Collections.synchronizedList(new ArrayList<>());
     List<ThumbCell> selectedThumbCells = Collections.synchronizedList(new ArrayList<>());
@@ -215,9 +215,14 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         if(updatesSuspended) {
             return;
         }
+        List<Model> models = updateService.getValue();
+        updateGrid(models);
+
+    }
+
+    protected void updateGrid(List<? extends Model> models) {
         gridLock.lock();
         try {
-            List<Model> models = updateService.getValue();
             ObservableList<Node> nodes = grid.getChildren();
 
             // first remove models, which are not in the updated list
@@ -269,7 +274,6 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         } finally {
             gridLock.unlock();
         }
-
     }
 
     ThumbCell createThumbCell(ThumbOverviewTab thumbOverviewTab, Model model, Recorder recorder2, HttpClient client2) {
@@ -439,6 +443,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
             } else {
                 alert.setContentText(event.getSource().getException().getLocalizedMessage());
             }
+            LOG.error("Couldn't update model list", event.getSource().getException());
         } else {
             alert.setContentText(event.getEventType().toString());
         }

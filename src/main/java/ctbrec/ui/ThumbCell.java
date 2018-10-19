@@ -74,6 +74,7 @@ public class ThumbCell extends StackPane {
     private final Color colorHighlight = Color.WHITE;
     private final Color colorRecording = new Color(0.8, 0.28, 0.28, 1);
     private SimpleBooleanProperty selectionProperty = new SimpleBooleanProperty(false);
+    private double imgAspectRatio = 3.0 / 4.0;
 
     private HttpClient client;
 
@@ -91,6 +92,8 @@ public class ThumbCell extends StackPane {
         iv = new ImageView();
         setImage(model.getPreview());
         iv.setSmooth(true);
+        iv.setPreserveRatio(true);
+        iv.setStyle("-fx-background-color: #000");
         getChildren().add(iv);
 
         nameBackground = new Rectangle();
@@ -208,17 +211,11 @@ public class ThumbCell extends StackPane {
                 // the model is online, but the resolution is 0. probably something went wrong
                 // when we first requested the stream info, so we remove this invalid value from the "cache"
                 // so that it is requested again
-                try {
-                    if (model.isOnline() && resolution[1] == 0) {
-                        LOG.debug("Removing invalid resolution value for {}", model.getName());
-                        model.invalidateCacheEntries();
-                    }
-                } catch (IOException | ExecutionException | InterruptedException e) {
-                    LOG.error("Coulnd't get resolution for model {}", model, e);
+                if (model.isOnline() && resolution[1] == 0) {
+                    LOG.debug("Removing invalid resolution value for {}", model.getName());
+                    model.invalidateCacheEntries();
                 }
-            } catch (ExecutionException e1) {
-                LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e1);
-            } catch (IOException e1) {
+            } catch (ExecutionException | IOException | InterruptedException e1) {
                 LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e1);
             } finally {
                 ThumbOverviewTab.resolutionProcessing.remove(model);
@@ -226,11 +223,11 @@ public class ThumbCell extends StackPane {
         });
     }
 
-    private void updateResolutionTag(int[] resolution) throws IOException, ExecutionException {
+    private void updateResolutionTag(int[] resolution) throws IOException, ExecutionException, InterruptedException {
         String _res = "n/a";
         Paint resolutionBackgroundColor = resolutionOnlineColor;
         String state = model.getOnlineState(false);
-        if ("public".equals(state)) {
+        if (model.isOnline()) {
             LOG.trace("Model resolution {} {}x{}", model.getName(), resolution[0], resolution[1]);
             LOG.trace("Resolution queue size: {}", ThumbOverviewTab.queue.size());
             final int w = resolution[1];
@@ -262,6 +259,8 @@ public class ThumbCell extends StackPane {
                 @Override
                 public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
                     if(newValue.doubleValue() == 1.0) {
+                        imgAspectRatio = img.getHeight() / img.getWidth();
+                        setThumbWidth(width);
                         iv.setImage(img);
                     }
                 }
@@ -283,26 +282,33 @@ public class ThumbCell extends StackPane {
     }
 
     void startPlayer() {
-        try {
-            if(model.isOnline(true)) {
-                List<StreamSource> sources = model.getStreamSources();
-                Collections.sort(sources);
-                StreamSource best = sources.get(sources.size()-1);
-                LOG.debug("Playing {}", best.getMediaPlaylistUrl());
-                Player.play(best.getMediaPlaylistUrl());
-            } else {
-                Alert alert = new AutosizeAlert(Alert.AlertType.INFORMATION);
-                alert.setTitle("Room not public");
-                alert.setHeaderText("Room is currently not public");
-                alert.showAndWait();
+        new Thread(() -> {
+            try {
+                if(model.isOnline(true)) {
+                    List<StreamSource> sources = model.getStreamSources();
+                    Collections.sort(sources);
+                    StreamSource best = sources.get(sources.size()-1);
+                    LOG.debug("Playing {}", best.getMediaPlaylistUrl());
+                    Player.play(best.getMediaPlaylistUrl());
+                } else {
+                    Platform.runLater(() -> {
+                        Alert alert = new AutosizeAlert(Alert.AlertType.INFORMATION);
+                        alert.setTitle("Room not public");
+                        alert.setHeaderText("Room is currently not public");
+                        alert.showAndWait();
+                    });
+                }
+            } catch (IOException | ExecutionException | ParseException | PlaylistException | InterruptedException e1) {
+                LOG.error("Couldn't get stream information for model {}", model, e1);
+                Platform.runLater(() -> {
+                    Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+                    alert.setTitle("Error");
+                    alert.setHeaderText("Couldn't determine stream URL");
+                    alert.setContentText(e1.getLocalizedMessage());
+                    alert.showAndWait();
+                });
             }
-        } catch (IOException | ExecutionException | InterruptedException | ParseException | PlaylistException e1) {
-            LOG.error("Couldn't get stream information for model {}", model, e1);
-            Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
-            alert.setTitle("Error");
-            alert.setHeaderText("Couldn't determine stream URL");
-            alert.showAndWait();
-        }
+        }).start();
     }
 
     private void setRecording(boolean recording) {
@@ -491,7 +497,7 @@ public class ThumbCell extends StackPane {
     }
 
     public void setThumbWidth(int width) {
-        int height = width * 3 / 4;
+        int height = (int) (width * imgAspectRatio);
         setSize(width, height);
     }
 

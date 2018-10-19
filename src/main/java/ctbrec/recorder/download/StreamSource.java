@@ -4,6 +4,7 @@ import java.text.DecimalFormat;
 
 public class StreamSource implements Comparable<StreamSource> {
     public int bandwidth;
+    public int width;
     public int height;
     public String mediaPlaylistUrl;
 
@@ -13,6 +14,14 @@ public class StreamSource implements Comparable<StreamSource> {
 
     public void setBandwidth(int bandwidth) {
         this.bandwidth = bandwidth;
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public void setWidth(int width) {
+        this.width = width;
     }
 
     public int getHeight() {

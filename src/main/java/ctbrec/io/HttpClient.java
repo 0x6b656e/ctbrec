@@ -9,8 +9,8 @@ import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
 import ctbrec.Settings.ProxyType;
-import ctbrec.ui.CookieJarImpl;
 import ctbrec.ui.CamrecApplication;
+import ctbrec.ui.CookieJarImpl;
 import ctbrec.ui.HtmlParser;
 import okhttp3.ConnectionPool;
 import okhttp3.Cookie;
@@ -34,8 +34,8 @@ public class HttpClient {
         loadProxySettings();
         client = new OkHttpClient.Builder()
                 .cookieJar(cookieJar)
-                .connectTimeout(Config.getInstance().getSettings().httpTimeout, TimeUnit.SECONDS)
-                .readTimeout(Config.getInstance().getSettings().httpTimeout, TimeUnit.SECONDS)
+                .connectTimeout(Config.getInstance().getSettings().httpTimeout, TimeUnit.MILLISECONDS)
+                .readTimeout(Config.getInstance().getSettings().httpTimeout, TimeUnit.MILLISECONDS)
                 .connectionPool(new ConnectionPool(50, 10, TimeUnit.MINUTES))
                 //.addInterceptor(new LoggingInterceptor())
                 .build();

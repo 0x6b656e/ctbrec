@@ -26,27 +26,20 @@ import ctbrec.io.HttpClient;
 import ctbrec.recorder.LocalRecorder;
 import ctbrec.recorder.Recorder;
 import ctbrec.recorder.RemoteRecorder;
-import ctbrec.sites.chaturbate.Chaturbate;
+import ctbrec.sites.mfc.MyFreeCams;
 import javafx.application.Application;
 import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Task;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.Node;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TabPane.TabClosingPolicy;
 import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
-import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -74,9 +67,10 @@ public class CamrecApplication extends Application {
         hostServices = getHostServices();
         client = HttpClient.getInstance();
         createRecorder();
-        site = new Chaturbate();
+        //site = new Chaturbate();
+        site = new MyFreeCams();
         site.setRecorder(recorder);
-        doInitialLogin();
+        // TODO move this to Chaturbate class doInitialLogin();
         createGui(primaryStage);
         checkForUpdates();
     }
@@ -158,37 +152,38 @@ public class CamrecApplication extends Application {
             }.start();
         });
 
-        String username = Config.getInstance().getSettings().username;
-        if(username != null && !username.trim().isEmpty()) {
-            double fontSize = tabPane.getTabMaxHeight() / 2 - 1;
-            Button buyTokens = new Button("Buy Tokens");
-            buyTokens.setFont(Font.font(fontSize));
-            buyTokens.setOnAction((e) -> DesktopIntergation.open(AFFILIATE_LINK));
-            buyTokens.setMaxHeight(tabPane.getTabMaxHeight());
-            TokenLabel tokenBalance = new TokenLabel();
-            tokenPanel = new HBox(5, tokenBalance, buyTokens);
-            //tokenPanel.setBackground(new Background(new BackgroundFill(Color.GREEN, CornerRadii.EMPTY, new Insets(0))));
-            tokenPanel.setAlignment(Pos.BASELINE_RIGHT);
-            tokenPanel.setMaxHeight(tabPane.getTabMaxHeight());
-            tokenPanel.setMaxWidth(200);
-            tokenBalance.setFont(Font.font(fontSize));
-            HBox.setMargin(tokenBalance, new Insets(0, 5, 0, 0));
-            HBox.setMargin(buyTokens, new Insets(0, 5, 0, 0));
-            for (Node node : tabPane.getChildrenUnmodifiable()) {
-                if(node.getStyleClass().contains("tab-header-area")) {
-                    Parent header = (Parent) node;
-                    for (Node nd : header.getChildrenUnmodifiable()) {
-                        if(nd.getStyleClass().contains("tab-header-background")) {
-                            StackPane pane = (StackPane) nd;
-                            StackPane.setAlignment(tokenPanel, Pos.CENTER_RIGHT);
-                            pane.getChildren().add(tokenPanel);
-                        }
-                    }
-
-                }
-            }
-            loadTokenBalance(tokenBalance);
-        }
+        // TODO think about a solution, which works for all sites
+        //        String username = Config.getInstance().getSettings().username;
+        //        if(username != null && !username.trim().isEmpty()) {
+        //            double fontSize = tabPane.getTabMaxHeight() / 2 - 1;
+        //            Button buyTokens = new Button("Buy Tokens");
+        //            buyTokens.setFont(Font.font(fontSize));
+        //            buyTokens.setOnAction((e) -> DesktopIntergation.open(AFFILIATE_LINK));
+        //            buyTokens.setMaxHeight(tabPane.getTabMaxHeight());
+        //            TokenLabel tokenBalance = new TokenLabel();
+        //            tokenPanel = new HBox(5, tokenBalance, buyTokens);
+        //            //tokenPanel.setBackground(new Background(new BackgroundFill(Color.GREEN, CornerRadii.EMPTY, new Insets(0))));
+        //            tokenPanel.setAlignment(Pos.BASELINE_RIGHT);
+        //            tokenPanel.setMaxHeight(tabPane.getTabMaxHeight());
+        //            tokenPanel.setMaxWidth(200);
+        //            tokenBalance.setFont(Font.font(fontSize));
+        //            HBox.setMargin(tokenBalance, new Insets(0, 5, 0, 0));
+        //            HBox.setMargin(buyTokens, new Insets(0, 5, 0, 0));
+        //            for (Node node : tabPane.getChildrenUnmodifiable()) {
+        //                if(node.getStyleClass().contains("tab-header-area")) {
+        //                    Parent header = (Parent) node;
+        //                    for (Node nd : header.getChildrenUnmodifiable()) {
+        //                        if(nd.getStyleClass().contains("tab-header-background")) {
+        //                            StackPane pane = (StackPane) nd;
+        //                            StackPane.setAlignment(tokenPanel, Pos.CENTER_RIGHT);
+        //                            pane.getChildren().add(tokenPanel);
+        //                        }
+        //                    }
+        //
+        //                }
+        //            }
+        //            loadTokenBalance(tokenBalance);
+        //        }
     }
 
     private void loadTokenBalance(TokenLabel label) {

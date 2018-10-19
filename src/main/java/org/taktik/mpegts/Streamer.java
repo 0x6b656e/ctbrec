@@ -190,7 +190,7 @@ public class Streamer {
                             Long sleepNanosPrevious = null;
                             if (lastPcrValue != null && lastPcrTime != null) {
                                 if (pcrValue <= lastPcrValue) {
-                                    log.error("PCR discontinuity ! "  + packet.getPid());
+                                    log.trace("PCR discontinuity ! "  + packet.getPid());
                                     resetState = true;
                                 } else {
                                     sleepNanosPrevious = ((pcrValue - lastPcrValue) / 27 * 1000) - (pcrTime - lastPcrTime);

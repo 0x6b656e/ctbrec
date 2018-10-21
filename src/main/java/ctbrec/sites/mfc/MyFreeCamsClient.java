@@ -242,7 +242,23 @@ public class MyFreeCamsClient {
                         }
                     }
                 } else if(object.has("type") && object.getInt("type") == 20) {
-                    // TODO parseTags();
+                    JSONObject outer = object.getJSONObject("rdata");
+                    for (String uidString : outer.keySet()) {
+                        try {
+                            int uid = Integer.parseInt(uidString);
+                            MyFreeCamsModel model = getModel(uid);
+                            if(model != null) {
+                                model.getTags().clear();
+                                JSONArray jsonTags = outer.getJSONArray(uidString);
+                                jsonTags.forEach((tag) -> {
+                                    model.getTags().add((String) tag);
+                                });
+                            }
+                        } catch(Exception e) {
+                            // fail silently
+                        }
+
+                    }
                 }
             }
 

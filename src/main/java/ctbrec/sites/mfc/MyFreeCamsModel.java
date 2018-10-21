@@ -2,9 +2,12 @@ package ctbrec.sites.mfc;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 import org.slf4j.Logger;
@@ -174,6 +177,22 @@ public class MyFreeCamsModel extends AbstractModel {
             String hlsUrl = "http://video" + (camserv - 500) + ".myfreecams.com:1935/NxServer/ngrp:mfc_" + (100000000 + state.getUid()) + ".f4v_mobile/playlist.m3u8";
             setStreamUrl(hlsUrl);
         }
+
+        // tags
+        Optional.ofNullable(state.getM()).map((m) -> m.getTags()).ifPresent((tags) -> {
+            ArrayList<String> t = new ArrayList<>();
+            t.addAll(tags);
+            setTags(t);
+        });
+
+        // description
+        Optional.ofNullable(state.getM()).map((m) -> m.getTopic()).ifPresent((topic) -> {
+            try {
+                setDescription(URLDecoder.decode(topic, "utf-8"));
+            } catch (UnsupportedEncodingException e) {
+                LOG.warn("Couldn't url decode topic", e);
+            }
+        });
     }
 
     @Override

@@ -26,17 +26,16 @@ public class MyFreeCamsTabProvider extends TabProvider {
         List<Tab> tabs = new ArrayList<>();
 
         PaginatedScheduledService updateService = new OnlineCamsUpdateService();
-        ThumbOverviewTab online = new ThumbOverviewTab("Online", updateService);
+        ThumbOverviewTab online = new ThumbOverviewTab("Online", updateService, myFreeCams);
         online.setRecorder(recorder);
         updateService.setPeriod(new Duration(TimeUnit.SECONDS.toMillis(10)));
         tabs.add(online);
 
         updateService = new FriendsUpdateService(myFreeCams);
-        ThumbOverviewTab friends = new ThumbOverviewTab("Friends", updateService);
+        ThumbOverviewTab friends = new ThumbOverviewTab("Friends", updateService, myFreeCams);
         friends.setRecorder(recorder);
         updateService.setPeriod(new Duration(TimeUnit.SECONDS.toMillis(10)));
         tabs.add(friends);
-
 
         return tabs;
     }

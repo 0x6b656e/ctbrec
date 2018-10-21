@@ -32,6 +32,11 @@ public class MyFreeCamsModel extends AbstractModel {
     private double camScore;
     private State state;
     private int resolution[];
+    private MyFreeCams site;
+
+    MyFreeCamsModel(MyFreeCams site) {
+        this.site = site;
+    }
 
     @Override
     public boolean isOnline() throws IOException, ExecutionException, InterruptedException {
@@ -78,7 +83,7 @@ public class MyFreeCamsModel extends AbstractModel {
         }
         LOG.debug("Loading master playlist {}", hlsUrl);
         Request req = new Request.Builder().url(hlsUrl).build();
-        Response response = MyFreeCams.httpClient.newCall(req).execute();
+        Response response = site.getHttpClient().execute(req);
         try {
             InputStream inputStream = response.body().byteStream();
             PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
@@ -97,7 +102,7 @@ public class MyFreeCamsModel extends AbstractModel {
 
     @Override
     public void receiveTip(int tokens) throws IOException {
-        throw new RuntimeException("Not implemented");
+        throw new RuntimeException("Not implemented for MFC");
     }
 
     @Override
@@ -155,8 +160,29 @@ public class MyFreeCamsModel extends AbstractModel {
         // stream url
         Integer camserv = state.getU().getCamserv();
         if(camserv != null) {
+            if(state.getM() != null) {
+                if(state.getM().getFlags() != null) {
+                    int flags = state.getM().getFlags();
+                    int hd = flags >> 18 & 0x1;
+                    if(hd == 1) {
+                        String hlsUrl = "http://video" + (camserv - 500) + ".myfreecams.com:1935/NxServer/ngrp:mfc_a_" + (100000000 + state.getUid()) + ".f4v_mobile/playlist.m3u8";
+                        setStreamUrl(hlsUrl);
+                        return;
+                    }
+                }
+            }
             String hlsUrl = "http://video" + (camserv - 500) + ".myfreecams.com:1935/NxServer/ngrp:mfc_" + (100000000 + state.getUid()) + ".f4v_mobile/playlist.m3u8";
             setStreamUrl(hlsUrl);
         }
+    }
+
+    @Override
+    public boolean follow() {
+        return false;
+    }
+
+    @Override
+    public boolean unfollow() {
+        return false;
     }
 }

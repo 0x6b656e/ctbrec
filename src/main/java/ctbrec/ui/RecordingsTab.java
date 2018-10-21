@@ -1,7 +1,6 @@
 package ctbrec.ui;
 
-import static javafx.scene.control.ButtonType.NO;
-import static javafx.scene.control.ButtonType.YES;
+import static javafx.scene.control.ButtonType.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -32,10 +31,9 @@ import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.Recording;
 import ctbrec.Recording.STATUS;
-import ctbrec.Site;
-import ctbrec.io.HttpClient;
 import ctbrec.recorder.Recorder;
 import ctbrec.recorder.download.MergedHlsDownload;
+import ctbrec.sites.Site;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -306,7 +304,7 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
                 @Override
                 public void run() {
                     try {
-                        MergedHlsDownload download = new MergedHlsDownload(HttpClient.getInstance());
+                        MergedHlsDownload download = new MergedHlsDownload(site.getHttpClient());
                         download.start(url.toString(), target, (progress) -> {
                             Platform.runLater(() -> {
                                 if (progress == 100) {

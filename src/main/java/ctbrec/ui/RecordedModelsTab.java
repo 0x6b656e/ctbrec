@@ -19,9 +19,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.Model;
-import ctbrec.Site;
-import ctbrec.io.HttpClient;
 import ctbrec.recorder.Recorder;
+import ctbrec.sites.Site;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -266,7 +265,6 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
             return;
         }
 
-        HttpClient client = HttpClient.getInstance();
         Function<Model, Void> onSuccess = (m) -> {
             try {
                 recorder.switchStreamSource(m);
@@ -281,7 +279,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
             showStreamSwitchErrorDialog(t);
             return null;
         };
-        StreamSourceSelectionDialog.show(fxModel.getDelegate(), client, onSuccess, onFail);
+        StreamSourceSelectionDialog.show(fxModel.getDelegate(), site.getHttpClient(), onSuccess, onFail);
     }
 
     private void showStreamSwitchErrorDialog(Throwable throwable) {

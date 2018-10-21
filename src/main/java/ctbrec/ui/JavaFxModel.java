@@ -126,4 +126,14 @@ public class JavaFxModel extends AbstractModel {
     public int[] getStreamResolution(boolean b) throws ExecutionException {
         return delegate.getStreamResolution(b);
     }
+
+    @Override
+    public boolean follow() throws IOException {
+        return delegate.follow();
+    }
+
+    @Override
+    public boolean unfollow() throws IOException {
+        return delegate.unfollow();
+    }
 }

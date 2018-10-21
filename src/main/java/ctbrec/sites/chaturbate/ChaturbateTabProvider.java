@@ -29,7 +29,7 @@ public class ChaturbateTabProvider extends TabProvider {
         tabs.add(createTab("Male", BASE_URI + "/male-cams/"));
         tabs.add(createTab("Couples", BASE_URI + "/couple-cams/"));
         tabs.add(createTab("Trans", BASE_URI + "/trans-cams/"));
-        FollowedTab followedTab = new FollowedTab("Followed", BASE_URI + "/followed-cams/");
+        FollowedTab followedTab = new FollowedTab("Followed", BASE_URI + "/followed-cams/", chaturbate);
         followedTab.setRecorder(recorder);
         followedTab.setScene(scene);
         tabs.add(followedTab);
@@ -37,8 +37,8 @@ public class ChaturbateTabProvider extends TabProvider {
     }
 
     private Tab createTab(String title, String url) {
-        ChaturbateUpdateService updateService = new ChaturbateUpdateService(url, false);
-        ThumbOverviewTab tab = new ThumbOverviewTab(title, updateService);
+        ChaturbateUpdateService updateService = new ChaturbateUpdateService(url, false, chaturbate);
+        ThumbOverviewTab tab = new ThumbOverviewTab(title, updateService, chaturbate);
         tab.setRecorder(recorder);
         return tab;
     }

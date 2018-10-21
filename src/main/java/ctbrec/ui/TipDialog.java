@@ -1,30 +1,27 @@
 package ctbrec.ui;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ctbrec.Config;
 import ctbrec.Model;
-import ctbrec.io.HttpClient;
+import ctbrec.sites.Site;
+import ctbrec.sites.chaturbate.Chaturbate;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.TextInputDialog;
-import okhttp3.Request;
-import okhttp3.Response;
 
 public class TipDialog extends TextInputDialog {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(TipDialog.class);
+    private Site site;
 
-    public TipDialog(Model model) {
+    public TipDialog(Site site, Model model) {
+        this.site = site;
         setTitle("Send Tip");
         loadTokenBalance();
         setHeaderText("Loading token balance…");
@@ -38,27 +35,7 @@ public class TipDialog extends TextInputDialog {
             @Override
             protected Integer call() throws Exception {
                 if (!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
-                    String username = Config.getInstance().getSettings().username;
-                    if (username == null || username.trim().isEmpty()) {
-                        throw new IOException("Not logged in");
-                    }
-
-                    String url = "https://chaturbate.com/p/" + username + "/";
-                    HttpClient client = HttpClient.getInstance();
-                    Request req = new Request.Builder().url(url).build();
-                    Response resp = client.execute(req, true);
-                    if (resp.isSuccessful()) {
-                        String profilePage = resp.body().string();
-                        String tokenText = HtmlParser.getText(profilePage, "span.tokencount");
-                        int tokens = Integer.parseInt(tokenText);
-                        Map<String, Object> event = new HashMap<>();
-                        event.put("event", "tokens");
-                        event.put("amount", tokens);
-                        CamrecApplication.bus.post(event);
-                        return tokens;
-                    } else {
-                        throw new IOException("HTTP response: " + resp.code() + " - " + resp.message());
-                    }
+                    return site.getTokenBalance();
                 } else {
                     return 1_000_000;
                 }
@@ -78,7 +55,7 @@ public class TipDialog extends TextInputDialog {
                             buyTokens.showAndWait();
                             TipDialog.this.close();
                             if(buyTokens.getResult() == ButtonType.YES) {
-                                DesktopIntergation.open(CamrecApplication.AFFILIATE_LINK);
+                                DesktopIntergation.open(Chaturbate.AFFILIATE_LINK);
                             }
                         } else {
                             getEditor().setDisable(false);

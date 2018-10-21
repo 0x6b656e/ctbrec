@@ -62,7 +62,7 @@ public class MyFreeCamsClient {
 
     public void start() throws IOException {
         running = true;
-        ServerConfig serverConfig = new ServerConfig(MyFreeCams.httpClient);
+        ServerConfig serverConfig = new ServerConfig(mfc.getHttpClient());
         List<String> websocketServers = new ArrayList<String>(serverConfig.wsServers.keySet());
         String server = websocketServers.get((int) (Math.random()*websocketServers.size()));
         String wsUrl = "ws://" + server + ".myfreecams.com:8080/fcsl";
@@ -89,7 +89,7 @@ public class MyFreeCamsClient {
     }
 
     private WebSocket createWebSocket(Request req) {
-        WebSocket ws = MyFreeCams.httpClient.newWebSocket(req, new WebSocketListener() {
+        WebSocket ws = mfc.getHttpClient().newWebSocket(req, new WebSocketListener() {
             @Override
             public void onOpen(WebSocket webSocket, Response response) {
                 super.onOpen(webSocket, response);
@@ -111,7 +111,7 @@ public class MyFreeCamsClient {
                 super.onClosed(webSocket, code, reason);
                 LOG.trace("close: {} {}", code, reason);
                 running = false;
-                MyFreeCams.httpClient.dispatcher().executorService().shutdownNow();
+                mfc.getHttpClient().shutdown();
             }
 
             private StringBuilder msgBuffer = new StringBuilder();
@@ -190,7 +190,7 @@ public class MyFreeCamsClient {
                     String url = base + "?respkey="+respkey+"&opts="+opts+"&serv="+serv+"&type="+type;
                     Request req = new Request.Builder().url(url).build();
                     LOG.debug("Requesting EXTDATA {}", url);
-                    Response resp = MyFreeCams.httpClient.newCall(req).execute();
+                    Response resp = mfc.getHttpClient().execute(req);
 
                     if(resp.isSuccessful()) {
                         parseExtDataSessionStates(resp.body().string());
@@ -353,5 +353,15 @@ public class MyFreeCamsClient {
 
     public void execute(Runnable r) {
         executor.execute(r);
+    }
+
+    public void getSessionState(ctbrec.Model model) {
+        for (SessionState state : sessionStates.values()) {
+            if(Objects.equals(state.getNm(), model.getName())) {
+                JsonAdapter<SessionState> adapter = moshi.adapter(SessionState.class).indent("  ");
+                System.out.println(adapter.toJson(state));
+                System.out.println("#####################");
+            }
+        }
     }
 }

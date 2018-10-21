@@ -37,7 +37,7 @@ public class FriendsUpdateService extends PaginatedScheduledService {
                         .url(url)
                         .header("Referer", myFreeCams.getBaseUrl())
                         .build();
-                Response resp = MyFreeCams.httpClient.newCall(req).execute();
+                Response resp = myFreeCams.getHttpClient().execute(req, true);
                 if(resp.isSuccessful()) {
                     String json = resp.body().string().substring(4);
                     JSONObject object = new JSONObject(json);

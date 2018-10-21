@@ -28,7 +28,6 @@ public class Settings {
     public boolean determineResolution = false;
     public boolean requireAuthentication = false;
     public boolean chooseStreamQuality = false;
-    public boolean recordFollowed = false;
     public byte[] key = null;
     public ProxyType proxyType = ProxyType.DIRECT;
     public String proxyHost;

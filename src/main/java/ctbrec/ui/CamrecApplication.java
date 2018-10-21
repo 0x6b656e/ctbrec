@@ -7,7 +7,6 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
 import org.slf4j.Logger;
@@ -20,26 +19,31 @@ import com.squareup.moshi.Moshi;
 import com.squareup.moshi.Types;
 
 import ctbrec.Config;
-import ctbrec.Site;
 import ctbrec.Version;
-import ctbrec.io.HttpClient;
 import ctbrec.recorder.LocalRecorder;
 import ctbrec.recorder.Recorder;
 import ctbrec.recorder.RemoteRecorder;
+import ctbrec.sites.Site;
 import ctbrec.sites.mfc.MyFreeCams;
 import javafx.application.Application;
 import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.concurrent.Task;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TabPane.TabClosingPolicy;
 import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
+import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -47,12 +51,9 @@ import okhttp3.Response;
 public class CamrecApplication extends Application {
 
     static final transient Logger LOG = LoggerFactory.getLogger(CamrecApplication.class);
-    public static final String BASE_URI = "https://chaturbate.com";
-    public static final String AFFILIATE_LINK = BASE_URI + "/in/?track=default&tour=LQps&campaign=55vTi&room=0xb00bface";
 
     private Config config;
     private Recorder recorder;
-    private HttpClient client;
     static HostServices hostServices;
     private SettingsTab settingsTab;
     private TabPane tabPane = new TabPane();
@@ -65,12 +66,13 @@ public class CamrecApplication extends Application {
         loadConfig();
         bus = new AsyncEventBus(Executors.newSingleThreadExecutor());
         hostServices = getHostServices();
-        client = HttpClient.getInstance();
         createRecorder();
-        //site = new Chaturbate();
+        // site = new Chaturbate();
         site = new MyFreeCams();
         site.setRecorder(recorder);
-        // TODO move this to Chaturbate class doInitialLogin();
+        if (!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
+            site.login();
+        }
         createGui(primaryStage);
         checkForUpdates();
     }
@@ -132,7 +134,7 @@ public class CamrecApplication extends Application {
                 public void run() {
                     settingsTab.saveConfig();
                     recorder.shutdown();
-                    client.shutdown();
+                    site.shutdown();
                     try {
                         Config.getInstance().save();
                         LOG.info("Shutdown complete. Goodbye!");
@@ -152,103 +154,43 @@ public class CamrecApplication extends Application {
             }.start();
         });
 
-        // TODO think about a solution, which works for all sites
-        //        String username = Config.getInstance().getSettings().username;
-        //        if(username != null && !username.trim().isEmpty()) {
-        //            double fontSize = tabPane.getTabMaxHeight() / 2 - 1;
-        //            Button buyTokens = new Button("Buy Tokens");
-        //            buyTokens.setFont(Font.font(fontSize));
-        //            buyTokens.setOnAction((e) -> DesktopIntergation.open(AFFILIATE_LINK));
-        //            buyTokens.setMaxHeight(tabPane.getTabMaxHeight());
-        //            TokenLabel tokenBalance = new TokenLabel();
-        //            tokenPanel = new HBox(5, tokenBalance, buyTokens);
-        //            //tokenPanel.setBackground(new Background(new BackgroundFill(Color.GREEN, CornerRadii.EMPTY, new Insets(0))));
-        //            tokenPanel.setAlignment(Pos.BASELINE_RIGHT);
-        //            tokenPanel.setMaxHeight(tabPane.getTabMaxHeight());
-        //            tokenPanel.setMaxWidth(200);
-        //            tokenBalance.setFont(Font.font(fontSize));
-        //            HBox.setMargin(tokenBalance, new Insets(0, 5, 0, 0));
-        //            HBox.setMargin(buyTokens, new Insets(0, 5, 0, 0));
-        //            for (Node node : tabPane.getChildrenUnmodifiable()) {
-        //                if(node.getStyleClass().contains("tab-header-area")) {
-        //                    Parent header = (Parent) node;
-        //                    for (Node nd : header.getChildrenUnmodifiable()) {
-        //                        if(nd.getStyleClass().contains("tab-header-background")) {
-        //                            StackPane pane = (StackPane) nd;
-        //                            StackPane.setAlignment(tokenPanel, Pos.CENTER_RIGHT);
-        //                            pane.getChildren().add(tokenPanel);
-        //                        }
-        //                    }
-        //
-        //                }
-        //            }
-        //            loadTokenBalance(tokenBalance);
-        //        }
-    }
-
-    private void loadTokenBalance(TokenLabel label) {
-        Task<Integer> task = new Task<Integer>() {
-            @Override
-            protected Integer call() throws Exception {
-                if (!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
-                    String username = Config.getInstance().getSettings().username;
-                    if (username == null || username.trim().isEmpty()) {
-                        throw new IOException("Not logged in");
-                    }
-
-                    String url = "https://chaturbate.com/p/" + username + "/";
-                    HttpClient client = HttpClient.getInstance();
-                    Request req = new Request.Builder().url(url).build();
-                    Response resp = client.execute(req, true);
-                    if (resp.isSuccessful()) {
-                        String profilePage = resp.body().string();
-                        String tokenText = HtmlParser.getText(profilePage, "span.tokencount");
-                        int tokens = Integer.parseInt(tokenText);
-                        return tokens;
-                    } else {
-                        throw new IOException("HTTP response: " + resp.code() + " - " + resp.message());
-                    }
-                } else {
-                    return 1_000_000;
-                }
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    int tokens = get();
-                    label.update(tokens);
-                } catch (InterruptedException | ExecutionException e) {
-                    LOG.error("Couldn't retrieve account balance", e);
-                    Platform.runLater(() -> label.setText("Tokens: error"));
-                }
-            }
-        };
-        new Thread(task).start();
-    }
-
-    private void doInitialLogin() {
-        if(config.getSettings().username != null && !config.getSettings().username.isEmpty()) {
-            new Thread() {
-                @Override
-                public void run() {
-                    if(!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
-                        try {
-                            client.login();
-                        } catch (IOException e1) {
-                            LOG.warn("Initial login failed" , e1);
+        String username = Config.getInstance().getSettings().username;
+        if(username != null && !username.trim().isEmpty()) {
+            double fontSize = tabPane.getTabMaxHeight() / 2 - 1;
+            Button buyTokens = new Button("Buy Tokens");
+            buyTokens.setFont(Font.font(fontSize));
+            buyTokens.setOnAction((e) -> DesktopIntergation.open(site.getBuyTokensLink()));
+            buyTokens.setMaxHeight(tabPane.getTabMaxHeight());
+            TokenLabel tokenBalance = new TokenLabel(site);
+            tokenPanel = new HBox(5, tokenBalance, buyTokens);
+            tokenPanel.setAlignment(Pos.BASELINE_RIGHT);
+            tokenPanel.setMaxHeight(tabPane.getTabMaxHeight());
+            tokenPanel.setMaxWidth(200);
+            tokenBalance.setFont(Font.font(fontSize));
+            HBox.setMargin(tokenBalance, new Insets(0, 5, 0, 0));
+            HBox.setMargin(buyTokens, new Insets(0, 5, 0, 0));
+            for (Node node : tabPane.getChildrenUnmodifiable()) {
+                if(node.getStyleClass().contains("tab-header-area")) {
+                    Parent header = (Parent) node;
+                    for (Node nd : header.getChildrenUnmodifiable()) {
+                        if(nd.getStyleClass().contains("tab-header-background")) {
+                            StackPane pane = (StackPane) nd;
+                            StackPane.setAlignment(tokenPanel, Pos.CENTER_RIGHT);
+                            pane.getChildren().add(tokenPanel);
                         }
                     }
-                };
-            }.start();
+
+                }
+            }
+            tokenBalance.loadBalance();
         }
     }
 
     private void createRecorder() {
-        if(config.getSettings().localRecording) {
+        if (config.getSettings().localRecording) {
             recorder = new LocalRecorder(config);
         } else {
-            recorder = new RemoteRecorder(config, client);
+            recorder = new RemoteRecorder(config, site.getHttpClient());
         }
     }
 
@@ -275,8 +217,8 @@ public class CamrecApplication extends Application {
             try {
                 String url = "https://api.github.com/repos/0xboobface/ctbrec/releases";
                 Request request = new Request.Builder().url(url).build();
-                Response response = client.execute(request);
-                if(response.isSuccessful()) {
+                Response response = site.getHttpClient().execute(request);
+                if (response.isSuccessful()) {
                     Moshi moshi = new Moshi.Builder().build();
                     Type type = Types.newParameterizedType(List.class, Release.class);
                     JsonAdapter<List<Release>> adapter = moshi.adapter(type);
@@ -284,7 +226,7 @@ public class CamrecApplication extends Application {
                     Release latest = releases.get(0);
                     Version latestVersion = latest.getVersion();
                     Version ctbrecVersion = getVersion();
-                    if(latestVersion.compareTo(ctbrecVersion) > 0) {
+                    if (latestVersion.compareTo(ctbrecVersion) > 0) {
                         LOG.debug("Update available {} < {}", ctbrecVersion, latestVersion);
                         Platform.runLater(() -> tabPane.getTabs().add(new UpdateTab(latest)));
                     } else {
@@ -303,10 +245,10 @@ public class CamrecApplication extends Application {
     }
 
     private Version getVersion() throws IOException {
-        if(Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
+        if (Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
             return Version.of("0.0.0-DEV");
         } else {
-            try(InputStream is = getClass().getClassLoader().getResourceAsStream("version")) {
+            try (InputStream is = getClass().getClassLoader().getResourceAsStream("version")) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is));
                 String versionString = reader.readLine();
                 Version version = Version.of(versionString);

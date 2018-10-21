@@ -45,9 +45,6 @@ import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
 
 public class ThumbCell extends StackPane {
 
@@ -347,91 +344,55 @@ public class ThumbCell extends StackPane {
     }
 
     private void _startStopAction(Model model, boolean start) {
-        new Thread() {
-            @Override
-            public void run() {
-                try {
-                    if(start) {
-                        recorder.startRecording(model);
-                        setRecording(true);
-                    } else {
-                        recorder.stopRecording(model);
-                        setRecording(false);
-                    }
-                } catch (Exception e1) {
-                    LOG.error("Couldn't start/stop recording", e1);
-                    Platform.runLater(() -> {
-                        Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
-                        alert.setTitle("Error");
-                        alert.setHeaderText("Couldn't start/stop recording");
-                        alert.setContentText("I/O error while starting/stopping the recording: " + e1.getLocalizedMessage());
-                        alert.showAndWait();
-                    });
-                } finally {
-                    setCursor(Cursor.DEFAULT);
+        new Thread(() -> {
+            try {
+                if(start) {
+                    recorder.startRecording(model);
+                    setRecording(true);
+                } else {
+                    recorder.stopRecording(model);
+                    setRecording(false);
                 }
+            } catch (Exception e1) {
+                LOG.error("Couldn't start/stop recording", e1);
+                Platform.runLater(() -> {
+                    Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+                    alert.setTitle("Error");
+                    alert.setHeaderText("Couldn't start/stop recording");
+                    alert.setContentText("I/O error while starting/stopping the recording: " + e1.getLocalizedMessage());
+                    alert.showAndWait();
+                });
+            } finally {
+                setCursor(Cursor.DEFAULT);
             }
-        }.start();
+        }).start();
     }
 
     void follow(boolean follow) {
         setCursor(Cursor.WAIT);
-        new Thread() {
-            @Override
-            public void run() {
-                try {
-                    Request req = new Request.Builder().url(model.getUrl()).build();
-                    Response resp = HttpClient.getInstance().execute(req);
-                    resp.close();
-
-                    String url = null;
-                    if(follow) {
-                        url = CamrecApplication.BASE_URI + "/follow/follow/" + model.getName() + "/";
-                    } else {
-                        url = CamrecApplication.BASE_URI + "/follow/unfollow/" + model.getName() + "/";
+        new Thread(() -> {
+            try {
+                if(follow) {
+                    model.follow();
+                } else {
+                    boolean unfollowed = model.unfollow();
+                    if(unfollowed) {
+                        Platform.runLater(() -> thumbCellList.remove(ThumbCell.this));
                     }
-
-                    RequestBody body = RequestBody.create(null, new byte[0]);
-                    req = new Request.Builder()
-                            .url(url)
-                            .method("POST", body)
-                            .header("Accept", "*/*")
-                            .header("Accept-Language", "en-US,en;q=0.5")
-                            .header("Referer", model.getUrl())
-                            .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:59.0) Gecko/20100101 Firefox/59.0")
-                            .header("X-CSRFToken", HttpClient.getInstance().getToken())
-                            .header("X-Requested-With", "XMLHttpRequest")
-                            .build();
-                    resp = HttpClient.getInstance().execute(req, true);
-                    if(resp.isSuccessful()) {
-                        String msg = resp.body().string();
-                        if(!msg.equalsIgnoreCase("ok")) {
-                            LOG.debug(msg);
-                            throw new IOException("Response was " + msg.substring(0, Math.min(msg.length(), 500)));
-                        } else {
-                            LOG.debug("Follow/Unfollow -> {}", msg);
-                            if(!follow) {
-                                Platform.runLater(() -> thumbCellList.remove(ThumbCell.this));
-                            }
-                        }
-                    } else {
-                        resp.close();
-                        throw new IOException("HTTP status " + resp.code() + " " + resp.message());
-                    }
-                } catch (Exception e1) {
-                    LOG.error("Couldn't follow/unfollow model {}", model.getName(), e1);
-                    Platform.runLater(() -> {
-                        Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
-                        alert.setTitle("Error");
-                        alert.setHeaderText("Couldn't follow/unfollow model");
-                        alert.setContentText("I/O error while following/unfollowing model " + model.getName() + ": " + e1.getLocalizedMessage());
-                        alert.showAndWait();
-                    });
-                } finally {
-                    setCursor(Cursor.DEFAULT);
                 }
+            } catch (Exception e1) {
+                LOG.error("Couldn't follow/unfollow model {}", model.getName(), e1);
+                Platform.runLater(() -> {
+                    Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+                    alert.setTitle("Error");
+                    alert.setHeaderText("Couldn't follow/unfollow model");
+                    alert.setContentText("I/O error while following/unfollowing model " + model.getName() + ": " + e1.getLocalizedMessage());
+                    alert.showAndWait();
+                });
+            } finally {
+                setCursor(Cursor.DEFAULT);
             }
-        }.start();
+        }).start();
     }
 
     public Model getModel() {

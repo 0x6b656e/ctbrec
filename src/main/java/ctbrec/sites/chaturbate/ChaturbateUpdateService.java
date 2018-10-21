@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.Model;
-import ctbrec.io.HttpClient;
 import ctbrec.ui.PaginatedScheduledService;
 import javafx.concurrent.Task;
 import okhttp3.Request;
@@ -21,10 +20,12 @@ public class ChaturbateUpdateService extends PaginatedScheduledService {
     private static final transient Logger LOG = LoggerFactory.getLogger(ChaturbateUpdateService.class);
     private String url;
     private boolean loginRequired;
+    private Chaturbate chaturbate;
 
-    public ChaturbateUpdateService(String url, boolean loginRequired) {
+    public ChaturbateUpdateService(String url, boolean loginRequired, Chaturbate chaturbate) {
         this.url = url;
         this.loginRequired = loginRequired;
+        this.chaturbate = chaturbate;
 
         ExecutorService executor = Executors.newSingleThreadExecutor(new ThreadFactory() {
             @Override
@@ -46,9 +47,9 @@ public class ChaturbateUpdateService extends PaginatedScheduledService {
                 String url = ChaturbateUpdateService.this.url + "?page="+page+"&keywords=&_=" + System.currentTimeMillis();
                 LOG.debug("Fetching page {}", url);
                 Request request = new Request.Builder().url(url).build();
-                Response response = HttpClient.getInstance().execute(request, loginRequired);
+                Response response = chaturbate.getHttpClient().execute(request, loginRequired);
                 if (response.isSuccessful()) {
-                    List<Model> models = ChaturbateModelParser.parseModels(response.body().string());
+                    List<Model> models = ChaturbateModelParser.parseModels(chaturbate, response.body().string());
                     response.close();
                     return models;
                 } else {

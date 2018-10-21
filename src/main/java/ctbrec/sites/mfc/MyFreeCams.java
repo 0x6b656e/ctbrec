@@ -1,35 +1,18 @@
 package ctbrec.sites.mfc;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import ctbrec.Config;
-import ctbrec.Site;
 import ctbrec.recorder.Recorder;
-import ctbrec.ui.CookieJarImpl;
+import ctbrec.sites.Site;
 import ctbrec.ui.TabProvider;
-import okhttp3.ConnectionPool;
-import okhttp3.FormBody;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
 
 public class MyFreeCams implements Site {
 
-    private static final transient Logger LOG = LoggerFactory.getLogger(MyFreeCams.class);
+    public static final String BASE_URI = "https://www.myfreecams.com";
 
     private Recorder recorder;
     private MyFreeCamsClient client;
-    public static OkHttpClient httpClient = new OkHttpClient.Builder()
-            .connectTimeout(Config.getInstance().getSettings().httpTimeout, TimeUnit.MILLISECONDS)
-            .readTimeout(Config.getInstance().getSettings().httpTimeout, TimeUnit.MILLISECONDS)
-            .connectionPool(new ConnectionPool(50, 10, TimeUnit.MINUTES))
-            .cookieJar(new CookieJarImpl())
-            .build();
+    private MyFreeCamsHttpClient httpClient = new MyFreeCamsHttpClient();
 
     public MyFreeCams() throws IOException {
         client = MyFreeCamsClient.getInstance();
@@ -39,25 +22,9 @@ public class MyFreeCams implements Site {
         login();
     }
 
+    @Override
     public void login() throws IOException {
-        RequestBody body = new FormBody.Builder()
-                .add("username", "affenhubert")
-                .add("password", "hampel81")
-                .add("tz", "2")
-                .add("ss", "1920x1080")
-                .add("submit_login", "97")
-                .build();
-        Request req = new Request.Builder()
-                .url(getBaseUrl() + "/php/login.php")
-                .header("Referer", getBaseUrl())
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .post(body)
-                .build();
-        Response resp = httpClient.newCall(req).execute();
-        if(!resp.isSuccessful()) {
-            LOG.error("Login failed {} {}", resp.code(), resp.message());
-        }
-        resp.close();
+
     }
 
     @Override
@@ -67,7 +34,7 @@ public class MyFreeCams implements Site {
 
     @Override
     public String getBaseUrl() {
-        return "https://www.myfreecams.com";
+        return BASE_URI;
     }
 
     @Override
@@ -87,9 +54,29 @@ public class MyFreeCams implements Site {
 
     @Override
     public MyFreeCamsModel createModel(String name) {
-        MyFreeCamsModel model = new MyFreeCamsModel();
+        MyFreeCamsModel model = new MyFreeCamsModel(this);
         model.setName(name);
         model.setUrl("https://profiles.myfreecams.com/" + name);
         return model;
+    }
+
+    @Override
+    public Integer getTokenBalance() throws IOException {
+        throw new RuntimeException("Not implemented for MFC");
+    }
+
+    @Override
+    public String getBuyTokensLink() {
+        return "https://www.myfreecams.com/php/purchase.php?request=tokens";
+    }
+
+    @Override
+    public MyFreeCamsHttpClient getHttpClient() {
+        return httpClient;
+    }
+
+    @Override
+    public void shutdown() {
+        httpClient.shutdown();
     }
 }

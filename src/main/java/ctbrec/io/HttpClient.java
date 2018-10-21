@@ -1,44 +1,24 @@
 package ctbrec.io;
 
 import java.io.IOException;
-import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
 import ctbrec.Settings.ProxyType;
-import ctbrec.ui.CamrecApplication;
 import ctbrec.ui.CookieJarImpl;
-import ctbrec.ui.HtmlParser;
 import okhttp3.ConnectionPool;
-import okhttp3.Cookie;
-import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import okhttp3.RequestBody;
 import okhttp3.Response;
 
-public class HttpClient {
-    private static final transient Logger LOG = LoggerFactory.getLogger(HttpClient.class);
-    private static HttpClient instance = new HttpClient();
+public abstract class HttpClient {
+    protected  OkHttpClient client;
+    protected CookieJarImpl cookieJar = new CookieJarImpl();
+    protected  boolean loggedIn = false;
+    protected  int loginTries = 0;
 
-    private OkHttpClient client;
-    private CookieJarImpl cookieJar = new CookieJarImpl();
-    private boolean loggedIn = false;
-    private int loginTries = 0;
-    private String token;
-
-    private HttpClient() {
-        loadProxySettings();
-        client = new OkHttpClient.Builder()
-                .cookieJar(cookieJar)
-                .connectTimeout(Config.getInstance().getSettings().httpTimeout, TimeUnit.MILLISECONDS)
-                .readTimeout(Config.getInstance().getSettings().httpTimeout, TimeUnit.MILLISECONDS)
-                .connectionPool(new ConnectionPool(50, 10, TimeUnit.MINUTES))
-                //.addInterceptor(new LoggingInterceptor())
-                .build();
+    protected HttpClient() {
+        reconfigure();
     }
 
     private void loadProxySettings() {
@@ -89,22 +69,9 @@ public class HttpClient {
         }
     }
 
-    public static HttpClient getInstance() {
-        return instance;
-    }
-
     public Response execute(Request request) throws IOException {
         Response resp = execute(request, false);
         return resp;
-    }
-
-    private void extractCsrfToken(Request request) {
-        try {
-            Cookie csrfToken = cookieJar.getCookie(request.url(), "csrftoken");
-            token = csrfToken.value();
-        } catch(NoSuchElementException e) {
-            LOG.trace("CSRF token not found in cookies");
-        }
     }
 
     public Response execute(Request req, boolean requiresLogin) throws IOException {
@@ -115,64 +82,20 @@ public class HttpClient {
             }
         }
         Response resp = client.newCall(req).execute();
-        extractCsrfToken(req);
         return resp;
     }
 
-    public boolean login() throws IOException {
-        try {
-            Request login = new Request.Builder()
-                    .url(CamrecApplication.BASE_URI + "/auth/login/")
-                    .build();
-            Response response = client.newCall(login).execute();
-            String content = response.body().string();
-            token = HtmlParser.getTag(content, "input[name=csrfmiddlewaretoken]").attr("value");
-            LOG.debug("csrf token is {}", token);
-
-            RequestBody body = new FormBody.Builder()
-                    .add("username", Config.getInstance().getSettings().username)
-                    .add("password", Config.getInstance().getSettings().password)
-                    .add("next", "")
-                    .add("csrfmiddlewaretoken", token)
-                    .build();
-            login = new Request.Builder()
-                    .url(CamrecApplication.BASE_URI + "/auth/login/")
-                    .header("Referer", CamrecApplication.BASE_URI + "/auth/login/")
-                    .post(body)
-                    .build();
-
-            response = client.newCall(login).execute();
-            if(response.isSuccessful()) {
-                content = response.body().string();
-                if(content.contains("Login, Chaturbate login")) {
-                    loggedIn = false;
-                } else {
-                    loggedIn = true;
-                    extractCsrfToken(login);
-                }
-            } else {
-                if(loginTries++ < 3) {
-                    login();
-                } else {
-                    throw new IOException("Login failed: " + response.code() + " " + response.message());
-                }
-            }
-            response.close();
-        } finally {
-            loginTries = 0;
-        }
-        return loggedIn;
-    }
+    public abstract boolean login() throws IOException;
 
     public void reconfigure() {
-        instance = new HttpClient();
-    }
-
-    public String getToken() throws IOException {
-        if(token == null) {
-            login();
-        }
-        return token;
+        loadProxySettings();
+        client = new OkHttpClient.Builder()
+                .cookieJar(cookieJar)
+                .connectTimeout(Config.getInstance().getSettings().httpTimeout, TimeUnit.MILLISECONDS)
+                .readTimeout(Config.getInstance().getSettings().httpTimeout, TimeUnit.MILLISECONDS)
+                .connectionPool(new ConnectionPool(50, 10, TimeUnit.MINUTES))
+                //.addInterceptor(new LoggingInterceptor())
+                .build();
     }
 
     public void shutdown() {

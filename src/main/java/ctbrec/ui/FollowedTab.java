@@ -1,5 +1,6 @@
 package ctbrec.ui;
 
+import ctbrec.sites.chaturbate.Chaturbate;
 import ctbrec.sites.chaturbate.ChaturbateUpdateService;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.geometry.Insets;
@@ -16,8 +17,8 @@ public class FollowedTab extends ThumbOverviewTab {
     private String onlineUrl;
     private String offlineUrl;
 
-    public FollowedTab(String title, String url) {
-        super(title, new ChaturbateUpdateService(url, true));
+    public FollowedTab(String title, String url, Chaturbate chaturbate) {
+        super(title, new ChaturbateUpdateService(url, true, chaturbate), chaturbate);
         onlineUrl = url;
         offlineUrl = url + "offline/";
 

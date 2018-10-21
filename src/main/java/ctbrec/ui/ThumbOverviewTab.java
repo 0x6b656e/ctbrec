@@ -29,6 +29,8 @@ import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.io.HttpClient;
 import ctbrec.recorder.Recorder;
+import ctbrec.sites.Site;
+import ctbrec.sites.mfc.MyFreeCamsClient;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Worker.State;
 import javafx.concurrent.WorkerStateEvent;
@@ -71,19 +73,20 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     ReentrantLock gridLock = new ReentrantLock();
     ScrollPane scrollPane = new ScrollPane();
     boolean loginRequired;
-    HttpClient client = HttpClient.getInstance();
     HBox pagination;
     TextField pageInput = new TextField(Integer.toString(1));
     Button pagePrev = new Button("◀");
     Button pageNext = new Button("▶");
     private volatile boolean updatesSuspended = false;
     ContextMenu popup;
+    Site site;
 
     private ComboBox<Integer> thumbWidth;
 
-    public ThumbOverviewTab(String title, PaginatedScheduledService updateService) {
+    public ThumbOverviewTab(String title, PaginatedScheduledService updateService, Site site) {
         super(title);
         this.updateService = updateService;
+        this.site = site;
         setClosable(false);
         createGui();
         initializeUpdateService();
@@ -253,7 +256,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                     }
                 }
                 if(!found) {
-                    ThumbCell newCell = createThumbCell(this, model, recorder, client);
+                    ThumbCell newCell = createThumbCell(this, model, recorder, site.getHttpClient());
                     newCell.setIndex(index);
                     positionChangedOrNew.add(newCell);
                 }
@@ -277,7 +280,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     }
 
     ThumbCell createThumbCell(ThumbOverviewTab thumbOverviewTab, Model model, Recorder recorder2, HttpClient client2) {
-        ThumbCell newCell = new ThumbCell(this, model, recorder, client);
+        ThumbCell newCell = new ThumbCell(this, model, recorder, site.getHttpClient());
         newCell.addEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> {
             suspendUpdates(true);
             popup = createContextMenu(newCell);
@@ -328,7 +331,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
 
         MenuItem sendTip = new MenuItem("Send Tip");
         sendTip.setOnAction((e) -> {
-            TipDialog tipDialog = new TipDialog(cell.getModel());
+            TipDialog tipDialog = new TipDialog(site, cell.getModel());
             tipDialog.showAndWait();
             String tipText = tipDialog.getResult();
             if(tipText != null) {
@@ -340,7 +343,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                         event.put("event", "tokens.sent");
                         event.put("amount", tokens);
                         CamrecApplication.bus.post(event);
-                    } catch (IOException e1) {
+                    } catch (Exception e1) {
                         Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
                         alert.setTitle("Error");
                         alert.setHeaderText("Couldn't send tip");
@@ -374,12 +377,17 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
             }
         }
 
+        MenuItem debug = new MenuItem("debug");
+        debug.setOnAction((e) -> {
+            MyFreeCamsClient.getInstance().getSessionState(cell.getModel());
+        });
+
         ContextMenu contextMenu = new ContextMenu();
         contextMenu.setAutoHide(true);
         contextMenu.setHideOnEscape(true);
         contextMenu.setAutoFix(true);
         MenuItem followOrUnFollow = this instanceof FollowedTab ? unfollow : follow;
-        contextMenu.getItems().addAll(openInPlayer, startStop , followOrUnFollow, copyUrl, sendTip);
+        contextMenu.getItems().addAll(openInPlayer, startStop , followOrUnFollow, copyUrl, sendTip, debug);
         return contextMenu;
     }
 

@@ -9,7 +9,7 @@ import java.util.Map;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import okhttp3.OkHttpClient;
+import ctbrec.io.HttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
@@ -23,9 +23,9 @@ public class ServerConfig {
     Map<String, String> wzobsServers;
     Map<String, String> ngVideo;
 
-    public ServerConfig(OkHttpClient client) throws IOException {
+    public ServerConfig(HttpClient client) throws IOException {
         Request req = new Request.Builder().url("http://www.myfreecams.com/_js/serverconfig.js").build();
-        Response resp = client.newCall(req).execute();
+        Response resp = client.execute(req);
         String json = resp.body().string();
 
         JSONObject serverConfig = new JSONObject(json);

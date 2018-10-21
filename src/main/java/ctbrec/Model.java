@@ -30,5 +30,6 @@ public interface Model {
     public void invalidateCacheEntries();
     public void receiveTip(int tokens) throws IOException;
     public int[] getStreamResolution(boolean failFast) throws ExecutionException;
-
+    public boolean follow() throws IOException;
+    public boolean unfollow() throws IOException;
 }

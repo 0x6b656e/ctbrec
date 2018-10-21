@@ -1,9 +1,12 @@
 package ctbrec.recorder.server;
+import static javax.servlet.http.HttpServletResponse.*;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -33,20 +36,20 @@ public class HlsServlet extends AbstractCtbrecServlet {
         File recordingsDir = new File(config.getSettings().recordingsDir);
         File requestedFile = new File(recordingsDir, request);
 
-        //        try {
-        //            boolean isRequestAuthenticated = checkAuthentication(req, req.getRequestURI());
-        //            if (!isRequestAuthenticated) {
-        //                resp.setStatus(SC_UNAUTHORIZED);
-        //                String response = "{\"status\": \"error\", \"msg\": \"HMAC does not match\"}";
-        //                resp.getWriter().write(response);
-        //                return;
-        //            }
-        //        } catch (InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e1) {
-        //            resp.setStatus(SC_UNAUTHORIZED);
-        //            String response = "{\"status\": \"error\", \"msg\": \"Authentication failed\"}";
-        //            resp.getWriter().write(response);
-        //            return;
-        //        }
+        try {
+            boolean isRequestAuthenticated = checkAuthentication(req, req.getRequestURI());
+            if (!isRequestAuthenticated) {
+                resp.setStatus(SC_UNAUTHORIZED);
+                String response = "{\"status\": \"error\", \"msg\": \"HMAC does not match\"}";
+                resp.getWriter().write(response);
+                return;
+            }
+        } catch (InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e1) {
+            resp.setStatus(SC_UNAUTHORIZED);
+            String response = "{\"status\": \"error\", \"msg\": \"Authentication failed\"}";
+            resp.getWriter().write(response);
+            return;
+        }
 
         if (requestedFile.getCanonicalPath().startsWith(config.getSettings().recordingsDir)) {
             if (requestedFile.getName().equals("playlist.m3u8")) {

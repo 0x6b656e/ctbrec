@@ -1,8 +1,6 @@
 package ctbrec.recorder;
 
-import static ctbrec.Recording.STATUS.FINISHED;
-import static ctbrec.Recording.STATUS.GENERATING_PLAYLIST;
-import static ctbrec.Recording.STATUS.RECORDING;
+import static ctbrec.Recording.STATUS.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,32 +28,27 @@ import com.iheartradio.m3u8.PlaylistException;
 import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.Recording;
-import ctbrec.io.HttpClient;
 import ctbrec.recorder.PlaylistGenerator.InvalidPlaylistException;
 import ctbrec.recorder.download.Download;
 import ctbrec.recorder.download.HlsDownload;
 import ctbrec.recorder.download.MergedHlsDownload;
-import ctbrec.sites.chaturbate.ChaturbateModelParser;
-import okhttp3.Request;
-import okhttp3.Response;
+import ctbrec.recorder.server.RecorderHttpClient;
 
 public class LocalRecorder implements Recorder {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(LocalRecorder.class);
 
     private static final boolean IGNORE_CACHE = true;
-    private List<Model> followedModels = Collections.synchronizedList(new ArrayList<>());
     private List<Model> models = Collections.synchronizedList(new ArrayList<>());
     private Map<Model, Download> recordingProcesses = Collections.synchronizedMap(new HashMap<>());
     private Map<File, PlaylistGenerator> playlistGenerators = new HashMap<>();
     private Config config;
     private ProcessMonitor processMonitor;
     private OnlineMonitor onlineMonitor;
-    private FollowedMonitor followedMonitor;
     private PlaylistGeneratorTrigger playlistGenTrigger;
-    private HttpClient client = HttpClient.getInstance();
     private volatile boolean recording = true;
     private List<File> deleteInProgress = Collections.synchronizedList(new ArrayList<>());
+    private RecorderHttpClient client = new RecorderHttpClient();
 
     public LocalRecorder(Config config) {
         this.config = config;
@@ -74,11 +67,6 @@ public class LocalRecorder implements Recorder {
             playlistGenTrigger.start();
         }
 
-        if (config.getSettings().recordFollowed) {
-            followedMonitor = new FollowedMonitor();
-            followedMonitor.start();
-        }
-
         LOG.debug("Recorder initialized");
         LOG.info("Models to record: {}", models);
         LOG.info("Saving recordings in {}", config.getSettings().recordingsDir);
@@ -88,9 +76,6 @@ public class LocalRecorder implements Recorder {
     public void startRecording(Model model) {
         if (!models.contains(model)) {
             LOG.info("Model {} added", model);
-            if (followedModels.contains(model)) {
-                followedModels.remove(model);
-            }
             models.add(model);
             config.getSettings().models.add(model);
         }
@@ -98,9 +83,8 @@ public class LocalRecorder implements Recorder {
 
     @Override
     public void stopRecording(Model model) throws IOException {
-        if (models.contains(model) || followedModels.contains(model)) {
+        if (models.contains(model)) {
             models.remove(model);
-            followedModels.remove(model);
             config.getSettings().models.remove(model);
             if (recordingProcesses.containsKey(model)) {
                 stopRecordingProcess(model);
@@ -118,7 +102,7 @@ public class LocalRecorder implements Recorder {
             return;
         }
 
-        if (!models.contains(model) && !followedModels.contains(model)) {
+        if (!models.contains(model)) {
             LOG.info("Model {} has been removed. Restarting of recording cancelled.", model);
             return;
         }
@@ -151,15 +135,12 @@ public class LocalRecorder implements Recorder {
 
     @Override
     public boolean isRecording(Model model) {
-        return models.contains(model) || followedModels.contains(model);
+        return models.contains(model);
     }
 
     @Override
     public List<Model> getModelsRecording() {
-        List<Model> union = new ArrayList<>();
-        union.addAll(models);
-        union.addAll(followedModels);
-        return Collections.unmodifiableList(union);
+        return Collections.unmodifiableList(models);
     }
 
     @Override
@@ -170,11 +151,9 @@ public class LocalRecorder implements Recorder {
         onlineMonitor.running = false;
         processMonitor.running = false;
         playlistGenTrigger.running = false;
-        if (followedMonitor != null) {
-            followedMonitor.running = false;
-        }
         LOG.debug("Stopping all recording processes");
         stopRecordingProcesses();
+        client.shutdown();
     }
 
     private void stopRecordingProcesses() {
@@ -243,54 +222,6 @@ public class LocalRecorder implements Recorder {
                 try {
                     if (running)
                         Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    LOG.error("Couldn't sleep", e);
-                }
-            }
-            LOG.debug(getName() + " terminated");
-        }
-    }
-
-    private class FollowedMonitor extends Thread {
-        private volatile boolean running = false;
-
-        public FollowedMonitor() {
-            setName("FollowedMonitor");
-            setDaemon(true);
-        }
-
-        @Override
-        public void run() {
-            running = true;
-            while (running) {
-                try {
-                    String url = "https://chaturbate.com/followed-cams/?page=1&keywords=&_=" + System.currentTimeMillis();
-                    LOG.debug("Fetching page {}", url);
-                    Request request = new Request.Builder().url(url).build();
-                    Response response = client.execute(request, true);
-                    if (response.isSuccessful()) {
-                        List<Model> followed = ChaturbateModelParser.parseModels(response.body().string());
-                        response.close();
-                        followedModels.clear();
-                        for (Model model : followed) {
-                            if (!followedModels.contains(model) && !models.contains(model)) {
-                                LOG.info("Model {} added", model);
-                                followedModels.add(model);
-                            }
-                        }
-                        onlineMonitor.interrupt();
-                    } else {
-                        int code = response.code();
-                        response.close();
-                        LOG.error("Couldn't retrieve followed models. HTTP status {}", code);
-                    }
-                } catch (IOException e) {
-                    LOG.error("Couldn't retrieve followed models.", e);
-                }
-
-                try {
-                    if (running)
-                        Thread.sleep(10000);
                 } catch (InterruptedException e) {
                     LOG.error("Couldn't sleep", e);
                 }

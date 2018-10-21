@@ -1,7 +1,5 @@
 package ctbrec.sites.chaturbate;
 
-import static ctbrec.ui.CamrecApplication.BASE_URI;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,16 +14,15 @@ import ctbrec.ui.HtmlParser;
 public class ChaturbateModelParser {
     private static final transient Logger LOG = LoggerFactory.getLogger(ChaturbateModelParser.class);
 
-    public static List<Model> parseModels(String html) {
+    public static List<Model> parseModels(Chaturbate chaturbate, String html) {
         List<Model> models = new ArrayList<>();
         Elements cells = HtmlParser.getTags(html, "ul.list > li");
         for (Element cell : cells) {
             String cellHtml = cell.html();
             try {
-                Model model = new ChaturbateModel();
+                Model model = chaturbate.createModel(HtmlParser.getText(cellHtml, "div.title > a").trim());
                 model.setName(HtmlParser.getText(cellHtml, "div.title > a").trim());
                 model.setPreview(HtmlParser.getTag(cellHtml, "a img").attr("src"));
-                model.setUrl(BASE_URI + HtmlParser.getTag(cellHtml, "a").attr("href"));
                 model.setDescription(HtmlParser.getText(cellHtml, "div.details ul.subject"));
                 Elements tags = HtmlParser.getTags(cellHtml, "div.details ul.subject li a");
                 if(tags != null) {

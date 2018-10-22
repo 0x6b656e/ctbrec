@@ -28,6 +28,12 @@ public class ChaturbateModel extends AbstractModel {
     private static final transient Logger LOG = LoggerFactory.getLogger(ChaturbateModel.class);
     private Chaturbate site;
 
+    /**
+     * This constructor exists only for deserialization. Please don't call it directly
+     */
+    public ChaturbateModel() {
+    }
+
     ChaturbateModel(Chaturbate site) {
         this.site = site;
     }

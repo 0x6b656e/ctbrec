@@ -143,7 +143,6 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
             restartUpdateService();
         });
 
-        ThumbCell.width = Config.getInstance().getSettings().thumbWidth;
         HBox thumbSizeSelector = new HBox(5);
         Label l = new Label("Thumb Size");
         l.setPadding(new Insets(5,0,0,0));
@@ -155,18 +154,11 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         thumbWidths.add(270);
         thumbWidths.add(360);
         thumbWidth = new ComboBox<>(new ObservableListWrapper<>(thumbWidths));
-        thumbWidth.getSelectionModel().select(new Integer(ThumbCell.width));
+        thumbWidth.getSelectionModel().select(new Integer(Config.getInstance().getSettings().thumbWidth));
         thumbWidth.setOnAction((e) -> {
             int width = thumbWidth.getSelectionModel().getSelectedItem();
-            ThumbCell.width = width;
             Config.getInstance().getSettings().thumbWidth = width;
-            for (Node node : grid.getChildren()) {
-                ThumbCell cell = (ThumbCell) node;
-                cell.setThumbWidth(width);
-            }
-            for (ThumbCell cell : filteredThumbCells) {
-                cell.setThumbWidth(width);
-            }
+            updateThumbSize();
         });
         thumbSizeSelector.getChildren().add(thumbWidth);
         BorderPane.setMargin(thumbSizeSelector, new Insets(5));
@@ -182,6 +174,20 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         root.setCenter(scrollPane);
         root.setBottom(bottomPane);
         setContent(root);
+    }
+
+    private void updateThumbSize() {
+        int width = Config.getInstance().getSettings().thumbWidth;
+        thumbWidth.getSelectionModel().select(new Integer(width));;
+        for (Node node : grid.getChildren()) {
+            if(node instanceof ThumbCell) {
+                ThumbCell cell = (ThumbCell) node;
+                cell.setThumbWidth(width);
+            }
+        }
+        for (ThumbCell cell : filteredThumbCells) {
+            cell.setThumbWidth(width);
+        }
     }
 
     private void handlePageNumberInput() {
@@ -586,6 +592,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                 updateService.restart();
             }
         }
+        updateThumbSize();
     }
 
     @Override

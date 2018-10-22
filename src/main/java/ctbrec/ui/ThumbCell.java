@@ -49,7 +49,6 @@ import javafx.util.Duration;
 public class ThumbCell extends StackPane {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(ThumbCell.class);
-    public static int width = 180;
     private static final Duration ANIMATION_DURATION = new Duration(250);
 
     private Model model;
@@ -171,7 +170,7 @@ public class ThumbCell extends StackPane {
                 resolutionTag.setVisible(true);
             }
         });
-        setThumbWidth(width);
+        setThumbWidth(Config.getInstance().getSettings().thumbWidth);
 
         setRecording(recording);
         if(Config.getInstance().getSettings().determineResolution) {
@@ -257,7 +256,7 @@ public class ThumbCell extends StackPane {
                 public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
                     if(newValue.doubleValue() == 1.0) {
                         imgAspectRatio = img.getHeight() / img.getWidth();
-                        setThumbWidth(width);
+                        setThumbWidth(Config.getInstance().getSettings().thumbWidth);
                         iv.setImage(img);
                     }
                 }

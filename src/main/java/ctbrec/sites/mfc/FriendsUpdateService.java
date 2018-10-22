@@ -40,24 +40,29 @@ public class FriendsUpdateService extends PaginatedScheduledService {
                 Response resp = myFreeCams.getHttpClient().execute(req, true);
                 if(resp.isSuccessful()) {
                     String json = resp.body().string().substring(4);
-                    JSONObject object = new JSONObject(json);
-                    for (String key : object.keySet()) {
-                        int uid = Integer.parseInt(key);
-                        MyFreeCamsModel model = MyFreeCamsClient.getInstance().getModel(uid);
-                        if(model == null) {
-                            JSONObject modelObject = object.getJSONObject(key);
-                            String name = modelObject.getString("u");
-                            model = myFreeCams.createModel(name);
-                            SessionState st = new SessionState();
-                            st.setM(new ctbrec.sites.mfc.Model());
-                            st.getM().setCamscore(0.0);
-                            st.setU(new User());
-                            st.setUid(uid);
-                            st.setLv(modelObject.getInt("lv"));
-                            st.setVs(127);
-                            model.update(st);
+                    try {
+                        JSONObject object = new JSONObject(json);
+                        for (String key : object.keySet()) {
+                            int uid = Integer.parseInt(key);
+                            MyFreeCamsModel model = MyFreeCamsClient.getInstance().getModel(uid);
+                            if(model == null) {
+                                JSONObject modelObject = object.getJSONObject(key);
+                                String name = modelObject.getString("u");
+                                model = myFreeCams.createModel(name);
+                                SessionState st = new SessionState();
+                                st.setM(new ctbrec.sites.mfc.Model());
+                                st.getM().setCamscore(0.0);
+                                st.setU(new User());
+                                st.setUid(uid);
+                                st.setLv(modelObject.getInt("lv"));
+                                st.setVs(127);
+                                model.update(st);
+                            }
+                            models.add(model);
                         }
-                        models.add(model);
+                    } catch(Exception e) {
+                        LOG.info("JSON: {}", json);
+                        throw e;
                     }
                 } else {
                     LOG.error("Couldn't load friends list {} {}", resp.code(), resp.message());

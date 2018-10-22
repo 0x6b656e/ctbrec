@@ -76,8 +76,8 @@ public abstract class HttpClient {
 
     public Response execute(Request req, boolean requiresLogin) throws IOException {
         if(requiresLogin && !loggedIn) {
-            boolean loginSuccessful = login();
-            if(!loginSuccessful) {
+            loggedIn = login();
+            if(!loggedIn) {
                 throw new IOException("403 Unauthorized");
             }
         }

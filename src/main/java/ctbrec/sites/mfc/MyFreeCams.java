@@ -2,9 +2,14 @@ package ctbrec.sites.mfc;
 
 import java.io.IOException;
 
+import org.jsoup.select.Elements;
+
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
+import ctbrec.ui.HtmlParser;
 import ctbrec.ui.TabProvider;
+import okhttp3.Request;
+import okhttp3.Response;
 
 public class MyFreeCams implements Site {
 
@@ -18,13 +23,11 @@ public class MyFreeCams implements Site {
         client = MyFreeCamsClient.getInstance();
         client.setSite(this);
         client.start();
-
-        login();
     }
 
     @Override
     public void login() throws IOException {
-
+        httpClient.login();
     }
 
     @Override
@@ -62,7 +65,17 @@ public class MyFreeCams implements Site {
 
     @Override
     public Integer getTokenBalance() throws IOException {
-        throw new RuntimeException("Not implemented for MFC");
+        Request req = new Request.Builder().url(BASE_URI + "/php/account.php?request=status").build();
+        Response resp = httpClient.execute(req, true);
+        if(resp.isSuccessful()) {
+            String content = resp.body().string();
+            Elements tags = HtmlParser.getTags(content, "div.content > p > b");
+            String tokens = tags.get(2).text();
+            return Integer.parseInt(tokens);
+        } else {
+            resp.close();
+            throw new IOException(resp.code() + " " + resp.message());
+        }
     }
 
     @Override
@@ -78,5 +91,15 @@ public class MyFreeCams implements Site {
     @Override
     public void shutdown() {
         httpClient.shutdown();
+    }
+
+    @Override
+    public boolean supportsFollow() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsTips() {
+        return true;
     }
 }

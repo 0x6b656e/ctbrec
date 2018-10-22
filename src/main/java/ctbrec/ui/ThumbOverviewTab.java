@@ -387,7 +387,11 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         contextMenu.setHideOnEscape(true);
         contextMenu.setAutoFix(true);
         MenuItem followOrUnFollow = this instanceof FollowedTab ? unfollow : follow;
-        contextMenu.getItems().addAll(openInPlayer, startStop , followOrUnFollow, copyUrl, sendTip, debug);
+        contextMenu.getItems().addAll(openInPlayer, startStop);
+        if(site.supportsFollow()) {
+            contextMenu.getItems().add(followOrUnFollow);
+        }
+        contextMenu.getItems().addAll(copyUrl, sendTip, debug);
         return contextMenu;
     }
 

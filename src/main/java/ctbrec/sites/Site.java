@@ -19,4 +19,6 @@ public interface Site {
     public void login() throws IOException;
     public HttpClient getHttpClient();
     public void shutdown();
+    public boolean supportsTips();
+    public boolean supportsFollow();
 }

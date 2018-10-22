@@ -96,8 +96,17 @@ public class MyFreeCamsClient {
                 try {
                     LOG.trace("open: [{}]", response.body().string());
                     webSocket.send("hello fcserver\n");
+                    //                    webSocket.send("fcsws_20180422\n");
+                    //                    webSocket.send("1 0 0 81 0 %7B%22err%22%3A0%2C%22start%22%3A1540159843072%2C%22stop%22%3A1540159844121%2C%22a%22%3A6392%2C%22time%22%3A1540159844%2C%22key%22%3A%228da80f985c9db390809713dac71df297%22%2C%22cid%22%3A%22c504d684%22%2C%22pid%22%3A1%2C%22site%22%3A%22www%22%7D\n");
                     // TxCmd Sending - nType: 1, nTo: 0, nArg1: 20080909, nArg2: 0, sMsg:guest:guest
+                    //                    String username = Config.getInstance().getSettings().username;
+                    //                    if(username != null && !username.trim().isEmpty()) {
+                    //                        mfc.getHttpClient().login();
+                    //                        Cookie passcode = mfc.getHttpClient().getCookie("passcode");
+                    //                        webSocket.send("1 0 0 20080909 0 "+username+":"+passcode+"\n");
+                    //                    } else {
                     webSocket.send("1 0 0 20080909 0 guest:guest\n");
+                    //                    }
                     startKeepAlive(webSocket);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -129,7 +138,12 @@ public class MyFreeCamsClient {
 
                     switch (message.getType()) {
                     case LOGIN:
-                        LOG.trace("login");
+                        System.out.println("LOGIN");
+                        System.out.println("Sender " + message.getSender());
+                        System.out.println("Receiver " + message.getReceiver());
+                        System.out.println("Arg1 " + message.getArg1());
+                        System.out.println("Arg2 " + message.getArg2());
+                        System.out.println("Msg " + message.getMessage());
                         break;
                     case DETAILS:
                     case ROOMHELPER:
@@ -166,10 +180,47 @@ public class MyFreeCamsClient {
                         }
                         break;
                     case EXTDATA:
+                        //                        if(message.getReceiver() == 0) {
+                        //                            String key = message.getMessage();
+                        //                            String username = Config.getInstance().getSettings().username;
+                        //                            if(username != null && !username.trim().isEmpty()) {
+                        //                                boolean login = mfc.getHttpClient().login();
+                        //                                if(login) {
+                        //                                    Cookie passcode = mfc.getHttpClient().getCookie("passcode");
+                        //                                    System.out.println("1 0 0 20071025 0 "+key+"@1/"+username+":"+passcode+"\n");
+                        //                                    webSocket.send("1 0 0 20071025 0 "+key+"@1/"+username+":"+passcode+"\n");
+                        //                                } else {
+                        //                                    LOG.error("Login failed");
+                        //                                }
+                        //                            } else {
+                        //                                webSocket.send("1 0 0 20080909 0 guest:guest\n");
+                        //                            }
+                        //                        }
+                        //                        System.out.println("EXTDATA");
+                        //                        System.out.println("Sender " + message.getSender());
+                        //                        System.out.println("Receiver " + message.getReceiver());
+                        //                        System.out.println("Arg1 " + message.getArg1());
+                        //                        System.out.println("Arg2 " + message.getArg2());
+                        //                        System.out.println("Msg " + message.getMessage());
                         requestExtData(message.getMessage());
                         break;
+                    case ROOMDATA:
+                        System.out.println("ROOMDATA");
+                        System.out.println("Sender " + message.getSender());
+                        System.out.println("Receiver " + message.getReceiver());
+                        System.out.println("Arg1 " + message.getArg1());
+                        System.out.println("Arg2 " + message.getArg2());
+                        System.out.println("Msg " + message.getMessage());
+                    case UEOPT:
+                        System.out.println("UEOPT");
+                        System.out.println("Sender " + message.getSender());
+                        System.out.println("Receiver " + message.getReceiver());
+                        System.out.println("Arg1 " + message.getArg1());
+                        System.out.println("Arg2 " + message.getArg2());
+                        System.out.println("Msg " + message.getMessage());
+                        break;
                     default:
-                        LOG.trace("Unknown message {}", message);
+                        LOG.debug("Unknown message {}", message);
                         break;
                     }
                 } catch (UnsupportedEncodingException e) {
@@ -290,6 +341,7 @@ public class MyFreeCamsClient {
                 MyFreeCamsModel model = models.get(state.getUid());
                 if(model == null) {
                     model = mfc.createModel(state.getNm());
+                    model.setUid(state.getUid());
                     models.put(state.getUid(), model);
                 }
                 model.update(state);

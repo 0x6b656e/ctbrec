@@ -130,6 +130,16 @@ public class Chaturbate implements Site {
         httpClient.shutdown();
     }
 
+    @Override
+    public boolean supportsFollow() {
+        return true;
+    }
+
+    @Override
+    public boolean supportsTips() {
+        return true;
+    }
+
     // #######################
     private long lastRequest = System.currentTimeMillis();
 

@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executors;
@@ -24,6 +25,7 @@ import ctbrec.recorder.LocalRecorder;
 import ctbrec.recorder.Recorder;
 import ctbrec.recorder.RemoteRecorder;
 import ctbrec.sites.Site;
+import ctbrec.sites.chaturbate.Chaturbate;
 import ctbrec.sites.mfc.MyFreeCams;
 import javafx.application.Application;
 import javafx.application.HostServices;
@@ -60,16 +62,22 @@ public class CamrecApplication extends Application {
     static EventBus bus;
     private HBox tokenPanel;
     private Site site;
+    private List<Site> sites = new ArrayList<>();
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+        site = new MyFreeCams();
+        sites.add(site);
+        Chaturbate ctb = new Chaturbate();
+        sites.add(ctb);
         loadConfig();
         bus = new AsyncEventBus(Executors.newSingleThreadExecutor());
         hostServices = getHostServices();
         createRecorder();
-        // site = new Chaturbate();
-        site = new MyFreeCams();
-        site.setRecorder(recorder);
+        for (Site site : sites) {
+            site.setRecorder(recorder);
+            site.init();
+        }
         if (!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
             site.login();
         }
@@ -155,7 +163,7 @@ public class CamrecApplication extends Application {
         });
 
         String username = Config.getInstance().getSettings().username;
-        if(username != null && !username.trim().isEmpty()) {
+        if(site.supportsTips() && username != null && !username.trim().isEmpty()) {
             double fontSize = tabPane.getTabMaxHeight() / 2 - 1;
             Button buyTokens = new Button("Buy Tokens");
             buyTokens.setFont(Font.font(fontSize));
@@ -196,7 +204,7 @@ public class CamrecApplication extends Application {
 
     private void loadConfig() {
         try {
-            Config.init();
+            Config.init(sites);
         } catch (Exception e) {
             LOG.error("Couldn't load settings", e);
             Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);

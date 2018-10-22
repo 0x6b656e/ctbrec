@@ -279,7 +279,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         }
     }
 
-    ThumbCell createThumbCell(ThumbOverviewTab thumbOverviewTab, Model model, Recorder recorder2, HttpClient client2) {
+    ThumbCell createThumbCell(ThumbOverviewTab thumbOverviewTab, Model model, Recorder recorder, HttpClient client2) {
         ThumbCell newCell = new ThumbCell(this, model, recorder, site.getHttpClient());
         newCell.addEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> {
             suspendUpdates(true);
@@ -391,7 +391,10 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         if(site.supportsFollow()) {
             contextMenu.getItems().add(followOrUnFollow);
         }
-        contextMenu.getItems().addAll(copyUrl, sendTip, debug);
+        if(site.supportsTips()) {
+            contextMenu.getItems().add(sendTip);
+        }
+        contextMenu.getItems().addAll(copyUrl, debug);
         return contextMenu;
     }
 

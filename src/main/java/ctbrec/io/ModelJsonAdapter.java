@@ -1,6 +1,7 @@
 package ctbrec.io;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 
 import com.squareup.moshi.JsonAdapter;
@@ -9,9 +10,19 @@ import com.squareup.moshi.JsonReader.Token;
 import com.squareup.moshi.JsonWriter;
 
 import ctbrec.Model;
+import ctbrec.sites.Site;
 import ctbrec.sites.chaturbate.ChaturbateModel;
 
 public class ModelJsonAdapter extends JsonAdapter<Model> {
+
+    private List<Site> sites;
+
+    public ModelJsonAdapter() {
+    }
+
+    public ModelJsonAdapter(List<Site> sites) {
+        this.sites = sites;
+    }
 
     @Override
     public Model fromJson(JsonReader reader) throws IOException {
@@ -49,6 +60,13 @@ public class ModelJsonAdapter extends JsonAdapter<Model> {
             model.setDescription(description);
             model.setUrl(url);
             model.setStreamUrlIndex(streamUrlIndex);
+            if(sites != null) {
+                for (Site site : sites) {
+                    if(site.isSiteForModel(model)) {
+                        model.setSite(site);
+                    }
+                }
+            }
             return model;
         } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
             throw new IOException("Couldn't instantiate mode class [" + type + "]", e);

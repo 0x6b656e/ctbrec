@@ -1,14 +1,13 @@
 package ctbrec;
 
-import static java.nio.file.StandardOpenOption.CREATE;
-import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
-import static java.nio.file.StandardOpenOption.WRITE;
+import static java.nio.file.StandardOpenOption.*;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.List;
 import java.util.Objects;
 
 import org.slf4j.Logger;
@@ -18,6 +17,7 @@ import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 
 import ctbrec.io.ModelJsonAdapter;
+import ctbrec.sites.Site;
 import okio.Buffer;
 import okio.BufferedSource;
 
@@ -28,8 +28,10 @@ public class Config {
     private static Config instance;
     private Settings settings;
     private String filename;
+    private List<Site> sites;
 
-    private Config() throws FileNotFoundException, IOException {
+    private Config(List<Site> sites) throws FileNotFoundException, IOException {
+        this.sites = sites;
         if(System.getProperty("ctbrec.config") != null) {
             filename = System.getProperty("ctbrec.config");
         } else {
@@ -40,7 +42,7 @@ public class Config {
 
     private void load() throws FileNotFoundException, IOException {
         Moshi moshi = new Moshi.Builder()
-                .add(Model.class, new ModelJsonAdapter())
+                .add(Model.class, new ModelJsonAdapter(sites))
                 .build();
         JsonAdapter<Settings> adapter = moshi.adapter(Settings.class);
         File configDir = OS.getConfigDir();
@@ -57,9 +59,9 @@ public class Config {
         }
     }
 
-    public static synchronized void init() throws FileNotFoundException, IOException {
+    public static synchronized void init(List<Site> sites) throws FileNotFoundException, IOException {
         if(instance == null) {
-            instance = new Config();
+            instance = new Config(sites);
         }
     }
 

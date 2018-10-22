@@ -2,6 +2,8 @@ package ctbrec.recorder.server;
 
 import java.io.IOException;
 import java.net.BindException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.HttpConfiguration;
@@ -17,6 +19,9 @@ import org.slf4j.LoggerFactory;
 import ctbrec.Config;
 import ctbrec.recorder.LocalRecorder;
 import ctbrec.recorder.Recorder;
+import ctbrec.sites.Site;
+import ctbrec.sites.chaturbate.Chaturbate;
+import ctbrec.sites.mfc.MyFreeCams;
 
 public class HttpServer {
 
@@ -24,14 +29,16 @@ public class HttpServer {
     private Recorder recorder;
     private Config config;
     private Server server = new Server();
+    private List<Site> sites = new ArrayList<>();
 
     public HttpServer() throws Exception {
+        createSites();
         System.setProperty("ctbrec.server.mode", "1");
         if(System.getProperty("ctbrec.config") == null) {
             System.setProperty("ctbrec.config", "server.json");
         }
         try {
-            Config.init();
+            Config.init(sites);
         } catch (Exception e) {
             LOG.error("Couldn't load config", e);
             System.exit(1);
@@ -44,7 +51,15 @@ public class HttpServer {
             LOG.info("HMAC authentication is enabled");
         }
         recorder = new LocalRecorder(config);
+        for (Site site : sites) {
+            site.init();
+        }
         startHttpServer();
+    }
+
+    private void createSites() {
+        sites.add(new Chaturbate());
+        sites.add(new MyFreeCams());
     }
 
     private void addShutdownHook() {
@@ -86,7 +101,7 @@ public class HttpServer {
         handlers.setHandlers(new Handler[] { handler });
         server.setHandler(handlers);
 
-        RecorderServlet recorderServlet = new RecorderServlet(recorder);
+        RecorderServlet recorderServlet = new RecorderServlet(recorder, sites);
         ServletHolder holder = new ServletHolder(recorderServlet);
         handler.addServletWithMapping(holder, "/rec");
 

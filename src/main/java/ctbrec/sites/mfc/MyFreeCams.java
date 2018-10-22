@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.jsoup.select.Elements;
 
+import ctbrec.Model;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
 import ctbrec.ui.HtmlParser;
@@ -17,9 +18,10 @@ public class MyFreeCams implements Site {
 
     private Recorder recorder;
     private MyFreeCamsClient client;
-    private MyFreeCamsHttpClient httpClient = new MyFreeCamsHttpClient();
+    private MyFreeCamsHttpClient httpClient;
 
-    public MyFreeCams() throws IOException {
+    @Override
+    public void init() throws IOException {
         client = MyFreeCamsClient.getInstance();
         client.setSite(this);
         client.start();
@@ -27,7 +29,7 @@ public class MyFreeCams implements Site {
 
     @Override
     public void login() throws IOException {
-        httpClient.login();
+        getHttpClient().login();
     }
 
     @Override
@@ -66,7 +68,7 @@ public class MyFreeCams implements Site {
     @Override
     public Integer getTokenBalance() throws IOException {
         Request req = new Request.Builder().url(BASE_URI + "/php/account.php?request=status").build();
-        Response resp = httpClient.execute(req, true);
+        Response resp = getHttpClient().execute(req, true);
         if(resp.isSuccessful()) {
             String content = resp.body().string();
             Elements tags = HtmlParser.getTags(content, "div.content > p > b");
@@ -85,6 +87,9 @@ public class MyFreeCams implements Site {
 
     @Override
     public MyFreeCamsHttpClient getHttpClient() {
+        if(httpClient == null) {
+            httpClient = new MyFreeCamsHttpClient();
+        }
         return httpClient;
     }
 
@@ -100,6 +105,11 @@ public class MyFreeCams implements Site {
 
     @Override
     public boolean supportsTips() {
-        return true;
+        return false;
+    }
+
+    @Override
+    public boolean isSiteForModel(Model m) {
+        return m instanceof MyFreeCamsModel;
     }
 }

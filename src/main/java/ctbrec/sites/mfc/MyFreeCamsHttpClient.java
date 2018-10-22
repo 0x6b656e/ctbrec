@@ -48,7 +48,6 @@ public class MyFreeCamsHttpClient extends HttpClient {
         Response resp = execute(req);
         if(resp.isSuccessful()) {
             String page = resp.body().string();
-            System.out.println(page);
             if(page.contains("Your username or password are incorrect")) {
                 return false;
             } else {

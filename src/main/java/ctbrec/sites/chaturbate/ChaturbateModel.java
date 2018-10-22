@@ -18,6 +18,7 @@ import com.iheartradio.m3u8.data.PlaylistData;
 
 import ctbrec.AbstractModel;
 import ctbrec.recorder.download.StreamSource;
+import ctbrec.sites.Site;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
@@ -162,6 +163,15 @@ public class ChaturbateModel extends AbstractModel {
         } else {
             resp.close();
             throw new IOException("HTTP status " + resp.code() + " " + resp.message());
+        }
+    }
+
+    @Override
+    public void setSite(Site site) {
+        if(site instanceof Chaturbate) {
+            this.site = (Chaturbate) site;
+        } else {
+            throw new IllegalArgumentException("Site has to be an instance of Chaturbate");
         }
     }
 }

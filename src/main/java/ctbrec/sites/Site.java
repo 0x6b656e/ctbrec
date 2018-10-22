@@ -18,7 +18,9 @@ public interface Site {
     public String getBuyTokensLink();
     public void login() throws IOException;
     public HttpClient getHttpClient();
+    public void init() throws IOException;
     public void shutdown();
     public boolean supportsTips();
     public boolean supportsFollow();
+    public boolean isSiteForModel(Model m);
 }

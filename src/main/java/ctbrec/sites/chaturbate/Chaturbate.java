@@ -43,7 +43,12 @@ public class Chaturbate implements Site {
     public static final String BASE_URI = "https://chaturbate.com";
     public static final String AFFILIATE_LINK = BASE_URI + "/in/?track=default&tour=LQps&campaign=55vTi&room=0xb00bface";
     private Recorder recorder;
-    private ChaturbateHttpClient httpClient = new ChaturbateHttpClient();
+    private ChaturbateHttpClient httpClient;
+
+    @Override
+    public void init() throws IOException {
+
+    }
 
     @Override
     public String getName() {
@@ -87,7 +92,7 @@ public class Chaturbate implements Site {
 
         String url = "https://chaturbate.com/p/" + username + "/";
         Request req = new Request.Builder().url(url).build();
-        Response resp = httpClient.execute(req, true);
+        Response resp = getHttpClient().execute(req, true);
         if (resp.isSuccessful()) {
             String profilePage = resp.body().string();
             String tokenText = HtmlParser.getText(profilePage, "span.tokencount");
@@ -111,7 +116,7 @@ public class Chaturbate implements Site {
                 @Override
                 public void run() {
                     try {
-                        httpClient.login();
+                        getHttpClient().login();
                     } catch (IOException e1) {
                         LOG.warn("Initial login failed", e1);
                     }
@@ -122,12 +127,15 @@ public class Chaturbate implements Site {
 
     @Override
     public HttpClient getHttpClient() {
+        if(httpClient == null) {
+            httpClient = new ChaturbateHttpClient();
+        }
         return httpClient;
     }
 
     @Override
     public void shutdown() {
-        httpClient.shutdown();
+        getHttpClient().shutdown();
     }
 
     @Override
@@ -138,6 +146,11 @@ public class Chaturbate implements Site {
     @Override
     public boolean supportsTips() {
         return true;
+    }
+
+    @Override
+    public boolean isSiteForModel(Model m) {
+        return m instanceof ChaturbateModel;
     }
 
     // #######################
@@ -168,7 +181,7 @@ public class Chaturbate implements Site {
     public void sendTip(String name, int tokens) throws IOException {
         if (!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
             RequestBody body = new FormBody.Builder()
-                    .add("csrfmiddlewaretoken", httpClient.getToken())
+                    .add("csrfmiddlewaretoken", ((ChaturbateHttpClient)getHttpClient()).getToken())
                     .add("tip_amount", Integer.toString(tokens))
                     .add("tip_room_type", "public")
                     .build();
@@ -178,7 +191,7 @@ public class Chaturbate implements Site {
                     .addHeader("Referer", "https://chaturbate.com/"+name+"/")
                     .addHeader("X-Requested-With", "XMLHttpRequest")
                     .build();
-            try(Response response = httpClient.execute(req, true)) {
+            try(Response response = getHttpClient().execute(req, true)) {
                 if(!response.isSuccessful()) {
                     throw new IOException(response.code() + " " + response.message());
                 }
@@ -201,7 +214,7 @@ public class Chaturbate implements Site {
                 .post(body)
                 .addHeader("X-Requested-With", "XMLHttpRequest")
                 .build();
-        Response response = httpClient.execute(req);
+        Response response = getHttpClient().execute(req);
         try {
             if(response.isSuccessful()) {
                 String content = response.body().string();
@@ -281,7 +294,7 @@ public class Chaturbate implements Site {
     public MasterPlaylist getMasterPlaylist(StreamInfo streamInfo) throws IOException, ParseException, PlaylistException {
         LOG.trace("Loading master playlist {}", streamInfo.url);
         Request req = new Request.Builder().url(streamInfo.url).build();
-        Response response = httpClient.execute(req);
+        Response response = getHttpClient().execute(req);
         try {
             InputStream inputStream = response.body().byteStream();
             PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);

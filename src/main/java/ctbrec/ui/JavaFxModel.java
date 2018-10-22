@@ -11,6 +11,7 @@ import com.iheartradio.m3u8.PlaylistException;
 import ctbrec.AbstractModel;
 import ctbrec.Model;
 import ctbrec.recorder.download.StreamSource;
+import ctbrec.sites.Site;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 
@@ -135,5 +136,10 @@ public class JavaFxModel extends AbstractModel {
     @Override
     public boolean unfollow() throws IOException {
         return delegate.unfollow();
+    }
+
+    @Override
+    public void setSite(Site site) {
+        delegate.setSite(site);
     }
 }

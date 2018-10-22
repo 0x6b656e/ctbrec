@@ -13,7 +13,6 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Objects;
 import java.util.concurrent.Callable;
 
 import org.slf4j.Logger;
@@ -45,7 +44,7 @@ public class HlsDownload extends AbstractHlsDownload {
             Path modelDir = FileSystems.getDefault().getPath(config.getSettings().recordingsDir, model.getName());
             downloadDir = FileSystems.getDefault().getPath(modelDir.toString(), startTime);
 
-            if(!Objects.equals(model.getOnlineState(false), "public")) {
+            if(!model.isOnline()) {
                 throw new IOException(model.getName() +"'s room is not public");
             }
 

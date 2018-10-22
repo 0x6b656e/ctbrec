@@ -1,9 +1,6 @@
 package ctbrec.recorder.server;
 
-import static javax.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
-import static javax.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
-import static javax.servlet.http.HttpServletResponse.SC_OK;
-import static javax.servlet.http.HttpServletResponse.SC_UNAUTHORIZED;
+import static javax.servlet.http.HttpServletResponse.*;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -25,6 +22,7 @@ import ctbrec.Recording;
 import ctbrec.io.InstantJsonAdapter;
 import ctbrec.io.ModelJsonAdapter;
 import ctbrec.recorder.Recorder;
+import ctbrec.sites.Site;
 
 public class RecorderServlet extends AbstractCtbrecServlet {
 
@@ -32,8 +30,11 @@ public class RecorderServlet extends AbstractCtbrecServlet {
 
     private Recorder recorder;
 
-    public RecorderServlet(Recorder recorder) {
+    private List<Site> sites;
+
+    public RecorderServlet(Recorder recorder, List<Site> sites) {
         this.recorder = recorder;
+        this.sites = sites;
     }
 
     @Override
@@ -54,7 +55,7 @@ public class RecorderServlet extends AbstractCtbrecServlet {
             LOG.debug("Request: {}", json);
             Moshi moshi = new Moshi.Builder()
                     .add(Instant.class, new InstantJsonAdapter())
-                    .add(Model.class, new ModelJsonAdapter())
+                    .add(Model.class, new ModelJsonAdapter(sites))
                     .build();
             JsonAdapter<Request> requestAdapter = moshi.adapter(Request.class);
             Request request = requestAdapter.fromJson(json);

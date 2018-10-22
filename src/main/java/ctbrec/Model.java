@@ -8,6 +8,7 @@ import com.iheartradio.m3u8.ParseException;
 import com.iheartradio.m3u8.PlaylistException;
 
 import ctbrec.recorder.download.StreamSource;
+import ctbrec.sites.Site;
 
 public interface Model {
     public String getUrl();
@@ -32,4 +33,5 @@ public interface Model {
     public int[] getStreamResolution(boolean failFast) throws ExecutionException;
     public boolean follow() throws IOException;
     public boolean unfollow() throws IOException;
+    public void setSite(Site site);
 }

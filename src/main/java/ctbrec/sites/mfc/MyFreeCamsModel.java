@@ -26,6 +26,7 @@ import com.iheartradio.m3u8.data.PlaylistData;
 
 import ctbrec.AbstractModel;
 import ctbrec.recorder.download.StreamSource;
+import ctbrec.sites.Site;
 import ctbrec.ui.HtmlParser;
 import okhttp3.FormBody;
 import okhttp3.Request;
@@ -42,6 +43,11 @@ public class MyFreeCamsModel extends AbstractModel {
     private State state;
     private int resolution[];
     private MyFreeCams site;
+
+    /**
+     * This constructor exists only for deserialization. Please don't call it directly
+     */
+    public MyFreeCamsModel() {}
 
     MyFreeCamsModel(MyFreeCams site) {
         this.site = site;
@@ -254,5 +260,14 @@ public class MyFreeCamsModel extends AbstractModel {
 
     public void setUid(int uid) {
         this.uid = uid;
+    }
+
+    @Override
+    public void setSite(Site site) {
+        if(site instanceof MyFreeCams) {
+            this.site = (MyFreeCams) site;
+        } else {
+            throw new IllegalArgumentException("Site has to be an instance of MyFreeCams");
+        }
     }
 }

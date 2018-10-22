@@ -41,7 +41,6 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
-import javafx.scene.control.TabPane.TabClosingPolicy;
 import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
@@ -59,6 +58,7 @@ public class CamrecApplication extends Application {
     static HostServices hostServices;
     private SettingsTab settingsTab;
     private TabPane tabPane = new TabPane();
+    private TabPane rootPane = new TabPane();
     static EventBus bus;
     private HBox tokenPanel;
     private Site site;
@@ -92,39 +92,33 @@ public class CamrecApplication extends Application {
         primaryStage.getIcons().add(new Image(icon));
         int windowWidth = Config.getInstance().getSettings().windowWidth;
         int windowHeight = Config.getInstance().getSettings().windowHeight;
-        tabPane = new TabPane();
-        Scene scene = new Scene(tabPane, windowWidth, windowHeight);
+
+        rootPane = new TabPane();
+        Scene scene = new Scene(rootPane, windowWidth, windowHeight);
         primaryStage.setScene(scene);
-
-        tabPane.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<Tab>() {
-            @Override
-            public void changed(ObservableValue<? extends Tab> ov, Tab from, Tab to) {
-                if(from != null && from instanceof TabSelectionListener) {
-                    ((TabSelectionListener) from).deselected();
-                }
-                if(to != null && to instanceof TabSelectionListener) {
-                    ((TabSelectionListener) to).selected();
-                }
-            }
-        });
-        tabPane.setTabClosingPolicy(TabClosingPolicy.SELECTED_TAB);
-        for (Tab tab : site.getTabProvider().getTabs(scene)) {
-            tabPane.getTabs().add(tab);
+        for (Site site : sites) {
+            SiteTabPane siteTabPane = new SiteTabPane(site, scene);
+            Tab siteTab = new Tab(site.getName());
+            siteTab.setClosable(false);
+            siteTab.setContent(siteTabPane);
+            rootPane.getTabs().add(siteTab);
         }
-        RecordedModelsTab modelsTab = new RecordedModelsTab("Recording", recorder, site);
-        tabPane.getTabs().add(modelsTab);
-        RecordingsTab recordingsTab = new RecordingsTab("Recordings", recorder, config, site);
-        tabPane.getTabs().add(recordingsTab);
-        settingsTab = new SettingsTab();
-        tabPane.getTabs().add(settingsTab);
-        tabPane.getTabs().add(new DonateTabFx());
 
+        RecordedModelsTab modelsTab = new RecordedModelsTab("Recording", recorder, site);
+        rootPane.getTabs().add(modelsTab);
+        RecordingsTab recordingsTab = new RecordingsTab("Recordings", recorder, config, site);
+        rootPane.getTabs().add(recordingsTab);
+        settingsTab = new SettingsTab();
+        rootPane.getTabs().add(settingsTab);
+        rootPane.getTabs().add(new DonateTabFx());
 
         primaryStage.getScene().getStylesheets().add("/ctbrec/ui/ThumbCell.css");
         primaryStage.getScene().widthProperty().addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowWidth = newVal.intValue());
-        primaryStage.getScene().heightProperty().addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowHeight = newVal.intValue());
+        primaryStage.getScene().heightProperty()
+        .addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowHeight = newVal.intValue());
         primaryStage.setMaximized(Config.getInstance().getSettings().windowMaximized);
-        primaryStage.maximizedProperty().addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowMaximized = newVal.booleanValue());
+        primaryStage.maximizedProperty()
+        .addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowMaximized = newVal.booleanValue());
         primaryStage.setX(Config.getInstance().getSettings().windowX);
         primaryStage.setY(Config.getInstance().getSettings().windowY);
         primaryStage.xProperty().addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowX = newVal.intValue());
@@ -162,8 +156,21 @@ public class CamrecApplication extends Application {
             }.start();
         });
 
+        // register changelistener to activate / deactivate tabs, when the user switches between them
+        rootPane.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<Tab>() {
+            @Override
+            public void changed(ObservableValue<? extends Tab> ov, Tab from, Tab to) {
+                if (from != null && from instanceof TabSelectionListener) {
+                    ((TabSelectionListener) from).deselected();
+                }
+                if (to != null && to instanceof TabSelectionListener) {
+                    ((TabSelectionListener) to).selected();
+                }
+            }
+        });
+
         String username = Config.getInstance().getSettings().username;
-        if(site.supportsTips() && username != null && !username.trim().isEmpty()) {
+        if (site.supportsTips() && username != null && !username.trim().isEmpty()) {
             double fontSize = tabPane.getTabMaxHeight() / 2 - 1;
             Button buyTokens = new Button("Buy Tokens");
             buyTokens.setFont(Font.font(fontSize));
@@ -178,10 +185,10 @@ public class CamrecApplication extends Application {
             HBox.setMargin(tokenBalance, new Insets(0, 5, 0, 0));
             HBox.setMargin(buyTokens, new Insets(0, 5, 0, 0));
             for (Node node : tabPane.getChildrenUnmodifiable()) {
-                if(node.getStyleClass().contains("tab-header-area")) {
+                if (node.getStyleClass().contains("tab-header-area")) {
                     Parent header = (Parent) node;
                     for (Node nd : header.getChildrenUnmodifiable()) {
-                        if(nd.getStyleClass().contains("tab-header-background")) {
+                        if (nd.getStyleClass().contains("tab-header-background")) {
                             StackPane pane = (StackPane) nd;
                             StackPane.setAlignment(tokenPanel, Pos.CENTER_RIGHT);
                             pane.getChildren().add(tokenPanel);
@@ -236,7 +243,7 @@ public class CamrecApplication extends Application {
                     Version ctbrecVersion = getVersion();
                     if (latestVersion.compareTo(ctbrecVersion) > 0) {
                         LOG.debug("Update available {} < {}", ctbrecVersion, latestVersion);
-                        Platform.runLater(() -> tabPane.getTabs().add(new UpdateTab(latest)));
+                        Platform.runLater(() -> rootPane.getTabs().add(new UpdateTab(latest)));
                     } else {
                         LOG.debug("ctbrec is up-to-date {}", ctbrecVersion);
                     }

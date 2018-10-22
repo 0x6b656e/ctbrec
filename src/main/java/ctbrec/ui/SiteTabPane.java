@@ -31,4 +31,18 @@ public class SiteTabPane extends TabPane {
             }
         });
     }
+
+    public void selected() {
+        Tab selectedTab = getSelectionModel().getSelectedItem();
+        if(selectedTab instanceof TabSelectionListener) {
+            ((TabSelectionListener) selectedTab).selected();
+        }
+    }
+
+    public void deselected() {
+        Tab selectedTab = getSelectionModel().getSelectedItem();
+        if(selectedTab instanceof TabSelectionListener) {
+            ((TabSelectionListener) selectedTab).deselected();
+        }
+    }
 }

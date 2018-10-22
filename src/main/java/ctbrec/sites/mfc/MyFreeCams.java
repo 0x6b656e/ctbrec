@@ -105,7 +105,7 @@ public class MyFreeCams implements Site {
 
     @Override
     public boolean supportsTips() {
-        return false;
+        return true;
     }
 
     @Override

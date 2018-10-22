@@ -32,19 +32,11 @@ import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.Node;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.image.Image;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
-import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -57,19 +49,17 @@ public class CamrecApplication extends Application {
     private Recorder recorder;
     static HostServices hostServices;
     private SettingsTab settingsTab;
-    private TabPane tabPane = new TabPane();
     private TabPane rootPane = new TabPane();
     static EventBus bus;
-    private HBox tokenPanel;
     private Site site;
     private List<Site> sites = new ArrayList<>();
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        site = new MyFreeCams();
-        sites.add(site);
         Chaturbate ctb = new Chaturbate();
         sites.add(ctb);
+        site = new MyFreeCams();
+        sites.add(site);
         loadConfig();
         bus = new AsyncEventBus(Executors.newSingleThreadExecutor());
         hostServices = getHostServices();
@@ -97,12 +87,10 @@ public class CamrecApplication extends Application {
         Scene scene = new Scene(rootPane, windowWidth, windowHeight);
         primaryStage.setScene(scene);
         for (Site site : sites) {
-            SiteTabPane siteTabPane = new SiteTabPane(site, scene);
-            Tab siteTab = new Tab(site.getName());
-            siteTab.setClosable(false);
-            siteTab.setContent(siteTabPane);
+            SiteTab siteTab = new SiteTab(site, scene);
             rootPane.getTabs().add(siteTab);
         }
+        ((SiteTab)rootPane.getTabs().get(0)).selected();
 
         RecordedModelsTab modelsTab = new RecordedModelsTab("Recording", recorder, site);
         rootPane.getTabs().add(modelsTab);
@@ -168,37 +156,6 @@ public class CamrecApplication extends Application {
                 }
             }
         });
-
-        String username = Config.getInstance().getSettings().username;
-        if (site.supportsTips() && username != null && !username.trim().isEmpty()) {
-            double fontSize = tabPane.getTabMaxHeight() / 2 - 1;
-            Button buyTokens = new Button("Buy Tokens");
-            buyTokens.setFont(Font.font(fontSize));
-            buyTokens.setOnAction((e) -> DesktopIntergation.open(site.getBuyTokensLink()));
-            buyTokens.setMaxHeight(tabPane.getTabMaxHeight());
-            TokenLabel tokenBalance = new TokenLabel(site);
-            tokenPanel = new HBox(5, tokenBalance, buyTokens);
-            tokenPanel.setAlignment(Pos.BASELINE_RIGHT);
-            tokenPanel.setMaxHeight(tabPane.getTabMaxHeight());
-            tokenPanel.setMaxWidth(200);
-            tokenBalance.setFont(Font.font(fontSize));
-            HBox.setMargin(tokenBalance, new Insets(0, 5, 0, 0));
-            HBox.setMargin(buyTokens, new Insets(0, 5, 0, 0));
-            for (Node node : tabPane.getChildrenUnmodifiable()) {
-                if (node.getStyleClass().contains("tab-header-area")) {
-                    Parent header = (Parent) node;
-                    for (Node nd : header.getChildrenUnmodifiable()) {
-                        if (nd.getStyleClass().contains("tab-header-background")) {
-                            StackPane pane = (StackPane) nd;
-                            StackPane.setAlignment(tokenPanel, Pos.CENTER_RIGHT);
-                            pane.getChildren().add(tokenPanel);
-                        }
-                    }
-
-                }
-            }
-            tokenBalance.loadBalance();
-        }
     }
 
     private void createRecorder() {

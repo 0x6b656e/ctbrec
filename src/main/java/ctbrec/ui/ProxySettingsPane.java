@@ -1,8 +1,5 @@
 package ctbrec.ui;
-import static ctbrec.Settings.ProxyType.DIRECT;
-import static ctbrec.Settings.ProxyType.HTTP;
-import static ctbrec.Settings.ProxyType.SOCKS4;
-import static ctbrec.Settings.ProxyType.SOCKS5;
+import static ctbrec.Settings.ProxyType.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -99,8 +96,8 @@ public class ProxySettingsPane extends TitledPane implements EventHandler<Action
         } else {
             proxyHost.setDisable(false);
             proxyPort.setDisable(false);
-            proxyUser.setDisable(false);
-            proxyPassword.setDisable(false);
+            proxyUser.setDisable(proxyType.getValue() == SOCKS4);
+            proxyPassword.setDisable(proxyType.getValue() == SOCKS4);
         }
     }
 }

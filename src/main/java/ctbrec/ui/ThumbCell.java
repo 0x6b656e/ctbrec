@@ -15,7 +15,6 @@ import com.iheartradio.m3u8.PlaylistException;
 
 import ctbrec.Config;
 import ctbrec.Model;
-import ctbrec.io.HttpClient;
 import ctbrec.recorder.Recorder;
 import ctbrec.recorder.download.StreamSource;
 import javafx.animation.FadeTransition;
@@ -72,17 +71,14 @@ public class ThumbCell extends StackPane {
     private SimpleBooleanProperty selectionProperty = new SimpleBooleanProperty(false);
     private double imgAspectRatio = 3.0 / 4.0;
 
-    private HttpClient client;
-
     private ObservableList<Node> thumbCellList;
     private boolean mouseHovering = false;
     private boolean recording = false;
 
-    public ThumbCell(ThumbOverviewTab parent, Model model, Recorder recorder, HttpClient client) {
+    public ThumbCell(ThumbOverviewTab parent, Model model, Recorder recorder) {
         this.thumbCellList = parent.grid.getChildren();
         this.model = model;
         this.recorder = recorder;
-        this.client = client;
         recording = recorder.isRecording(model);
 
         iv = new ImageView();
@@ -208,7 +204,7 @@ public class ThumbCell extends StackPane {
                 // when we first requested the stream info, so we remove this invalid value from the "cache"
                 // so that it is requested again
                 if (model.isOnline() && resolution[1] == 0) {
-                    LOG.debug("Removing invalid resolution value for {}", model.getName());
+                    LOG.trace("Removing invalid resolution value for {}", model.getName());
                     model.invalidateCacheEntries();
                 }
             } catch (ExecutionException | IOException | InterruptedException e1) {
@@ -227,7 +223,7 @@ public class ThumbCell extends StackPane {
             LOG.trace("Model resolution {} {}x{}", model.getName(), resolution[0], resolution[1]);
             LOG.trace("Resolution queue size: {}", ThumbOverviewTab.queue.size());
             final int w = resolution[1];
-            _res = w > 0 ? Integer.toString(w) : state;
+            _res = w > 0 ? w != Integer.MAX_VALUE ? Integer.toString(w) : "HD" : state;
         } else {
             _res = model.getOnlineState(false);
             resolutionBackgroundColor = resolutionOfflineColor;
@@ -336,7 +332,7 @@ public class ThumbCell extends StackPane {
                 alert.showAndWait();
                 return null;
             };
-            StreamSourceSelectionDialog.show(model, client, onSuccess, onFail);
+            StreamSourceSelectionDialog.show(model, onSuccess, onFail);
         } else {
             _startStopAction(model, start);
         }

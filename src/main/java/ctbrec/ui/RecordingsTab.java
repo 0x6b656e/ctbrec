@@ -28,7 +28,6 @@ import com.iheartradio.m3u8.ParseException;
 import com.iheartradio.m3u8.PlaylistException;
 
 import ctbrec.Config;
-import ctbrec.Model;
 import ctbrec.Recording;
 import ctbrec.Recording.STATUS;
 import ctbrec.recorder.Recorder;
@@ -66,7 +65,8 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
     private ScheduledService<List<JavaFxRecording>> updateService;
     private Config config;
     private Recorder recorder;
-    private Site site;
+    @SuppressWarnings("unused")
+    private List<Site> sites;
 
     FlowPane grid = new FlowPane();
     ScrollPane scrollPane = new ScrollPane();
@@ -74,11 +74,11 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
     ObservableList<JavaFxRecording> observableRecordings = FXCollections.observableArrayList();
     ContextMenu popup;
 
-    public RecordingsTab(String title, Recorder recorder, Config config, Site site) {
+    public RecordingsTab(String title, Recorder recorder, Config config, List<Site> sites) {
         super(title);
         this.recorder = recorder;
         this.config = config;
-        this.site = site;
+        this.sites = sites;
         createGui();
         setClosable(false);
         initializeUpdateService();
@@ -245,18 +245,19 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
             contextMenu.getItems().add(openInPlayer);
         }
 
-        MenuItem stopRecording = new MenuItem("Stop recording");
-        stopRecording.setOnAction((e) -> {
-            Model m = site.createModel(recording.getModelName());
-            try {
-                recorder.stopRecording(m);
-            } catch (Exception e1) {
-                showErrorDialog("Stop recording", "Couldn't stop recording of model " + m.getName(), e1);
-            }
-        });
-        if(recording.getStatus() == STATUS.RECORDING) {
-            contextMenu.getItems().add(stopRecording);
-        }
+        // TODO find a way to reenable this
+        //        MenuItem stopRecording = new MenuItem("Stop recording");
+        //        stopRecording.setOnAction((e) -> {
+        //            Model m = site.createModel(recording.getModelName());
+        //            try {
+        //                recorder.stopRecording(m);
+        //            } catch (Exception e1) {
+        //                showErrorDialog("Stop recording", "Couldn't stop recording of model " + m.getName(), e1);
+        //            }
+        //        });
+        //        if(recording.getStatus() == STATUS.RECORDING) {
+        //            contextMenu.getItems().add(stopRecording);
+        //        }
 
         MenuItem deleteRecording = new MenuItem("Delete");
         deleteRecording.setOnAction((e) -> {
@@ -304,7 +305,7 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
                 @Override
                 public void run() {
                     try {
-                        MergedHlsDownload download = new MergedHlsDownload(site.getHttpClient());
+                        MergedHlsDownload download = new MergedHlsDownload(CamrecApplication.httpClient);
                         download.start(url.toString(), target, (progress) -> {
                             Platform.runLater(() -> {
                                 if (progress == 100) {

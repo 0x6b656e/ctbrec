@@ -6,13 +6,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
 import ctbrec.Model;
-import ctbrec.io.HttpClient;
 import ctbrec.recorder.download.StreamSource;
 import javafx.concurrent.Task;
 import javafx.scene.control.ChoiceDialog;
 
 public class StreamSourceSelectionDialog {
-    public static void show(Model model, HttpClient client, Function<Model,Void> onSuccess, Function<Throwable, Void> onFail) {
+    public static void show(Model model, Function<Model,Void> onSuccess, Function<Throwable, Void> onFail) {
         Task<List<StreamSource>> selectStreamSource = new Task<List<StreamSource>>() {
             @Override
             protected List<StreamSource> call() throws Exception {

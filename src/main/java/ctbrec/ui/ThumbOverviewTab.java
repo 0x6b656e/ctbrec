@@ -27,7 +27,6 @@ import com.sun.javafx.collections.ObservableListWrapper;
 
 import ctbrec.Config;
 import ctbrec.Model;
-import ctbrec.io.HttpClient;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
 import ctbrec.sites.mfc.MyFreeCamsClient;
@@ -262,7 +261,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                     }
                 }
                 if(!found) {
-                    ThumbCell newCell = createThumbCell(this, model, recorder, site.getHttpClient());
+                    ThumbCell newCell = createThumbCell(this, model, recorder);
                     newCell.setIndex(index);
                     positionChangedOrNew.add(newCell);
                 }
@@ -285,8 +284,8 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         }
     }
 
-    ThumbCell createThumbCell(ThumbOverviewTab thumbOverviewTab, Model model, Recorder recorder, HttpClient client2) {
-        ThumbCell newCell = new ThumbCell(this, model, recorder, site.getHttpClient());
+    ThumbCell createThumbCell(ThumbOverviewTab thumbOverviewTab, Model model, Recorder recorder) {
+        ThumbCell newCell = new ThumbCell(this, model, recorder);
         newCell.addEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> {
             suspendUpdates(true);
             popup = createContextMenu(newCell);

@@ -112,4 +112,8 @@ public class MyFreeCams implements Site {
     public boolean isSiteForModel(Model m) {
         return m instanceof MyFreeCamsModel;
     }
+
+    public MyFreeCamsClient getClient() {
+        return client;
+    }
 }

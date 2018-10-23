@@ -21,6 +21,7 @@ import com.squareup.moshi.Types;
 
 import ctbrec.Config;
 import ctbrec.Version;
+import ctbrec.io.HttpClient;
 import ctbrec.recorder.LocalRecorder;
 import ctbrec.recorder.Recorder;
 import ctbrec.recorder.RemoteRecorder;
@@ -51,25 +52,24 @@ public class CamrecApplication extends Application {
     private SettingsTab settingsTab;
     private TabPane rootPane = new TabPane();
     static EventBus bus;
-    private Site site;
     private List<Site> sites = new ArrayList<>();
+    public static HttpClient httpClient;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        Chaturbate ctb = new Chaturbate();
-        sites.add(ctb);
-        site = new MyFreeCams();
-        sites.add(site);
+        sites.add(new Chaturbate());
+        sites.add(new MyFreeCams());
         loadConfig();
+        createHttpClient();
         bus = new AsyncEventBus(Executors.newSingleThreadExecutor());
         hostServices = getHostServices();
         createRecorder();
         for (Site site : sites) {
             site.setRecorder(recorder);
             site.init();
-        }
-        if (!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
-            site.login();
+            if (!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
+                site.login();
+            }
         }
         createGui(primaryStage);
         checkForUpdates();
@@ -92,9 +92,9 @@ public class CamrecApplication extends Application {
         }
         ((SiteTab)rootPane.getTabs().get(0)).selected();
 
-        RecordedModelsTab modelsTab = new RecordedModelsTab("Recording", recorder, site);
+        RecordedModelsTab modelsTab = new RecordedModelsTab("Recording", recorder, sites);
         rootPane.getTabs().add(modelsTab);
-        RecordingsTab recordingsTab = new RecordingsTab("Recordings", recorder, config, site);
+        RecordingsTab recordingsTab = new RecordingsTab("Recordings", recorder, config, sites);
         rootPane.getTabs().add(recordingsTab);
         settingsTab = new SettingsTab();
         rootPane.getTabs().add(settingsTab);
@@ -124,7 +124,9 @@ public class CamrecApplication extends Application {
                 public void run() {
                     settingsTab.saveConfig();
                     recorder.shutdown();
-                    site.shutdown();
+                    for (Site site : sites) {
+                        site.shutdown();
+                    }
                     try {
                         Config.getInstance().save();
                         LOG.info("Shutdown complete. Goodbye!");
@@ -162,7 +164,7 @@ public class CamrecApplication extends Application {
         if (config.getSettings().localRecording) {
             recorder = new LocalRecorder(config);
         } else {
-            recorder = new RemoteRecorder(config, site.getHttpClient());
+            recorder = new RemoteRecorder(config, httpClient);
         }
     }
 
@@ -180,6 +182,15 @@ public class CamrecApplication extends Application {
         config = Config.getInstance();
     }
 
+    private void createHttpClient() {
+        httpClient = new HttpClient() {
+            @Override
+            public boolean login() throws IOException {
+                return false;
+            }
+        };
+    }
+
     public static void main(String[] args) {
         launch(args);
     }
@@ -189,7 +200,7 @@ public class CamrecApplication extends Application {
             try {
                 String url = "https://api.github.com/repos/0xboobface/ctbrec/releases";
                 Request request = new Request.Builder().url(url).build();
-                Response response = site.getHttpClient().execute(request);
+                Response response = httpClient.execute(request);
                 if (response.isSuccessful()) {
                     Moshi moshi = new Moshi.Builder().build();
                     Type type = Types.newParameterizedType(List.class, Release.class);

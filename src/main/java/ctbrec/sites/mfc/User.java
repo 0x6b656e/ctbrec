@@ -18,6 +18,7 @@ public class User {
     private Integer photos;
     private Integer profile;
     private String status;
+    private String phase;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
     public Integer getAvatar() {
@@ -132,6 +133,14 @@ public class User {
         this.additionalProperties.put(name, value);
     }
 
+    public String getPhase() {
+        return phase;
+    }
+
+    public void setPhase(String phase) {
+        this.phase = phase;
+    }
+
     public void merge(User u) {
         if (u == null) {
             return;
@@ -149,6 +158,7 @@ public class User {
         photos = u.photos != null ? u.photos : photos;
         profile = u.profile != null ? u.profile : profile;
         status = u.status != null ? u.status : status;
+        phase = u.phase != null ? u.phase : phase;
         additionalProperties.putAll(u.additionalProperties);
     }
 }

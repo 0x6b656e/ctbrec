@@ -5,6 +5,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -26,6 +27,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.ScheduledService;
 import javafx.concurrent.Task;
+import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.scene.Cursor;
 import javafx.scene.control.Alert;
@@ -59,7 +61,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
 
     private ScheduledService<List<Model>> updateService;
     private Recorder recorder;
-    private Site site;
+    private List<Site> sites;
 
     FlowPane grid = new FlowPane();
     ScrollPane scrollPane = new ScrollPane();
@@ -71,10 +73,10 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
     TextField model = new TextField();
     Button addModelButton = new Button("Record");
 
-    public RecordedModelsTab(String title, Recorder recorder, Site site) {
+    public RecordedModelsTab(String title, Recorder recorder, List<Site> sites) {
         super(title);
         this.recorder = recorder;
-        this.site = site;
+        this.sites = sites;
         createGui();
         setClosable(false);
         initializeUpdateService();
@@ -126,18 +128,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         modelLabel.setPadding(new Insets(5, 0, 0, 0));
         model.setPrefWidth(300);
         BorderPane.setMargin(addModelBox, new Insets(5));
-        addModelButton.setOnAction((e) -> {
-            Model m = site.createModel(model.getText());
-            try {
-                recorder.startRecording(m);
-            } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e1) {
-                Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
-                alert.setTitle("Error");
-                alert.setHeaderText("Couldn't add model");
-                alert.setContentText("The model " + m.getName() + " could not be added: " + e1.getLocalizedMessage());
-                alert.showAndWait();
-            }
-        });
+        addModelButton.setOnAction((e) -> addModel(e));
 
         BorderPane root = new BorderPane();
         root.setPadding(new Insets(5));
@@ -145,6 +136,43 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         root.setCenter(scrollPane);
         setContent(root);
     }
+
+    private void addModel(ActionEvent e) {
+        String[] parts = model.getText().trim().split(":");
+        if (parts.length != 2) {
+            Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+            alert.setTitle("Wrong format");
+            alert.setHeaderText("Couldn't add model");
+            alert.setContentText("Use something like \"MyFreeCams:ModelName\"");
+            alert.showAndWait();
+            return;
+        }
+
+        String siteName = parts[0];
+        String modelName = parts[1];
+        for (Site site : sites) {
+            if (Objects.equals(siteName.toLowerCase(), site.getClass().getSimpleName().toLowerCase())) {
+                try {
+                    Model m = site.createModel(modelName);
+                    recorder.startRecording(m);
+                } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e1) {
+                    Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+                    alert.setTitle("Error");
+                    alert.setHeaderText("Couldn't add model");
+                    alert.setContentText("The model " + modelName + " could not be added: " + e1.getLocalizedMessage());
+                    alert.showAndWait();
+                }
+                return;
+            }
+        }
+
+        Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+        alert.setTitle("Unknown site");
+        alert.setHeaderText("Couldn't add model");
+        alert.setContentText("The site you entered is unknown");
+        alert.showAndWait();
+    };
+
 
     void initializeUpdateService() {
         updateService = createUpdateService();
@@ -189,7 +217,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
                 return new Task<List<Model>>() {
                     @Override
                     public List<Model> call() {
-                        LOG.debug("Updating recorded models");
+                        LOG.trace("Updating recorded models");
                         return recorder.getModelsRecording();
                     }
                 };
@@ -279,7 +307,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
             showStreamSwitchErrorDialog(t);
             return null;
         };
-        StreamSourceSelectionDialog.show(fxModel.getDelegate(), site.getHttpClient(), onSuccess, onFail);
+        StreamSourceSelectionDialog.show(fxModel.getDelegate(), onSuccess, onFail);
     }
 
     private void showStreamSwitchErrorDialog(Throwable throwable) {

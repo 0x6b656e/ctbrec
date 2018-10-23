@@ -44,6 +44,12 @@ public class MyFreeCamsClient {
     private Map<Integer, MyFreeCamsModel> models = new HashMap<>();
     private Lock lock = new ReentrantLock();
     private ExecutorService executor = Executors.newSingleThreadExecutor();
+    private ServerConfig serverConfig;
+    @SuppressWarnings("unused")
+    private String tkx;
+    private Integer cxid;
+    private int[] ctx;
+    private String ctxenc;
 
     private MyFreeCamsClient() {
         moshi = new Moshi.Builder().build();
@@ -62,20 +68,39 @@ public class MyFreeCamsClient {
 
     public void start() throws IOException {
         running = true;
-        ServerConfig serverConfig = new ServerConfig(mfc.getHttpClient());
+        serverConfig = new ServerConfig(mfc.getHttpClient());
         List<String> websocketServers = new ArrayList<String>(serverConfig.wsServers.keySet());
         String server = websocketServers.get((int) (Math.random()*websocketServers.size()));
         String wsUrl = "ws://" + server + ".myfreecams.com:8080/fcsl";
-        Request req = new Request.Builder()
-                .url(wsUrl)
-                .addHeader("Origin", "http://m.myfreecams.com")
-                .build();
-        ws = createWebSocket(req);
+
+        Thread watchDog = new Thread(() -> {
+            while(running) {
+                if (ws == null) {
+                    Request req = new Request.Builder()
+                            .url(wsUrl)
+                            .addHeader("Origin", "http://m.myfreecams.com")
+                            .build();
+                    ws = createWebSocket(req);
+                }
+
+                try {
+                    Thread.sleep(1000);
+                } catch(InterruptedException e) {
+                    LOG.error("WatchDog couldn't sleep", e);
+                    stop();
+                    running = false;
+                }
+            }
+        });
+        watchDog.setDaemon(true);
+        watchDog.setName("MFC WebSocket WatchDog");
+        watchDog.setPriority(Thread.MIN_PRIORITY);
+        watchDog.start();
     }
 
     public void stop() {
-        ws.close(1000, "Good Bye"); // terminate normally (1000)
         running  = false;
+        ws.close(1000, "Good Bye"); // terminate normally (1000)
     }
 
     public List<MyFreeCamsModel> getModels() {
@@ -115,12 +140,21 @@ public class MyFreeCamsClient {
 
             @Override
             public void onClosed(WebSocket webSocket, int code, String reason) {
-                // TODO decide what todo: is this the end of the session
-                // or do we have to reconnect to keep things running?
                 super.onClosed(webSocket, code, reason);
-                LOG.trace("close: {} {}", code, reason);
-                running = false;
-                mfc.getHttpClient().shutdown();
+                LOG.info("MFC websocket closed: {} {}", code, reason);
+                MyFreeCamsClient.this.ws = null;
+                if(!running) {
+                    mfc.getHttpClient().shutdown();
+                }
+            }
+
+            @Override
+            public void onFailure(WebSocket webSocket, Throwable t, Response response) {
+                super.onFailure(webSocket, t, response);
+                int code = response.code();
+                String message = response.message();
+                MyFreeCamsClient.this.ws = null;
+                LOG.error("MFC websocket failure: {} {}", code, message, t);
             }
 
             private StringBuilder msgBuffer = new StringBuilder();
@@ -137,13 +171,15 @@ public class MyFreeCamsClient {
                     }
 
                     switch (message.getType()) {
+                    case NULL:
+                        break;
                     case LOGIN:
-                        System.out.println("LOGIN");
-                        System.out.println("Sender " + message.getSender());
-                        System.out.println("Receiver " + message.getReceiver());
-                        System.out.println("Arg1 " + message.getArg1());
-                        System.out.println("Arg2 " + message.getArg2());
-                        System.out.println("Msg " + message.getMessage());
+                        //                        System.out.println("LOGIN");
+                        //                        System.out.println("Sender " + message.getSender());
+                        //                        System.out.println("Receiver " + message.getReceiver());
+                        //                        System.out.println("Arg1 " + message.getArg1());
+                        //                        System.out.println("Arg2 " + message.getArg2());
+                        //                        System.out.println("Msg " + message.getMessage());
                         break;
                     case DETAILS:
                     case ROOMHELPER:
@@ -158,6 +194,7 @@ public class MyFreeCamsClient {
                     case JOINCHAN:
                     case SESSIONSTATE:
                         if(!message.getMessage().isEmpty()) {
+                            //LOG.debug("SessionState: {}", message.getMessage());
                             JsonAdapter<SessionState> adapter = moshi.adapter(SessionState.class);
                             try {
                                 SessionState sessionState = adapter.fromJson(message.getMessage());
@@ -219,6 +256,21 @@ public class MyFreeCamsClient {
                         System.out.println("Arg2 " + message.getArg2());
                         System.out.println("Msg " + message.getMessage());
                         break;
+                    case SLAVEVSHARE:
+                        //                        LOG.debug("SLAVEVSHARE {}", message);
+                        //                        LOG.debug("SLAVEVSHARE MSG [{}]", message.getMessage());
+                        break;
+                    case TKX:
+                        json = new JSONObject(message.getMessage());
+                        tkx = json.getString("tkx");
+                        cxid = json.getInt("cxid");
+                        ctxenc = URLDecoder.decode(json.getString("ctxenc"), "utf-8");
+                        JSONArray ctxArray = json.getJSONArray("ctx");
+                        ctx = new int[ctxArray.length()];
+                        for (int i = 0; i < ctxArray.length(); i++) {
+                            ctx[i] = ctxArray.getInt(i);
+                        }
+                        break;
                     default:
                         LOG.debug("Unknown message {}", message);
                         break;
@@ -240,7 +292,7 @@ public class MyFreeCamsClient {
                     String base = "http://www.myfreecams.com/php/FcwExtResp.php";
                     String url = base + "?respkey="+respkey+"&opts="+opts+"&serv="+serv+"&type="+type;
                     Request req = new Request.Builder().url(url).build();
-                    LOG.debug("Requesting EXTDATA {}", url);
+                    LOG.trace("Requesting EXTDATA {}", url);
                     Response resp = mfc.getHttpClient().execute(req);
 
                     if(resp.isSuccessful()) {
@@ -268,7 +320,7 @@ public class MyFreeCamsClient {
                             state.setLv(inner.getInt(idx++));
                             state.setU(new User());
                             state.getU().setCamserv(inner.getInt(idx++));
-                            idx++;
+                            state.getU().setPhase(inner.getString(idx++));
                             state.getU().setChatColor(inner.getString(idx++));
                             state.getU().setChatFont(inner.getInt(idx++));
                             state.getU().setChatOpt(inner.getInt(idx++));
@@ -334,7 +386,12 @@ public class MyFreeCamsClient {
 
             private void updateModel(SessionState state) {
                 // essential data not yet available
-                if(state.getNm() == null || state.getM() == null || state.getU() == null || state.getU().getCamserv() == null) {
+                if(state.getNm() == null || state.getM() == null || state.getU() == null || state.getU().getCamserv() == null || state.getU().getCamserv() == 0) {
+                    return;
+                }
+
+                // tokens not yet available
+                if(ctxenc == null) {
                     return;
                 }
 
@@ -344,7 +401,7 @@ public class MyFreeCamsClient {
                     model.setUid(state.getUid());
                     models.put(state.getUid(), model);
                 }
-                model.update(state);
+                model.update(state, getStreamUrl(state));
             }
 
             private Message parseMessage(StringBuilder msg) throws UnsupportedEncodingException {
@@ -406,13 +463,41 @@ public class MyFreeCamsClient {
         try {
             for (SessionState state : sessionStates.values()) {
                 if(Objects.equals(state.getNm(), model.getName())) {
-                    model.update(state);
+                    model.update(state, getStreamUrl(state));
                     return;
                 }
             }
         } finally {
             lock.unlock();
         }
+    }
+
+    String getStreamUrl(SessionState state) {
+        Integer camserv = state.getU().getCamserv();
+        if(camserv != null) {
+            int userChannel = 100000000 + state.getUid();
+            String streamUrl = "";
+            String phase = state.getU().getPhase() != null ? state.getU().getPhase() : "z";
+            if(serverConfig.isOnNgServer(state)) {
+                String server = serverConfig.ngVideoServers.get(camserv.toString());
+                streamUrl = "https://" + server + ".myfreecams.com:8444/x-hls/" + cxid + '/' + userChannel + '/' + ctxenc + "/mfc_" + phase + '_' + userChannel + ".m3u8";
+                //LOG.debug("{} {}", state.getNm(), streamUrl);
+            } else if(serverConfig.isOnWzObsVideoServer(state)) {
+                String server = serverConfig.wzobsServers.get(camserv.toString());
+                streamUrl = "https://"+ server + ".myfreecams.com/NxServer/ngrp:mfc_" + phase + '_' + userChannel + ".f4v_mobile/playlist.m3u8";
+                LOG.debug("{} isOnWzObsvideo: {}", state.getNm(), streamUrl);
+            } else if(serverConfig.isOnHtml5VideoServer(state)) {
+                String server = serverConfig.h5Servers.get(camserv.toString());
+                streamUrl = "https://"+ server + ".myfreecams.com/NxServer/ngrp:mfc_" + userChannel + ".f4v_mobile/playlist.m3u8";
+            } else {
+                if(camserv > 500) {
+                    camserv -= 500;
+                }
+                streamUrl = "https://video" + camserv + ".myfreecams.com/NxServer/ngrp:mfc_" + userChannel + ".f4v_mobile/playlist.m3u8";
+            }
+            return streamUrl;
+        }
+        return null;
     }
 
     public MyFreeCamsModel getModel(int uid) {
@@ -431,5 +516,9 @@ public class MyFreeCamsClient {
                 System.out.println("#####################");
             }
         }
+    }
+
+    public ServerConfig getServerConfig() {
+        return serverConfig;
     }
 }

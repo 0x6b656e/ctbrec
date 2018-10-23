@@ -56,7 +56,8 @@ public class FriendsUpdateService extends PaginatedScheduledService {
                                 st.setUid(uid);
                                 st.setLv(modelObject.getInt("lv"));
                                 st.setVs(127);
-                                model.update(st);
+
+                                model.update(st, myFreeCams.getClient().getStreamUrl(st));
                             }
                             models.add(model);
                         }

@@ -80,13 +80,16 @@ public class MyFreeCamsModel extends AbstractModel {
                 if(playlist.getStreamInfo().getResolution() != null) {
                     src.width = playlist.getStreamInfo().getResolution().width;
                     src.height = playlist.getStreamInfo().getResolution().height;
-                    String masterUrl = hlsUrl;
-                    String baseUrl = masterUrl.substring(0, masterUrl.lastIndexOf('/') + 1);
-                    String segmentUri = baseUrl + playlist.getUri();
-                    src.mediaPlaylistUrl = segmentUri;
-                    LOG.trace("Media playlist {}", src.mediaPlaylistUrl);
-                    sources.add(src);
+                } else {
+                    src.width = Integer.MAX_VALUE;
+                    src.height = Integer.MAX_VALUE;
                 }
+                String masterUrl = hlsUrl;
+                String baseUrl = masterUrl.substring(0, masterUrl.lastIndexOf('/') + 1);
+                String segmentUri = baseUrl + playlist.getUri();
+                src.mediaPlaylistUrl = segmentUri;
+                LOG.trace("Media playlist {}", src.mediaPlaylistUrl);
+                sources.add(src);
             }
         }
         return sources;
@@ -100,11 +103,15 @@ public class MyFreeCamsModel extends AbstractModel {
         Request req = new Request.Builder().url(hlsUrl).build();
         Response response = site.getHttpClient().execute(req);
         try {
-            InputStream inputStream = response.body().byteStream();
-            PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
-            Playlist playlist = parser.parse();
-            MasterPlaylist master = playlist.getMasterPlaylist();
-            return master;
+            if(response.isSuccessful()) {
+                InputStream inputStream = response.body().byteStream();
+                PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
+                Playlist playlist = parser.parse();
+                MasterPlaylist master = playlist.getMasterPlaylist();
+                return master;
+            } else {
+                throw new IOException(response.code() + " " + response.message());
+            }
         } finally {
             response.close();
         }
@@ -199,33 +206,16 @@ public class MyFreeCamsModel extends AbstractModel {
         this.state = state;
     }
 
-    public void update(SessionState state) {
+    public void update(SessionState state, String streamUrl) {
         setCamScore(state.getM().getCamscore());
         setState(State.of(state.getVs()));
+        setStreamUrl(streamUrl);
 
         // preview
         String uid = state.getUid().toString();
         String uidStart = uid.substring(0, 3);
         String previewUrl = "https://img.mfcimg.com/photos2/"+uidStart+'/'+uid+"/avatar.300x300.jpg";
         setPreview(previewUrl);
-
-        // stream url
-        Integer camserv = state.getU().getCamserv();
-        if(camserv != null) {
-            if(state.getM() != null) {
-                if(state.getM().getFlags() != null) {
-                    int flags = state.getM().getFlags();
-                    int hd = flags >> 18 & 0x1;
-                    if(hd == 1) {
-                        String hlsUrl = "http://video" + (camserv - 500) + ".myfreecams.com:1935/NxServer/ngrp:mfc_a_" + (100000000 + state.getUid()) + ".f4v_mobile/playlist.m3u8";
-                        setStreamUrl(hlsUrl);
-                        return;
-                    }
-                }
-            }
-            String hlsUrl = "http://video" + (camserv - 500) + ".myfreecams.com:1935/NxServer/ngrp:mfc_" + (100000000 + state.getUid()) + ".f4v_mobile/playlist.m3u8";
-            setStreamUrl(hlsUrl);
-        }
 
         // tags
         Optional.ofNullable(state.getM()).map((m) -> m.getTags()).ifPresent((tags) -> {

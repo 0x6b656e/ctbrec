@@ -36,7 +36,6 @@ public class MessageTypes {
     public static final int SERVERREFRESH = 27;
     public static final int SETTING = 28;
     public static final int BWSTATS = 29;
-    public static final int SETGUESTNAME = 30;
     public static final int TKX = 30;
     public static final int SETTEXTOPT = 31;
     public static final int SERVERCONFIG = 32;
@@ -61,7 +60,6 @@ public class MessageTypes {
     public static final int JOINCHAN = 51;
     public static final int CREATECHAN = 52;
     public static final int INVITECHAN = 53;
-    public static final int KICKCHAN = 54;
     public static final int QUIETCHAN = 55;
     public static final int BANCHAN = 56;
     public static final int PREVIEWCHAN = 57;
@@ -91,6 +89,9 @@ public class MessageTypes {
     public static final int EXTDATA = 81;
     public static final int NOTIFY = 84;
     public static final int PUBLISH = 85;
+    public static final int XREQUEST = 86;
+    public static final int XRESPONSE = 87;
+    public static final int EDGECON = 88;
     public static final int ZGWINVALID = 95;
     public static final int CONNECTING = 96;
     public static final int CONNECTED = 97;

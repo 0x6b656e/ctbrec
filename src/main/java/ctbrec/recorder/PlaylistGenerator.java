@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.jcodec.common.Demuxer;
 import org.jcodec.common.DemuxerTrack;
@@ -55,17 +57,13 @@ public class PlaylistGenerator {
 
         Arrays.sort(files, (f1, f2) -> {
             String n1 = f1.getName();
-            n1 = n1.substring(0, n1.length()-3);
-            int seq1 = Integer.parseInt(n1.substring(n1.lastIndexOf('_')+1));
-
+            int seq1 = getSequence(n1);
             String n2 = f2.getName();
-            n2 = n2.substring(0, n2.length()-3);
-            int seq2 = Integer.parseInt(n2.substring(n2.lastIndexOf('_')+1));
-
-            if(seq1 < seq2) return -1;
-            if(seq1 > seq2) return 1;
-            return 0;
+            int seq2 = getSequence(n2);
+            return seq1 - seq2;
         });
+
+        System.out.println(Arrays.toString(files));
 
         // create a track containing all files
         List<TrackData> track = new ArrayList<>();
@@ -113,6 +111,16 @@ public class PlaylistGenerator {
             LOG.debug("Finished playlist generation for {}", directory);
         }
         return output;
+    }
+
+    private int getSequence(String filename) {
+        filename = filename.substring(0, filename.lastIndexOf('.')); // cut off file suffix
+        Matcher matcher = Pattern.compile(".*?(\\d+)").matcher(filename);
+        if(matcher.matches()) {
+            return Integer.parseInt(matcher.group(1));
+        } else {
+            return -1;
+        }
     }
 
     private void updateProgressListeners(double percentage) {
@@ -191,7 +199,7 @@ public class PlaylistGenerator {
             File[] segments = recDir.listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(File dir, String name) {
-                    return name.startsWith("media_") && name.endsWith(".ts");
+                    return name.endsWith(".ts");
                 }
             });
             if(segments.length == 0) {

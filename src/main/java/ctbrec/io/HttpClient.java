@@ -1,6 +1,8 @@
 package ctbrec.io;
 
 import java.io.IOException;
+import java.net.Authenticator;
+import java.net.PasswordAuthentication;
 import java.util.concurrent.TimeUnit;
 
 import ctbrec.Config;
@@ -38,18 +40,15 @@ public abstract class HttpClient {
             System.setProperty("socksProxyVersion", "4");
             System.setProperty("socksProxyHost", Config.getInstance().getSettings().proxyHost);
             System.setProperty("socksProxyPort", Config.getInstance().getSettings().proxyPort);
-            if(Config.getInstance().getSettings().proxyUser != null && !Config.getInstance().getSettings().proxyUser.isEmpty()) {
-                System.setProperty("java.net.socks.username", Config.getInstance().getSettings().proxyUser);
-                System.setProperty("java.net.socks.password", Config.getInstance().getSettings().proxyPassword);
-            }
             break;
         case SOCKS5:
             System.setProperty("socksProxyVersion", "5");
             System.setProperty("socksProxyHost", Config.getInstance().getSettings().proxyHost);
             System.setProperty("socksProxyPort", Config.getInstance().getSettings().proxyPort);
             if(Config.getInstance().getSettings().proxyUser != null && !Config.getInstance().getSettings().proxyUser.isEmpty()) {
-                System.setProperty("java.net.socks.username", Config.getInstance().getSettings().proxyUser);
-                System.setProperty("java.net.socks.password", Config.getInstance().getSettings().proxyPassword);
+                String username = Config.getInstance().getSettings().proxyUser;
+                String password = Config.getInstance().getSettings().proxyPassword;
+                Authenticator.setDefault(new ProxyAuth(username, password));
             }
             break;
         case DIRECT:
@@ -101,5 +100,18 @@ public abstract class HttpClient {
     public void shutdown() {
         client.connectionPool().evictAll();
         client.dispatcher().executorService().shutdown();
+    }
+
+    public static class ProxyAuth extends Authenticator {
+        private PasswordAuthentication auth;
+
+        private ProxyAuth(String user, String password) {
+            auth = new PasswordAuthentication(user, password == null ? new char[]{} : password.toCharArray());
+        }
+
+        @Override
+        protected PasswordAuthentication getPasswordAuthentication() {
+            return auth;
+        }
     }
 }

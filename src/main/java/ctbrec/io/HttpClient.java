@@ -9,9 +9,12 @@ import ctbrec.Config;
 import ctbrec.Settings.ProxyType;
 import ctbrec.ui.CookieJarImpl;
 import okhttp3.ConnectionPool;
+import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
+import okhttp3.OkHttpClient.Builder;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.Route;
 
 public abstract class HttpClient {
     protected  OkHttpClient client;
@@ -32,8 +35,10 @@ public abstract class HttpClient {
             System.setProperty("https.proxyHost", Config.getInstance().getSettings().proxyHost);
             System.setProperty("https.proxyPort", Config.getInstance().getSettings().proxyPort);
             if(Config.getInstance().getSettings().proxyUser != null && !Config.getInstance().getSettings().proxyUser.isEmpty()) {
-                System.setProperty("http.proxyUser", Config.getInstance().getSettings().proxyUser);
-                System.setProperty("http.proxyPassword", Config.getInstance().getSettings().proxyPassword);
+                String username = Config.getInstance().getSettings().proxyUser;
+                String password = Config.getInstance().getSettings().proxyPassword;
+                System.setProperty("http.proxyUser", username);
+                System.setProperty("http.proxyPassword", password);
             }
             break;
         case SOCKS4:
@@ -48,7 +53,7 @@ public abstract class HttpClient {
             if(Config.getInstance().getSettings().proxyUser != null && !Config.getInstance().getSettings().proxyUser.isEmpty()) {
                 String username = Config.getInstance().getSettings().proxyUser;
                 String password = Config.getInstance().getSettings().proxyPassword;
-                Authenticator.setDefault(new ProxyAuth(username, password));
+                Authenticator.setDefault(new SocksProxyAuth(username, password));
             }
             break;
         case DIRECT:
@@ -88,13 +93,23 @@ public abstract class HttpClient {
 
     public void reconfigure() {
         loadProxySettings();
-        client = new OkHttpClient.Builder()
+        Builder builder = new OkHttpClient.Builder()
                 .cookieJar(cookieJar)
                 .connectTimeout(Config.getInstance().getSettings().httpTimeout, TimeUnit.MILLISECONDS)
                 .readTimeout(Config.getInstance().getSettings().httpTimeout, TimeUnit.MILLISECONDS)
-                .connectionPool(new ConnectionPool(50, 10, TimeUnit.MINUTES))
-                //.addInterceptor(new LoggingInterceptor())
-                .build();
+                .connectionPool(new ConnectionPool(50, 10, TimeUnit.MINUTES));
+        //.addInterceptor(new LoggingInterceptor());
+
+        ProxyType proxyType = Config.getInstance().getSettings().proxyType;
+        if (proxyType == ProxyType.HTTP) {
+            String username = Config.getInstance().getSettings().proxyUser;
+            String password = Config.getInstance().getSettings().proxyPassword;
+            if (username != null && !username.isEmpty()) {
+                builder.proxyAuthenticator(createHttpProxyAuthenticator(username, password));
+            }
+        }
+
+        client = builder.build();
     }
 
     public void shutdown() {
@@ -102,10 +117,20 @@ public abstract class HttpClient {
         client.dispatcher().executorService().shutdown();
     }
 
-    public static class ProxyAuth extends Authenticator {
+    private okhttp3.Authenticator createHttpProxyAuthenticator(String username, String password) {
+        return new okhttp3.Authenticator() {
+            @Override
+            public Request authenticate(Route route, Response response) throws IOException {
+                String credential = Credentials.basic(username, password);
+                return response.request().newBuilder().header("Proxy-Authorization", credential).build();
+            }
+        };
+    }
+
+    public static class SocksProxyAuth extends Authenticator {
         private PasswordAuthentication auth;
 
-        private ProxyAuth(String user, String password) {
+        private SocksProxyAuth(String user, String password) {
             auth = new PasswordAuthentication(user, password == null ? new char[]{} : password.toCharArray());
         }
 

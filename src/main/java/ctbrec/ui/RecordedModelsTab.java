@@ -127,6 +127,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         addModelBox.getChildren().addAll(modelLabel, model, addModelButton);
         modelLabel.setPadding(new Insets(5, 0, 0, 0));
         model.setPrefWidth(300);
+        model.setPromptText("e.g. MyFreeCams:ModelName");
         BorderPane.setMargin(addModelBox, new Insets(5));
         addModelButton.setOnAction((e) -> addModel(e));
 

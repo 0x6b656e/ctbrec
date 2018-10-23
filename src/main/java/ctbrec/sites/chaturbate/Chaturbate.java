@@ -41,7 +41,8 @@ public class Chaturbate implements Site {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(Chaturbate.class);
     public static final String BASE_URI = "https://chaturbate.com";
-    public static final String AFFILIATE_LINK = BASE_URI + "/in/?track=default&tour=LQps&campaign=55vTi&room=0xb00bface";
+    public static final String AFFILIATE_LINK = BASE_URI + "/in/?track=default&tour=grq0&campaign=55vTi";
+    public static final String REGISTRATION_LINK = BASE_URI + "/in/?track=default&tour=g4pe&campaign=55vTi";
     private Recorder recorder;
     private ChaturbateHttpClient httpClient;
 

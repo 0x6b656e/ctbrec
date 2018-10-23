@@ -188,7 +188,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         layout.add(password, 1, 1);
 
         Button createAccount = new Button("Create new Account");
-        createAccount.setOnAction((e) -> DesktopIntergation.open(Chaturbate.AFFILIATE_LINK));
+        createAccount.setOnAction((e) -> DesktopIntergation.open(Chaturbate.REGISTRATION_LINK));
         layout.add(createAccount, 1, 2);
         GridPane.setColumnSpan(createAccount, 2);
         GridPane.setMargin(username, new Insets(0, 0, 0, CHECKBOX_MARGIN));

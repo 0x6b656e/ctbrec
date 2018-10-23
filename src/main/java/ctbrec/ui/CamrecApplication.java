@@ -65,10 +65,14 @@ public class CamrecApplication extends Application {
         hostServices = getHostServices();
         createRecorder();
         for (Site site : sites) {
-            site.setRecorder(recorder);
-            site.init();
-            if (!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
-                site.login();
+            try {
+                site.setRecorder(recorder);
+                site.init();
+                if (!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
+                    site.login();
+                }
+            } catch(Exception e) {
+                LOG.error("Error while initializing site {}", site.getName(), e);
             }
         }
         createGui(primaryStage);

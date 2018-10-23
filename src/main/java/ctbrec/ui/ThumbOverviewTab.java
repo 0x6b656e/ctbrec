@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
@@ -30,6 +31,7 @@ import ctbrec.Model;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
 import ctbrec.sites.mfc.MyFreeCamsClient;
+import ctbrec.sites.mfc.MyFreeCamsModel;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Worker.State;
 import javafx.concurrent.WorkerStateEvent;
@@ -382,10 +384,6 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
             }
         }
 
-        MenuItem debug = new MenuItem("debug");
-        debug.setOnAction((e) -> {
-            MyFreeCamsClient.getInstance().getSessionState(cell.getModel());
-        });
 
         ContextMenu contextMenu = new ContextMenu();
         contextMenu.setAutoHide(true);
@@ -399,7 +397,14 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         if(site.supportsTips()) {
             contextMenu.getItems().add(sendTip);
         }
-        contextMenu.getItems().addAll(copyUrl, debug);
+        contextMenu.getItems().addAll(copyUrl);
+        if(cell.getModel() instanceof MyFreeCamsModel && !Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
+            MenuItem debug = new MenuItem("debug");
+            debug.setOnAction((e) -> {
+                MyFreeCamsClient.getInstance().getSessionState(cell.getModel());
+            });
+            contextMenu.getItems().add(debug);
+        }
         return contextMenu;
     }
 

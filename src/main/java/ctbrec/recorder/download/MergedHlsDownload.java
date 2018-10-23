@@ -1,7 +1,6 @@
 package ctbrec.recorder.download;
 
-import static java.nio.file.StandardOpenOption.CREATE;
-import static java.nio.file.StandardOpenOption.WRITE;
+import static java.nio.file.StandardOpenOption.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
@@ -66,10 +65,13 @@ public class MergedHlsDownload extends AbstractHlsDownload {
             mergeThread = createMergeThread(targetFile, progressListener, false);
             mergeThread.start();
             downloadSegments(segmentPlaylistUri, false);
+            mergeThread.join();
         } catch(ParseException e) {
             throw new IOException("Couldn't parse stream information", e);
         } catch(PlaylistException e) {
             throw new IOException("Couldn't parse HLS playlist", e);
+        } catch (InterruptedException e) {
+            throw new IOException("Couldn't wait for write thread to finish. Recording might be cut off", e);
         } finally {
             alive = false;
             streamer.stop();

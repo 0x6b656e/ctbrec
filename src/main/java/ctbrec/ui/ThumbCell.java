@@ -368,11 +368,28 @@ public class ThumbCell extends StackPane {
         new Thread(() -> {
             try {
                 if(follow) {
-                    model.follow();
+                    boolean followed = model.follow();
+                    if(!followed) {
+                        Platform.runLater(() -> {
+                            Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+                            alert.setTitle("Error");
+                            alert.setHeaderText("Couldn't follow model");
+                            alert.setContentText("");
+                            alert.showAndWait();
+                        });
+                    }
                 } else {
                     boolean unfollowed = model.unfollow();
                     if(unfollowed) {
                         Platform.runLater(() -> thumbCellList.remove(ThumbCell.this));
+                    } else {
+                        Platform.runLater(() -> {
+                            Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+                            alert.setTitle("Error");
+                            alert.setHeaderText("Couldn't unfollow model");
+                            alert.setContentText("");
+                            alert.showAndWait();
+                        });
                     }
                 }
             } catch (Exception e1) {

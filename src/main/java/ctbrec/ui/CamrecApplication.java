@@ -168,7 +168,7 @@ public class CamrecApplication extends Application {
         if (config.getSettings().localRecording) {
             recorder = new LocalRecorder(config);
         } else {
-            recorder = new RemoteRecorder(config, httpClient);
+            recorder = new RemoteRecorder(config, httpClient, sites);
         }
     }
 

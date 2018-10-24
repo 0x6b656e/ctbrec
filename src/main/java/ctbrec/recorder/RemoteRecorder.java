@@ -21,6 +21,7 @@ import ctbrec.Recording;
 import ctbrec.io.HttpClient;
 import ctbrec.io.InstantJsonAdapter;
 import ctbrec.io.ModelJsonAdapter;
+import ctbrec.sites.Site;
 import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.Request.Builder;
@@ -41,15 +42,18 @@ public class RemoteRecorder implements Recorder {
     private JsonAdapter<ModelRequest> modelRequestAdapter = moshi.adapter(ModelRequest.class);
 
     private List<Model> models = Collections.emptyList();
+    private List<Site> sites;
 
     private Config config;
     private HttpClient client;
     private Instant lastSync = Instant.EPOCH;
     private SyncThread syncThread;
 
-    public RemoteRecorder(Config config, HttpClient client) {
+
+    public RemoteRecorder(Config config, HttpClient client, List<Site> sites) {
         this.config = config;
         this.client = client;
+        this.sites = sites;
 
         syncThread = new SyncThread();
         syncThread.start();
@@ -144,6 +148,13 @@ public class RemoteRecorder implements Recorder {
                         ModelListResponse resp = modelListResponseAdapter.fromJson(json);
                         if(resp.status.equals("success")) {
                             models = resp.models;
+                            for (Model model : models) {
+                                for (Site site : sites) {
+                                    if(site.isSiteForModel(model)) {
+                                        model.setSite(site);
+                                    }
+                                }
+                            }
                             lastSync = Instant.now();
                         } else {
                             LOG.error("Server returned error: {} - {}", resp.status, resp.msg);

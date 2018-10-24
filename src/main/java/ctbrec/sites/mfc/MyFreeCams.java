@@ -100,7 +100,7 @@ public class MyFreeCams implements Site {
 
     @Override
     public boolean supportsFollow() {
-        return false;
+        return true;
     }
 
     @Override

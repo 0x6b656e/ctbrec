@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.eclipse.jetty.util.StringUtil;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -26,6 +27,8 @@ import com.google.common.collect.EvictingQueue;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 
+import ctbrec.Config;
+import okhttp3.Cookie;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.WebSocket;
@@ -52,6 +55,8 @@ public class MyFreeCamsClient {
     private Integer cxid;
     private int[] ctx;
     private String ctxenc;
+    private String chatToken;
+    private int sessionId;
 
     private EvictingQueue<String> receivedTextHistory = EvictingQueue.create(100);
 
@@ -125,17 +130,10 @@ public class MyFreeCamsClient {
                 try {
                     LOG.trace("open: [{}]", response.body().string());
                     webSocket.send("hello fcserver\n");
-                    //                    webSocket.send("fcsws_20180422\n");
-                    //                    webSocket.send("1 0 0 81 0 %7B%22err%22%3A0%2C%22start%22%3A1540159843072%2C%22stop%22%3A1540159844121%2C%22a%22%3A6392%2C%22time%22%3A1540159844%2C%22key%22%3A%228da80f985c9db390809713dac71df297%22%2C%22cid%22%3A%22c504d684%22%2C%22pid%22%3A1%2C%22site%22%3A%22www%22%7D\n");
-                    // TxCmd Sending - nType: 1, nTo: 0, nArg1: 20080909, nArg2: 0, sMsg:guest:guest
-                    //                    String username = Config.getInstance().getSettings().username;
-                    //                    if(username != null && !username.trim().isEmpty()) {
-                    //                        mfc.getHttpClient().login();
-                    //                        Cookie passcode = mfc.getHttpClient().getCookie("passcode");
-                    //                        webSocket.send("1 0 0 20080909 0 "+username+":"+passcode+"\n");
-                    //                    } else {
-                    webSocket.send("1 0 0 20080909 0 guest:guest\n");
-                    //                    }
+                    webSocket.send("fcsws_20180422\n");
+                    // TODO find out, what the values in the json message mean, at the moment we hust send 0s, which seems to work, too
+                    // webSocket.send("1 0 0 81 0 %7B%22err%22%3A0%2C%22start%22%3A1540159843072%2C%22stop%22%3A1540159844121%2C%22a%22%3A6392%2C%22time%22%3A1540159844%2C%22key%22%3A%228da80f985c9db390809713dac71df297%22%2C%22cid%22%3A%22c504d684%22%2C%22pid%22%3A1%2C%22site%22%3A%22www%22%7D\n");
+                    webSocket.send("1 0 0 81 0 %7B%22err%22%3A0%2C%22start%22%3A0%2C%22stop%22%3A0%2C%22a%22%3A0%2C%22time%22%3A0%2C%22key%22%3A%22%22%2C%22cid%22%3A%22%22%2C%22pid%22%3A1%2C%22site%22%3A%22www%22%7D\n");
                     startKeepAlive(webSocket);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -179,12 +177,8 @@ public class MyFreeCamsClient {
                     case NULL:
                         break;
                     case LOGIN:
-                        //                        System.out.println("LOGIN");
-                        //                        System.out.println("Sender " + message.getSender());
-                        //                        System.out.println("Receiver " + message.getReceiver());
-                        //                        System.out.println("Arg1 " + message.getArg1());
-                        //                        System.out.println("Arg2 " + message.getArg2());
-                        //                        System.out.println("Msg " + message.getMessage());
+                        LOG.debug("LOGIN: {}", message);
+                        sessionId = message.getReceiver();
                         break;
                     case DETAILS:
                     case ROOMHELPER:
@@ -205,7 +199,7 @@ public class MyFreeCamsClient {
                                 SessionState sessionState = adapter.fromJson(message.getMessage());
                                 updateSessionState(sessionState);
                             } catch (IOException e) {
-                                LOG.error("Couldn't parse session state message", e);
+                                LOG.error("Couldn't parse session state message {}", message, e);
                             }
                         }
                         break;
@@ -222,44 +216,46 @@ public class MyFreeCamsClient {
                         }
                         break;
                     case EXTDATA:
-                        //                        if(message.getReceiver() == 0) {
-                        //                            String key = message.getMessage();
-                        //                            String username = Config.getInstance().getSettings().username;
-                        //                            if(username != null && !username.trim().isEmpty()) {
-                        //                                boolean login = mfc.getHttpClient().login();
-                        //                                if(login) {
-                        //                                    Cookie passcode = mfc.getHttpClient().getCookie("passcode");
-                        //                                    System.out.println("1 0 0 20071025 0 "+key+"@1/"+username+":"+passcode+"\n");
-                        //                                    webSocket.send("1 0 0 20071025 0 "+key+"@1/"+username+":"+passcode+"\n");
-                        //                                } else {
-                        //                                    LOG.error("Login failed");
-                        //                                }
-                        //                            } else {
-                        //                                webSocket.send("1 0 0 20080909 0 guest:guest\n");
-                        //                            }
-                        //                        }
-                        //                        System.out.println("EXTDATA");
-                        //                        System.out.println("Sender " + message.getSender());
-                        //                        System.out.println("Receiver " + message.getReceiver());
-                        //                        System.out.println("Arg1 " + message.getArg1());
-                        //                        System.out.println("Arg2 " + message.getArg2());
-                        //                        System.out.println("Msg " + message.getMessage());
-                        requestExtData(message.getMessage());
+                        if(message.getArg1() == MessageTypes.LOGIN) {
+                            chatToken = message.getMessage();
+                            String username = Config.getInstance().getSettings().username;
+                            if(StringUtil.isNotBlank(username)) {
+                                boolean login = mfc.getHttpClient().login();
+                                if (login) {
+                                    Cookie passcode = mfc.getHttpClient().getCookie("passcode");
+                                    webSocket.send("1 0 0 20071025 0 " + chatToken + "@1/" + username + ":" + passcode.value() + "\n");
+                                } else {
+                                    LOG.error("Login failed");
+                                    webSocket.send("1 0 0 20080909 0 guest:guest\n");
+                                }
+                            } else {
+                                webSocket.send("1 0 0 20080909 0 guest:guest\n");
+                            }
+                        } else if(message.getArg1() == MessageTypes.MANAGELIST) {
+                            requestExtData(message.getMessage());
+                        } else {
+                            System.out.println("EXTDATA");
+                            System.out.println("  Sender " + message.getSender());
+                            System.out.println("  Receiver " + message.getReceiver());
+                            System.out.println("  Arg1 " + message.getArg1());
+                            System.out.println("  Arg2 " + message.getArg2());
+                            System.out.println("  Msg " + message.getMessage());
+                        }
                         break;
                     case ROOMDATA:
                         System.out.println("ROOMDATA");
-                        System.out.println("Sender " + message.getSender());
-                        System.out.println("Receiver " + message.getReceiver());
-                        System.out.println("Arg1 " + message.getArg1());
-                        System.out.println("Arg2 " + message.getArg2());
-                        System.out.println("Msg " + message.getMessage());
+                        System.out.println("  Sender " + message.getSender());
+                        System.out.println("  Receiver " + message.getReceiver());
+                        System.out.println("  Arg1 " + message.getArg1());
+                        System.out.println("  Arg2 " + message.getArg2());
+                        System.out.println("  Msg " + message.getMessage());
                     case UEOPT:
                         System.out.println("UEOPT");
-                        System.out.println("Sender " + message.getSender());
-                        System.out.println("Receiver " + message.getReceiver());
-                        System.out.println("Arg1 " + message.getArg1());
-                        System.out.println("Arg2 " + message.getArg2());
-                        System.out.println("Msg " + message.getMessage());
+                        System.out.println("  Sender " + message.getSender());
+                        System.out.println("  Receiver " + message.getReceiver());
+                        System.out.println("  Arg1 " + message.getArg1());
+                        System.out.println("  Arg2 " + message.getArg2());
+                        System.out.println("  Msg " + message.getMessage());
                         break;
                     case SLAVEVSHARE:
                         //                        LOG.debug("SLAVEVSHARE {}", message);
@@ -312,6 +308,7 @@ public class MyFreeCamsClient {
                 JSONObject object = new JSONObject(json);
                 if(object.has("type") && object.getInt("type") == 21) {
                     JSONArray outer = object.getJSONArray("rdata");
+                    LOG.debug("{} models", outer.length());
                     for (int i = 1; i < outer.length(); i++) {
                         JSONArray inner = outer.getJSONArray(i);
                         try {
@@ -436,6 +433,7 @@ public class MyFreeCamsClient {
                                 fout.write(string.getBytes());
                                 fout.write(10);
                             }
+                            //System.exit(1);
                         } catch (Exception e1) {
                             LOG.error("Couldn't write mfc message history to " + logfile);
                             e1.printStackTrace();
@@ -460,6 +458,22 @@ public class MyFreeCamsClient {
             }
         });
         return ws;
+    }
+
+    protected boolean follow(int uid) {
+        if(ws != null) {
+            return ws.send(ADDFRIENDREQ + " " + sessionId + " 0 " + uid + " 1\n");
+        } else {
+            return false;
+        }
+    }
+
+    protected boolean unfollow(int uid) {
+        if(ws != null) {
+            return ws.send(ADDFRIENDREQ + " " + sessionId + " 0 " + uid + " 2\n");
+        } else {
+            return false;
+        }
     }
 
     private void startKeepAlive(WebSocket ws) {
@@ -535,6 +549,9 @@ public class MyFreeCamsClient {
                 JsonAdapter<SessionState> adapter = moshi.adapter(SessionState.class).indent("  ");
                 System.out.println(adapter.toJson(state));
                 System.out.println(model.getPreview());
+                System.out.println("H5 " + serverConfig.isOnHtml5VideoServer(state));
+                System.out.println("NG " + serverConfig.isOnNgServer(state));
+                System.out.println("WZ " + serverConfig.isOnWzObsVideoServer(state));
                 System.out.println("#####################");
             }
         }

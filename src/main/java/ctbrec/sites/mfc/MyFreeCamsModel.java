@@ -271,12 +271,12 @@ public class MyFreeCamsModel extends AbstractModel {
 
     @Override
     public boolean follow() {
-        return false;
+        return site.getClient().follow(getUid());
     }
 
     @Override
     public boolean unfollow() {
-        return false;
+        return site.getClient().unfollow(getUid());
     }
 
     public int getUid() {

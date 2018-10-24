@@ -1,11 +1,13 @@
 package ctbrec.sites.chaturbate;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
+import org.eclipse.jetty.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,18 +46,22 @@ public class ChaturbateUpdateService extends PaginatedScheduledService {
         return new Task<List<Model>>() {
             @Override
             public List<Model> call() throws IOException {
-                String url = ChaturbateUpdateService.this.url + "?page="+page+"&keywords=&_=" + System.currentTimeMillis();
-                LOG.debug("Fetching page {}", url);
-                Request request = new Request.Builder().url(url).build();
-                Response response = chaturbate.getHttpClient().execute(request, loginRequired);
-                if (response.isSuccessful()) {
-                    List<Model> models = ChaturbateModelParser.parseModels(chaturbate, response.body().string());
-                    response.close();
-                    return models;
+                if(loginRequired && StringUtil.isBlank(ctbrec.Config.getInstance().getSettings().username)) {
+                    return Collections.emptyList();
                 } else {
-                    int code = response.code();
-                    response.close();
-                    throw new IOException("HTTP status " + code);
+                    String url = ChaturbateUpdateService.this.url + "?page="+page+"&keywords=&_=" + System.currentTimeMillis();
+                    LOG.debug("Fetching page {}", url);
+                    Request request = new Request.Builder().url(url).build();
+                    Response response = chaturbate.getHttpClient().execute(request, loginRequired);
+                    if (response.isSuccessful()) {
+                        List<Model> models = ChaturbateModelParser.parseModels(chaturbate, response.body().string());
+                        response.close();
+                        return models;
+                    } else {
+                        int code = response.code();
+                        response.close();
+                        throw new IOException("HTTP status " + code);
+                    }
                 }
             }
         };

@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ctbrec.recorder.Recorder;
-import ctbrec.ui.FollowedTab;
 import ctbrec.ui.TabProvider;
 import ctbrec.ui.ThumbOverviewTab;
 import javafx.scene.Scene;
@@ -29,7 +28,7 @@ public class ChaturbateTabProvider extends TabProvider {
         tabs.add(createTab("Male", BASE_URI + "/male-cams/"));
         tabs.add(createTab("Couples", BASE_URI + "/couple-cams/"));
         tabs.add(createTab("Trans", BASE_URI + "/trans-cams/"));
-        FollowedTab followedTab = new FollowedTab("Followed", BASE_URI + "/followed-cams/", chaturbate);
+        ChaturbateFollowedTab followedTab = new ChaturbateFollowedTab("Followed", BASE_URI + "/followed-cams/", chaturbate);
         followedTab.setRecorder(recorder);
         followedTab.setScene(scene);
         tabs.add(followedTab);

@@ -1,7 +1,6 @@
-package ctbrec.ui;
+package ctbrec.sites.chaturbate;
 
-import ctbrec.sites.chaturbate.Chaturbate;
-import ctbrec.sites.chaturbate.ChaturbateUpdateService;
+import ctbrec.ui.ThumbOverviewTab;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
@@ -12,12 +11,12 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 
-public class FollowedTab extends ThumbOverviewTab {
+public class ChaturbateFollowedTab extends ThumbOverviewTab {
     private Label status;
     private String onlineUrl;
     private String offlineUrl;
 
-    public FollowedTab(String title, String url, Chaturbate chaturbate) {
+    public ChaturbateFollowedTab(String title, String url, Chaturbate chaturbate) {
         super(title, new ChaturbateUpdateService(url, true, chaturbate), chaturbate);
         onlineUrl = url;
         offlineUrl = url + "offline/";
@@ -27,7 +26,7 @@ public class FollowedTab extends ThumbOverviewTab {
     }
 
     @Override
-    void createGui() {
+    protected void createGui() {
         super.createGui();
         addOnlineOfflineSelector();
     }

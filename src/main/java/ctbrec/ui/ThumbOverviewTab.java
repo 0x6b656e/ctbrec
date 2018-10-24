@@ -21,6 +21,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.eclipse.jetty.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +31,6 @@ import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
-import ctbrec.sites.chaturbate.ChaturbateFollowedTab;
 import ctbrec.sites.mfc.MyFreeCamsClient;
 import ctbrec.sites.mfc.MyFreeCamsModel;
 import javafx.collections.ObservableList;
@@ -391,10 +391,9 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         contextMenu.setAutoHide(true);
         contextMenu.setHideOnEscape(true);
         contextMenu.setAutoFix(true);
-        // TODO get rid of direct reference to Chaturbate
-        MenuItem followOrUnFollow = this instanceof ChaturbateFollowedTab ? unfollow : follow;
         contextMenu.getItems().addAll(openInPlayer, startStop);
-        if(site.supportsFollow()) {
+        if(site.supportsFollow() && StringUtil.isNotBlank(Config.getInstance().getSettings().username)) {
+            MenuItem followOrUnFollow = (this instanceof FollowedTab) ? unfollow : follow;
             contextMenu.getItems().add(followOrUnFollow);
         }
         if(site.supportsTips()) {

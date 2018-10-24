@@ -3,6 +3,7 @@ import static ctbrec.sites.mfc.FriendsUpdateService.Mode.*;
 
 import java.util.concurrent.TimeUnit;
 
+import ctbrec.ui.FollowedTab;
 import ctbrec.ui.ThumbOverviewTab;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
@@ -13,7 +14,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.util.Duration;
 
-public class MyFreeCamsFriendsTab extends ThumbOverviewTab {
+public class MyFreeCamsFriendsTab extends ThumbOverviewTab implements FollowedTab {
     public MyFreeCamsFriendsTab(MyFreeCams mfc) {
         super("Friends", new FriendsUpdateService(mfc), mfc);
         updateService.setPeriod(new Duration(TimeUnit.SECONDS.toMillis(10)));

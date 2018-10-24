@@ -1,5 +1,6 @@
 package ctbrec.sites.chaturbate;
 
+import ctbrec.ui.FollowedTab;
 import ctbrec.ui.ThumbOverviewTab;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.geometry.Insets;
@@ -11,7 +12,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 
-public class ChaturbateFollowedTab extends ThumbOverviewTab {
+public class ChaturbateFollowedTab extends ThumbOverviewTab implements FollowedTab {
     private Label status;
     private String onlineUrl;
     private String offlineUrl;

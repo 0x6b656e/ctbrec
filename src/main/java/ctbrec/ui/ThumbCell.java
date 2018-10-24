@@ -67,7 +67,7 @@ public class ThumbCell extends StackPane {
     ContextMenu popup;
     private final Color colorNormal = Color.BLACK;
     private final Color colorHighlight = Color.WHITE;
-    private final Color colorRecording = new Color(0.8, 0.28, 0.28, 1);
+    private final Color colorRecording = new Color(0.8, 0.28, 0.28, .8);
     private SimpleBooleanProperty selectionProperty = new SimpleBooleanProperty(false);
     private double imgAspectRatio = 3.0 / 4.0;
 
@@ -416,7 +416,9 @@ public class ThumbCell extends StackPane {
     private void update() {
         setRecording(recorder.isRecording(model));
         setImage(model.getPreview());
-        topic.setText(model.getDescription());
+        String txt = recording ? "    " : "";
+        txt += model.getDescription();
+        topic.setText(txt);
 
         if(Config.getInstance().getSettings().determineResolution) {
             determineResolution();

@@ -58,7 +58,7 @@ public class MyFreeCamsClient {
     private String chatToken;
     private int sessionId;
 
-    private EvictingQueue<String> receivedTextHistory = EvictingQueue.create(100);
+    private EvictingQueue<String> receivedTextHistory = EvictingQueue.create(10000);
 
     private MyFreeCamsClient() {
         moshi = new Moshi.Builder().build();
@@ -168,98 +168,95 @@ public class MyFreeCamsClient {
                 msgBuffer.append(text);
                 Message message;
                 try {
-                    message = parseMessage(msgBuffer);
-                    if (message != null) {
-                        msgBuffer.setLength(0);
-                    }
-
-                    switch (message.getType()) {
-                    case NULL:
-                        break;
-                    case LOGIN:
-                        LOG.debug("LOGIN: {}", message);
-                        sessionId = message.getReceiver();
-                        break;
-                    case DETAILS:
-                    case ROOMHELPER:
-                    case ADDFRIEND:
-                    case ADDIGNORE:
-                    case CMESG:
-                    case PMESG:
-                    case TXPROFILE:
-                    case USERNAMELOOKUP:
-                    case MYCAMSTATE:
-                    case MYWEBCAM:
-                    case JOINCHAN:
-                    case SESSIONSTATE:
-                        if(!message.getMessage().isEmpty()) {
-                            //LOG.debug("SessionState: {}", message.getMessage());
-                            JsonAdapter<SessionState> adapter = moshi.adapter(SessionState.class);
-                            try {
-                                SessionState sessionState = adapter.fromJson(message.getMessage());
-                                updateSessionState(sessionState);
-                            } catch (IOException e) {
-                                LOG.error("Couldn't parse session state message {}", message, e);
+                    while( (message = parseMessage(msgBuffer)) != null) {
+                        switch (message.getType()) {
+                        case NULL:
+                            break;
+                        case LOGIN:
+                            LOG.debug("LOGIN: {}", message);
+                            sessionId = message.getReceiver();
+                            break;
+                        case DETAILS:
+                        case ROOMHELPER:
+                        case ADDFRIEND:
+                        case ADDIGNORE:
+                        case CMESG:
+                        case PMESG:
+                        case TXPROFILE:
+                        case USERNAMELOOKUP:
+                        case MYCAMSTATE:
+                        case MYWEBCAM:
+                        case JOINCHAN:
+                        case SESSIONSTATE:
+                            if(!message.getMessage().isEmpty()) {
+                                //LOG.debug("SessionState: {}", message.getMessage());
+                                JsonAdapter<SessionState> adapter = moshi.adapter(SessionState.class);
+                                try {
+                                    SessionState sessionState = adapter.fromJson(message.getMessage());
+                                    updateSessionState(sessionState);
+                                } catch (IOException e) {
+                                    LOG.error("Couldn't parse session state message {}", message, e);
+                                }
                             }
-                        }
-                        break;
-                    case TAGS:
-                        JSONObject json = new JSONObject(message.getMessage());
-                        String[] names = JSONObject.getNames(json);
-                        Integer uid = Integer.parseInt(names[0]);
-                        SessionState sessionState = sessionStates.get(uid);
-                        if (sessionState != null) {
-                            JSONArray tags = json.getJSONArray(names[0]);
-                            for (Object obj : tags) {
-                                sessionState.getM().getTags().add((String) obj);
+                            break;
+                        case TAGS:
+                            JSONObject json = new JSONObject(message.getMessage());
+                            String[] names = JSONObject.getNames(json);
+                            Integer uid = Integer.parseInt(names[0]);
+                            SessionState sessionState = sessionStates.get(uid);
+                            if (sessionState != null) {
+                                JSONArray tags = json.getJSONArray(names[0]);
+                                for (Object obj : tags) {
+                                    sessionState.getM().getTags().add((String) obj);
+                                }
                             }
-                        }
-                        break;
-                    case EXTDATA:
-                        if(message.getArg1() == MessageTypes.LOGIN) {
-                            chatToken = message.getMessage();
-                            String username = Config.getInstance().getSettings().username;
-                            if(StringUtil.isNotBlank(username)) {
-                                boolean login = mfc.getHttpClient().login();
-                                if (login) {
-                                    Cookie passcode = mfc.getHttpClient().getCookie("passcode");
-                                    webSocket.send("1 0 0 20071025 0 " + chatToken + "@1/" + username + ":" + passcode.value() + "\n");
+                            break;
+                        case EXTDATA:
+                            if(message.getArg1() == MessageTypes.LOGIN) {
+                                chatToken = message.getMessage();
+                                String username = Config.getInstance().getSettings().username;
+                                if(StringUtil.isNotBlank(username)) {
+                                    boolean login = mfc.getHttpClient().login();
+                                    if (login) {
+                                        Cookie passcode = mfc.getHttpClient().getCookie("passcode");
+                                        webSocket.send("1 0 0 20071025 0 " + chatToken + "@1/" + username + ":" + passcode.value() + "\n");
+                                    } else {
+                                        LOG.error("Login failed");
+                                        webSocket.send("1 0 0 20080909 0 guest:guest\n");
+                                    }
                                 } else {
-                                    LOG.error("Login failed");
                                     webSocket.send("1 0 0 20080909 0 guest:guest\n");
                                 }
+                            } else if(message.getArg1() == MessageTypes.MANAGELIST) {
+                                requestExtData(message.getMessage());
                             } else {
-                                webSocket.send("1 0 0 20080909 0 guest:guest\n");
+                                LOG.debug("EXTDATA: {}", message);
                             }
-                        } else if(message.getArg1() == MessageTypes.MANAGELIST) {
-                            requestExtData(message.getMessage());
-                        } else {
-                            LOG.debug("EXTDATA: {}", message);
+                            break;
+                        case ROOMDATA:
+                            LOG.debug("ROOMDATA: {}", message);
+                        case UEOPT:
+                            LOG.debug("UEOPT: {}", message);
+                            break;
+                        case SLAVEVSHARE:
+                            //                        LOG.debug("SLAVEVSHARE {}", message);
+                            //                        LOG.debug("SLAVEVSHARE MSG [{}]", message.getMessage());
+                            break;
+                        case TKX:
+                            json = new JSONObject(message.getMessage());
+                            tkx = json.getString("tkx");
+                            cxid = json.getInt("cxid");
+                            ctxenc = URLDecoder.decode(json.getString("ctxenc"), "utf-8");
+                            JSONArray ctxArray = json.getJSONArray("ctx");
+                            ctx = new int[ctxArray.length()];
+                            for (int i = 0; i < ctxArray.length(); i++) {
+                                ctx[i] = ctxArray.getInt(i);
+                            }
+                            break;
+                        default:
+                            LOG.debug("Unknown message {}", message);
+                            break;
                         }
-                        break;
-                    case ROOMDATA:
-                        LOG.debug("ROOMDATA: {}", message);
-                    case UEOPT:
-                        LOG.debug("UEOPT: {}", message);
-                        break;
-                    case SLAVEVSHARE:
-                        //                        LOG.debug("SLAVEVSHARE {}", message);
-                        //                        LOG.debug("SLAVEVSHARE MSG [{}]", message.getMessage());
-                        break;
-                    case TKX:
-                        json = new JSONObject(message.getMessage());
-                        tkx = json.getString("tkx");
-                        cxid = json.getInt("cxid");
-                        ctxenc = URLDecoder.decode(json.getString("ctxenc"), "utf-8");
-                        JSONArray ctxArray = json.getJSONArray("ctx");
-                        ctx = new int[ctxArray.length()];
-                        for (int i = 0; i < ctxArray.length(); i++) {
-                            ctx[i] = ctxArray.getInt(i);
-                        }
-                        break;
-                    default:
-                        LOG.debug("Unknown message {}", message);
-                        break;
                     }
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
@@ -391,27 +388,30 @@ public class MyFreeCamsClient {
                 model.update(state, getStreamUrl(state));
             }
 
-            private Message parseMessage(StringBuilder msg) throws UnsupportedEncodingException {
-                if (msg.length() < 4) {
+            private Message parseMessage(StringBuilder msgBuffer) throws UnsupportedEncodingException {
+                if (msgBuffer.length() < 4) {
                     // packet size not transmitted completely
                     return null;
                 } else {
                     try {
-                        int packetLength = Integer.parseInt(msg.substring(0, 4));
-                        if (packetLength > msg.length() - 4) {
+                        int packetLength = Integer.parseInt(msgBuffer.substring(0, 4));
+                        if (packetLength > msgBuffer.length() - 4) {
                             // packet not complete
                             return null;
                         } else {
-                            msg.delete(0, 4);
-                            int type = parseNextInt(msg);
-                            int sender = parseNextInt(msg);
-                            int receiver = parseNextInt(msg);
-                            int arg1 = parseNextInt(msg);
-                            int arg2 = parseNextInt(msg);
-                            return new Message(type, sender, receiver, arg1, arg2, URLDecoder.decode(msg.toString(), "utf-8"));
+                            msgBuffer.delete(0, 4);
+                            StringBuilder rawMessage = new StringBuilder(msgBuffer.substring(0, packetLength));
+                            int type = parseNextInt(rawMessage);
+                            int sender = parseNextInt(rawMessage);
+                            int receiver = parseNextInt(rawMessage);
+                            int arg1 = parseNextInt(rawMessage);
+                            int arg2 = parseNextInt(rawMessage);
+                            Message message = new Message(type, sender, receiver, arg1, arg2, URLDecoder.decode(rawMessage.toString(), "utf-8"));
+                            msgBuffer.delete(0, packetLength);
+                            return message;
                         }
                     } catch(Exception e) {
-                        LOG.error("StringBuilder contains invalid data {}", msg.toString(), e);
+                        LOG.error("StringBuilder contains invalid data {}", msgBuffer.toString(), e);
                         String logfile = "mfc_messages.log";
                         try(FileOutputStream fout = new FileOutputStream(logfile)) {
                             for (String string : receivedTextHistory) {
@@ -423,7 +423,7 @@ public class MyFreeCamsClient {
                             LOG.error("Couldn't write mfc message history to " + logfile);
                             e1.printStackTrace();
                         }
-                        msg.setLength(0);
+                        msgBuffer.setLength(0);
                         return null;
                     }
                 }
@@ -501,11 +501,9 @@ public class MyFreeCamsClient {
             if(serverConfig.isOnNgServer(state)) {
                 String server = serverConfig.ngVideoServers.get(camserv.toString());
                 streamUrl = "https://" + server + ".myfreecams.com:8444/x-hls/" + cxid + '/' + userChannel + '/' + ctxenc + "/mfc_" + phase + '_' + userChannel + ".m3u8";
-                //LOG.debug("{} {}", state.getNm(), streamUrl);
             } else if(serverConfig.isOnWzObsVideoServer(state)) {
                 String server = serverConfig.wzobsServers.get(camserv.toString());
                 streamUrl = "https://"+ server + ".myfreecams.com/NxServer/ngrp:mfc_" + phase + '_' + userChannel + ".f4v_mobile/playlist.m3u8";
-                LOG.debug("{} isOnWzObsvideo: {}", state.getNm(), streamUrl);
             } else if(serverConfig.isOnHtml5VideoServer(state)) {
                 String server = serverConfig.h5Servers.get(camserv.toString());
                 streamUrl = "https://"+ server + ".myfreecams.com/NxServer/ngrp:mfc_" + userChannel + ".f4v_mobile/playlist.m3u8";

@@ -4,7 +4,6 @@ package ctbrec.sites.mfc;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import org.json.JSONObject;
@@ -21,6 +20,12 @@ public class FriendsUpdateService extends PaginatedScheduledService {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(FriendsUpdateService.class);
     private MyFreeCams myFreeCams;
+    private Mode mode = Mode.ONLINE;
+
+    public static enum Mode {
+        ONLINE,
+        OFFLINE
+    }
 
     public FriendsUpdateService(MyFreeCams myFreeCams) {
         this.myFreeCams = myFreeCams;
@@ -31,7 +36,7 @@ public class FriendsUpdateService extends PaginatedScheduledService {
         return new Task<List<Model>>() {
             @Override
             public List<Model> call() throws IOException {
-                List<Model> models = new ArrayList<>();
+                List<MyFreeCamsModel> models = new ArrayList<>();
                 String url = myFreeCams.getBaseUrl() + "/php/manage_lists2.php?passcode=&list_type=friends&data_mode=online&get_user_list=1";
                 Request req = new Request.Builder()
                         .url(url)
@@ -69,25 +74,16 @@ public class FriendsUpdateService extends PaginatedScheduledService {
                     LOG.error("Couldn't load friends list {} {}", resp.code(), resp.message());
                     resp.close();
                 }
+                boolean filterOnline = mode == Mode.ONLINE;
                 return models.stream()
-                        .sorted((a, b) -> {
+                        .filter(m -> {
                             try {
-                                if(a.isOnline() && b.isOnline() || !a.isOnline() && !b.isOnline()) {
-                                    return a.getName().compareTo(b.getName());
-                                } else {
-                                    if(a.isOnline()) {
-                                        return -1;
-                                    }
-                                    if(b.isOnline()) {
-                                        return 1;
-                                    }
-                                }
-                            } catch (IOException | ExecutionException | InterruptedException e) {
-                                LOG.warn("Couldn't sort friends list", e);
-                                return 0;
+                                return m.isOnline() == filterOnline;
+                            } catch(Exception e) {
+                                return false;
                             }
-                            return 0;
                         })
+                        .sorted((m1,m2) -> (int)(m2.getCamScore() - m1.getCamScore()))
                         .skip((page-1) * 50)
                         .limit(50)
                         .collect(Collectors.toList());
@@ -95,4 +91,7 @@ public class FriendsUpdateService extends PaginatedScheduledService {
         };
     }
 
+    public void setMode(Mode mode) {
+        this.mode = mode;
+    }
 }

@@ -31,10 +31,8 @@ public class MyFreeCamsTabProvider extends TabProvider {
         updateService.setPeriod(new Duration(TimeUnit.SECONDS.toMillis(10)));
         tabs.add(online);
 
-        updateService = new FriendsUpdateService(myFreeCams);
-        ThumbOverviewTab friends = new ThumbOverviewTab("Friends", updateService, myFreeCams);
+        ThumbOverviewTab friends = new MyFreeCamsFriendsTab(myFreeCams);
         friends.setRecorder(recorder);
-        updateService.setPeriod(new Duration(TimeUnit.SECONDS.toMillis(10)));
         tabs.add(friends);
 
         updateService = new HDCamsUpdateService();

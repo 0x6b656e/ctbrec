@@ -30,6 +30,7 @@ import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
+import ctbrec.sites.chaturbate.ChaturbateFollowedTab;
 import ctbrec.sites.mfc.MyFreeCamsClient;
 import ctbrec.sites.mfc.MyFreeCamsModel;
 import javafx.collections.ObservableList;
@@ -61,20 +62,21 @@ import javafx.util.Duration;
 public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     private static final transient Logger LOG = LoggerFactory.getLogger(ThumbOverviewTab.class);
 
-    static Set<Model> resolutionProcessing = Collections.synchronizedSet(new HashSet<>());
-    static BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
+    protected static BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     static ExecutorService threadPool = new ThreadPoolExecutor(2, 2, 10, TimeUnit.MINUTES, queue);
+    static Set<Model> resolutionProcessing = Collections.synchronizedSet(new HashSet<>());
 
+    protected FlowPane grid = new FlowPane();
     protected PaginatedScheduledService updateService;
-    Recorder recorder;
+    protected HBox pagination;
+    protected List<ThumbCell> selectedThumbCells = Collections.synchronizedList(new ArrayList<>());
+
     List<ThumbCell> filteredThumbCells = Collections.synchronizedList(new ArrayList<>());
-    List<ThumbCell> selectedThumbCells = Collections.synchronizedList(new ArrayList<>());
+    Recorder recorder;
     String filter;
-    FlowPane grid = new FlowPane();
     ReentrantLock gridLock = new ReentrantLock();
     ScrollPane scrollPane = new ScrollPane();
     boolean loginRequired;
-    HBox pagination;
     TextField pageInput = new TextField(Integer.toString(1));
     Button pagePrev = new Button("◀");
     Button pageNext = new Button("▶");
@@ -93,7 +95,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         initializeUpdateService();
     }
 
-    void createGui() {
+    protected void createGui() {
         grid.setPadding(new Insets(5));
         grid.setHgap(5);
         grid.setVgap(5);
@@ -389,7 +391,8 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         contextMenu.setAutoHide(true);
         contextMenu.setHideOnEscape(true);
         contextMenu.setAutoFix(true);
-        MenuItem followOrUnFollow = this instanceof FollowedTab ? unfollow : follow;
+        // TODO get rid of direct reference to Chaturbate
+        MenuItem followOrUnFollow = this instanceof ChaturbateFollowedTab ? unfollow : follow;
         contextMenu.getItems().addAll(openInPlayer, startStop);
         if(site.supportsFollow()) {
             contextMenu.getItems().add(followOrUnFollow);
@@ -398,7 +401,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
             contextMenu.getItems().add(sendTip);
         }
         contextMenu.getItems().addAll(copyUrl);
-        if(cell.getModel() instanceof MyFreeCamsModel && !Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
+        if(cell.getModel() instanceof MyFreeCamsModel && Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
             MenuItem debug = new MenuItem("debug");
             debug.setOnAction((e) -> {
                 MyFreeCamsClient.getInstance().getSessionState(cell.getModel());
@@ -416,7 +419,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         }
     }
 
-    void follow(List<ThumbCell> selection, boolean follow) {
+    protected void follow(List<ThumbCell> selection, boolean follow) {
         for (ThumbCell thumbCell : selection) {
             thumbCell.follow(follow);
         }

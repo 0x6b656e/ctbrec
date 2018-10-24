@@ -21,7 +21,7 @@ public class HDCamsUpdateService extends PaginatedScheduledService {
                 return client.getModels().stream()
                         .filter(m -> m.getPreview() != null)
                         .filter(m -> m.getStreamUrl() != null)
-                        .filter(m -> m.getStreamUrl().contains("/x-hls/"))
+                        .filter(m -> m.getStreamUrl().contains("mfc_a_"))
                         .filter(m -> {
                             try {
                                 return m.isOnline();

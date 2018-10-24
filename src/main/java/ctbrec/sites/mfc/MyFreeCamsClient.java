@@ -234,28 +234,13 @@ public class MyFreeCamsClient {
                         } else if(message.getArg1() == MessageTypes.MANAGELIST) {
                             requestExtData(message.getMessage());
                         } else {
-                            System.out.println("EXTDATA");
-                            System.out.println("  Sender " + message.getSender());
-                            System.out.println("  Receiver " + message.getReceiver());
-                            System.out.println("  Arg1 " + message.getArg1());
-                            System.out.println("  Arg2 " + message.getArg2());
-                            System.out.println("  Msg " + message.getMessage());
+                            LOG.debug("EXTDATA: {}", message);
                         }
                         break;
                     case ROOMDATA:
-                        System.out.println("ROOMDATA");
-                        System.out.println("  Sender " + message.getSender());
-                        System.out.println("  Receiver " + message.getReceiver());
-                        System.out.println("  Arg1 " + message.getArg1());
-                        System.out.println("  Arg2 " + message.getArg2());
-                        System.out.println("  Msg " + message.getMessage());
+                        LOG.debug("ROOMDATA: {}", message);
                     case UEOPT:
-                        System.out.println("UEOPT");
-                        System.out.println("  Sender " + message.getSender());
-                        System.out.println("  Receiver " + message.getReceiver());
-                        System.out.println("  Arg1 " + message.getArg1());
-                        System.out.println("  Arg2 " + message.getArg2());
-                        System.out.println("  Msg " + message.getMessage());
+                        LOG.debug("UEOPT: {}", message);
                         break;
                     case SLAVEVSHARE:
                         //                        LOG.debug("SLAVEVSHARE {}", message);

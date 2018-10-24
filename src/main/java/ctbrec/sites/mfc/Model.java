@@ -16,7 +16,15 @@ public class Model {
     private Integer mg;
     private Integer missmfc;
     private Integer newModel;
+
+    /**
+     * Miss MFC rank
+     */
     private Integer rank;
+
+    /**
+     * Viewers in room
+     */
     private Integer rc;
     private Integer sfw;
     private String topic;

@@ -6,10 +6,22 @@ import java.util.Map;
 public class SessionState {
 
     private Integer lv;
+
+    /**
+     * Model name
+     */
     private String nm;
     private Integer pid;
     private Integer sid;
+
+    /**
+     * User id
+     */
     private Integer uid;
+
+    /**
+     * Online state @see {@link State}
+     */
     private Integer vs;
     private User u;
     private Model m;

@@ -21,7 +21,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.eclipse.jetty.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -392,8 +391,9 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         contextMenu.setHideOnEscape(true);
         contextMenu.setAutoFix(true);
         contextMenu.getItems().addAll(openInPlayer, startStop);
-        if(site.supportsFollow() && StringUtil.isNotBlank(Config.getInstance().getSettings().username)) {
+        if(site.supportsFollow()) {
             MenuItem followOrUnFollow = (this instanceof FollowedTab) ? unfollow : follow;
+            followOrUnFollow.setDisable(username == null || username.trim().isEmpty());
             contextMenu.getItems().add(followOrUnFollow);
         }
         if(site.supportsTips()) {

@@ -52,6 +52,7 @@ public class Config {
             try(FileInputStream fin = new FileInputStream(configFile); Buffer buffer = new Buffer()) {
                 BufferedSource source =  buffer.readFrom(fin);
                 settings = adapter.fromJson(source);
+                settings.httpTimeout = Math.max(settings.httpTimeout, 10_000);
             }
         } else {
             LOG.error("Config file does not exist. Falling back to default values.");

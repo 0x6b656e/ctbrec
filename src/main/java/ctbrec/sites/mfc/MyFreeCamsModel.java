@@ -216,6 +216,13 @@ public class MyFreeCamsModel extends AbstractModel {
         String uid = state.getUid().toString();
         String uidStart = uid.substring(0, 3);
         String previewUrl = "https://img.mfcimg.com/photos2/"+uidStart+'/'+uid+"/avatar.300x300.jpg";
+        if(MyFreeCamsModel.this.state == State.ONLINE) {
+            try {
+                previewUrl = getLivePreviewUrl(state);
+            } catch(Exception e) {
+                LOG.debug("Couldn't get live preview. Falling back to avatar", e);
+            }
+        }
         setPreview(previewUrl);
 
         // tags
@@ -235,6 +242,31 @@ public class MyFreeCamsModel extends AbstractModel {
         });
 
         viewerCount = Optional.ofNullable(state.getM()).map((m) -> m.getRc()).orElseGet(() -> 0);
+    }
+
+    private String getLivePreviewUrl(SessionState state) {
+        String previewUrl;
+        int userChannel = 100000000 + state.getUid();
+        int camserv = state.getU().getCamserv();
+        String server = Integer.toString(camserv);
+        ServerConfig sc = site.getClient().getServerConfig();
+        if(sc.isOnNgServer(state)) {
+            server = sc.ngVideoServers.get(Integer.toString(camserv));
+            camserv = Integer.parseInt(server.replaceAll("video", ""));
+            previewUrl = "https://snap.mfcimg.com/snapimg/" + camserv + "/320x240/mfc_" + state.getU().getPhase()+ '_' + userChannel;
+        } else if(sc.isOnWzObsVideoServer(state)) {
+            server = sc.wsServers.get(Integer.toString(camserv));
+            camserv = Integer.parseInt(server.replaceAll("video", ""));
+            previewUrl = "https://snap.mfcimg.com/snapimg/" + camserv + "/320x240/mfc_" + state.getU().getPhase()+ '_' + userChannel;
+        } else if(sc.isOnHtml5VideoServer(state)) {
+            server = sc.h5Servers.get(Integer.toString(camserv));
+            camserv = Integer.parseInt(server.replaceAll("video", ""));
+            previewUrl = "https://snap.mfcimg.com/snapimg/" + camserv + "/320x240/mfc_" + userChannel;
+        } else {
+            if(camserv > 500) camserv -= 500;
+            previewUrl = "https://snap.mfcimg.com/snapimg/" + camserv + "/320x240/mfc_" + userChannel;
+        }
+        return previewUrl;
     }
 
     @Override

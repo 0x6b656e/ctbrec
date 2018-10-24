@@ -513,6 +513,7 @@ public class MyFreeCamsClient {
             if(Objects.equals(state.getNm(), model.getName())) {
                 JsonAdapter<SessionState> adapter = moshi.adapter(SessionState.class).indent("  ");
                 System.out.println(adapter.toJson(state));
+                System.out.println(model.getPreview());
                 System.out.println("#####################");
             }
         }

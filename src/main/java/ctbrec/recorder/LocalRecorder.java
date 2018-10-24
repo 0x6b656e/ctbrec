@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +50,7 @@ public class LocalRecorder implements Recorder {
     private volatile boolean recording = true;
     private List<File> deleteInProgress = Collections.synchronizedList(new ArrayList<>());
     private RecorderHttpClient client = new RecorderHttpClient();
+    private ReentrantLock lock = new ReentrantLock();
 
     public LocalRecorder(Config config) {
         this.config = config;
@@ -76,22 +78,32 @@ public class LocalRecorder implements Recorder {
     public void startRecording(Model model) {
         if (!models.contains(model)) {
             LOG.info("Model {} added", model);
-            models.add(model);
-            config.getSettings().models.add(model);
+            lock.lock();
+            try {
+                models.add(model);
+                config.getSettings().models.add(model);
+            } finally {
+                lock.unlock();
+            }
         }
     }
 
     @Override
     public void stopRecording(Model model) throws IOException {
-        if (models.contains(model)) {
-            models.remove(model);
-            config.getSettings().models.remove(model);
-            if (recordingProcesses.containsKey(model)) {
-                stopRecordingProcess(model);
+        lock.lock();
+        try {
+            if (models.contains(model)) {
+                models.remove(model);
+                config.getSettings().models.remove(model);
+                if (recordingProcesses.containsKey(model)) {
+                    stopRecordingProcess(model);
+                }
+                LOG.info("Model {} removed", model);
+            } else {
+                throw new NoSuchElementException("Model " + model.getName() + " ["+model.getUrl()+"] not found in list of recorded models");
             }
-            LOG.info("Model {} removed", model);
-        } else {
-            throw new NoSuchElementException("Model " + model.getName() + " ["+model.getUrl()+"] not found in list of recorded models");
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -102,9 +114,14 @@ public class LocalRecorder implements Recorder {
             return;
         }
 
-        if (!models.contains(model)) {
-            LOG.info("Model {} has been removed. Restarting of recording cancelled.", model);
-            return;
+        lock.lock();
+        try {
+            if (!models.contains(model)) {
+                LOG.info("Model {} has been removed. Restarting of recording cancelled.", model);
+                return;
+            }
+        } finally {
+            lock.unlock();
         }
 
         Download download;
@@ -135,12 +152,17 @@ public class LocalRecorder implements Recorder {
 
     @Override
     public boolean isRecording(Model model) {
-        return models.contains(model);
+        lock.lock();
+        try {
+            return models.contains(model);
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
     public List<Model> getModelsRecording() {
-        return Collections.unmodifiableList(models);
+        return Collections.unmodifiableList(new ArrayList<>(models));
     }
 
     @Override
@@ -157,16 +179,21 @@ public class LocalRecorder implements Recorder {
     }
 
     private void stopRecordingProcesses() {
-        for (Model model : models) {
-            Download recordingProcess = recordingProcesses.get(model);
-            if (recordingProcess != null) {
-                try {
-                    recordingProcess.stop();
-                    LOG.debug("Stopped recording for {}", model);
-                } catch (Exception e) {
-                    LOG.error("Couldn't stop recording for model {}", model, e);
+        lock.lock();
+        try {
+            for (Model model : models) {
+                Download recordingProcess = recordingProcesses.get(model);
+                if (recordingProcess != null) {
+                    try {
+                        recordingProcess.stop();
+                        LOG.debug("Stopped recording for {}", model);
+                    } catch (Exception e) {
+                        LOG.error("Couldn't stop recording for model {}", model, e);
+                    }
                 }
             }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -275,19 +302,24 @@ public class LocalRecorder implements Recorder {
         public void run() {
             running = true;
             while (running) {
-                for (Model model : getModelsRecording()) {
-                    try {
-                        if (!recordingProcesses.containsKey(model)) {
-                            boolean isOnline = model.isOnline(IGNORE_CACHE);
-                            LOG.trace("Checking online state for {}: {}", model, (isOnline ? "online" : "offline"));
-                            if (isOnline) {
-                                LOG.info("Model {}'s room back to public. Starting recording", model);
-                                startRecordingProcess(model);
+                lock.lock();
+                try {
+                    for (Model model : getModelsRecording()) {
+                        try {
+                            if (!recordingProcesses.containsKey(model)) {
+                                boolean isOnline = model.isOnline(IGNORE_CACHE);
+                                LOG.trace("Checking online state for {}: {}", model, (isOnline ? "online" : "offline"));
+                                if (isOnline) {
+                                    LOG.info("Model {}'s room back to public. Starting recording", model);
+                                    startRecordingProcess(model);
+                                }
                             }
+                        } catch (Exception e) {
+                            LOG.error("Couldn't check if model {} is online", model.getName(), e);
                         }
-                    } catch (Exception e) {
-                        LOG.error("Couldn't check if model {} is online", model.getName(), e);
                     }
+                } finally {
+                    lock.unlock();
                 }
 
                 try {

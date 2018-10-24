@@ -20,6 +20,13 @@ public class PopularModelService extends PaginatedScheduledService {
                 return client.getModels().stream()
                         .filter(m -> m.getPreview() != null)
                         .filter(m -> m.getStreamUrl() != null)
+                        .filter(m -> {
+                            try {
+                                return m.isOnline();
+                            } catch (Exception e) {
+                                return false;
+                            }
+                        })
                         .sorted((m1, m2) -> m2.getViewerCount() - m1.getViewerCount())
                         .skip( (page-1) * modelsPerPage)
                         .limit(modelsPerPage)

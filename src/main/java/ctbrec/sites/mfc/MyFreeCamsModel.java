@@ -220,7 +220,7 @@ public class MyFreeCamsModel extends AbstractModel {
             try {
                 previewUrl = getLivePreviewUrl(state);
             } catch(Exception e) {
-                LOG.debug("Couldn't get live preview. Falling back to avatar", e);
+                LOG.error("Couldn't get live preview. Falling back to avatar", e);
             }
         }
         setPreview(previewUrl);
@@ -252,15 +252,15 @@ public class MyFreeCamsModel extends AbstractModel {
         ServerConfig sc = site.getClient().getServerConfig();
         if(sc.isOnNgServer(state)) {
             server = sc.ngVideoServers.get(Integer.toString(camserv));
-            camserv = Integer.parseInt(server.replaceAll("video", ""));
+            camserv = Integer.parseInt(server.replaceAll("[^0-9]+", ""));
             previewUrl = "https://snap.mfcimg.com/snapimg/" + camserv + "/320x240/mfc_" + state.getU().getPhase()+ '_' + userChannel;
         } else if(sc.isOnWzObsVideoServer(state)) {
-            server = sc.wsServers.get(Integer.toString(camserv));
-            camserv = Integer.parseInt(server.replaceAll("video", ""));
+            server = sc.wzobsServers.get(Integer.toString(camserv));
+            camserv = Integer.parseInt(server.replaceAll("[^0-9]+", ""));
             previewUrl = "https://snap.mfcimg.com/snapimg/" + camserv + "/320x240/mfc_" + state.getU().getPhase()+ '_' + userChannel;
         } else if(sc.isOnHtml5VideoServer(state)) {
             server = sc.h5Servers.get(Integer.toString(camserv));
-            camserv = Integer.parseInt(server.replaceAll("video", ""));
+            camserv = Integer.parseInt(server.replaceAll("[^0-9]+", ""));
             previewUrl = "https://snap.mfcimg.com/snapimg/" + camserv + "/320x240/mfc_" + userChannel;
         } else {
             if(camserv > 500) camserv -= 500;

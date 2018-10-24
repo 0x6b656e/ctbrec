@@ -2,6 +2,7 @@ package ctbrec.sites.mfc;
 
 import static ctbrec.sites.mfc.MessageTypes.*;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -21,6 +22,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.EvictingQueue;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 
@@ -50,6 +52,8 @@ public class MyFreeCamsClient {
     private Integer cxid;
     private int[] ctx;
     private String ctxenc;
+
+    private EvictingQueue<String> receivedTextHistory = EvictingQueue.create(100);
 
     private MyFreeCamsClient() {
         moshi = new Moshi.Builder().build();
@@ -162,6 +166,7 @@ public class MyFreeCamsClient {
             @Override
             public void onMessage(WebSocket webSocket, String text) {
                 super.onMessage(webSocket, text);
+                receivedTextHistory.add(text);
                 msgBuffer.append(text);
                 Message message;
                 try {
@@ -409,18 +414,34 @@ public class MyFreeCamsClient {
                     // packet size not transmitted completely
                     return null;
                 } else {
-                    int packetLength = Integer.parseInt(msg.substring(0, 4));
-                    if (packetLength > msg.length() - 4) {
-                        // packet not complete
+                    try {
+                        int packetLength = Integer.parseInt(msg.substring(0, 4));
+                        if (packetLength > msg.length() - 4) {
+                            // packet not complete
+                            return null;
+                        } else {
+                            msg.delete(0, 4);
+                            int type = parseNextInt(msg);
+                            int sender = parseNextInt(msg);
+                            int receiver = parseNextInt(msg);
+                            int arg1 = parseNextInt(msg);
+                            int arg2 = parseNextInt(msg);
+                            return new Message(type, sender, receiver, arg1, arg2, URLDecoder.decode(msg.toString(), "utf-8"));
+                        }
+                    } catch(Exception e) {
+                        LOG.error("StringBuilder contains invalid data {}", msg.toString(), e);
+                        String logfile = "mfc_messages.log";
+                        try(FileOutputStream fout = new FileOutputStream(logfile)) {
+                            for (String string : receivedTextHistory) {
+                                fout.write(string.getBytes());
+                                fout.write(10);
+                            }
+                        } catch (Exception e1) {
+                            LOG.error("Couldn't write mfc message history to " + logfile);
+                            e1.printStackTrace();
+                        }
+                        msg.setLength(0);
                         return null;
-                    } else {
-                        msg.delete(0, 4);
-                        int type = parseNextInt(msg);
-                        int sender = parseNextInt(msg);
-                        int receiver = parseNextInt(msg);
-                        int arg1 = parseNextInt(msg);
-                        int arg2 = parseNextInt(msg);
-                        return new Message(type, sender, receiver, arg1, arg2, URLDecoder.decode(msg.toString(), "utf-8"));
                     }
                 }
             }

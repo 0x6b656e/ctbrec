@@ -40,6 +40,7 @@ public class MyFreeCamsModel extends AbstractModel {
     private int uid;
     private String hlsUrl;
     private double camScore;
+    private int viewerCount;
     private State state;
     private int resolution[];
     private MyFreeCams site;
@@ -232,6 +233,8 @@ public class MyFreeCamsModel extends AbstractModel {
                 LOG.warn("Couldn't url decode topic", e);
             }
         });
+
+        viewerCount = Optional.ofNullable(state.getM()).map((m) -> m.getRc()).orElseGet(() -> 0);
     }
 
     @Override
@@ -250,6 +253,14 @@ public class MyFreeCamsModel extends AbstractModel {
 
     public void setUid(int uid) {
         this.uid = uid;
+    }
+
+    public int getViewerCount() {
+        return viewerCount;
+    }
+
+    public void setViewerCount(int viewerCount) {
+        this.viewerCount = viewerCount;
     }
 
     @Override

@@ -43,6 +43,12 @@ public class MyFreeCamsTabProvider extends TabProvider {
         updateService.setPeriod(new Duration(TimeUnit.SECONDS.toMillis(10)));
         tabs.add(hd);
 
+        updateService = new PopularModelService();
+        ThumbOverviewTab pop = new ThumbOverviewTab("Most Popular", updateService, myFreeCams);
+        pop.setRecorder(recorder);
+        updateService.setPeriod(new Duration(TimeUnit.SECONDS.toMillis(10)));
+        tabs.add(pop);
+
 
         return tabs;
     }

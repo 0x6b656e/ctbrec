@@ -63,8 +63,6 @@ public class PlaylistGenerator {
             return seq1 - seq2;
         });
 
-        System.out.println(Arrays.toString(files));
-
         // create a track containing all files
         List<TrackData> track = new ArrayList<>();
         int total = files.length;

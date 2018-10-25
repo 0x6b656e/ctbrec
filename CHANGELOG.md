@@ -1,3 +1,9 @@
+1.6.0
+========================
+* Added support for multiple cam sites
+* Added MyFreeCams
+* Fixed proxy authentication for HTTP and SOCKS
+
 1.5.4
 ========================
 * Lots of little tweaks for the GUI

@@ -491,13 +491,13 @@ public class ThumbCell extends StackPane {
         nameBackground.setWidth(w);
         nameBackground.setHeight(20);
         topicBackground.setWidth(w);
-        topicBackground.setHeight(h-nameBackground.getHeight());
-        topic.prefHeight(h-25);
-        topic.maxHeight(h-25);
+        topicBackground.setHeight(getHeight()-nameBackground.getHeight());
+        topic.prefHeight(getHeight()-25);
+        topic.maxHeight(getHeight()-25);
         int margin = 4;
         topic.maxWidth(w-margin*2);
         topic.setWrappingWidth(w-margin*2);
         selectionOverlay.setWidth(w);
-        selectionOverlay.setHeight(h);
+        selectionOverlay.setHeight(getHeight());
     }
 }

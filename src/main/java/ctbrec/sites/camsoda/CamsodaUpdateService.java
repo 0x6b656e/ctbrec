@@ -55,7 +55,7 @@ public class CamsodaUpdateService extends PaginatedScheduledService {
                                 if(result.has("tpl")) {
                                     JSONArray tpl = result.getJSONArray("tpl");
                                     String name = tpl.getString(0);
-                                    //                                    int connections = tpl.getInt(2);
+                                    // int connections = tpl.getInt(2);
                                     String streamName = tpl.getString(5);
                                     String tsize = tpl.getString(6);
                                     String serverPrefix = tpl.getString(7);
@@ -68,13 +68,32 @@ public class CamsodaUpdateService extends PaginatedScheduledService {
                                     String preview = "https://thumbs-orig.camsoda.com/thumbs/"
                                             + streamName + '/' + serverPrefix + '/' + tsize + '/' + unixtime + '/' + name + ".jpg?cb=" + unixtime;
                                     model.setPreview(preview);
-                                    //LOG.debug(model.getPreview());
                                     models.add(model);
-                                    // https://vide16-ord.camsoda.com/cam/mp4:kipsyrose-enc6-ord_h264_aac_480p/playlist.m3u8
-                                    // https://enc42-ord.camsoda.com/cam/mp4:elizasmile-enc42-ord_h264_aac_480p/playlist.m3u8
-                                    // https://thumbs-orig.camsoda.com/thumbs/marriednaughtycol-enc35-ord/enc35-ord/340x255/51349794/marriednaughtycol.jpg?cb=51349794
                                 } else {
-                                    //LOG.debug("HÖ? {}", result.toString(2));
+                                    LOG.debug("{}", result.toString(2));
+                                    String name = result.getString("username");
+                                    CamsodaModel model = (CamsodaModel) camsoda.createModel(name);
+                                    JSONArray edgeServers = result.getJSONArray("edge_servers");
+                                    String streamName = result.getString("stream_name");
+
+                                    if(result.has("server_prefix")) {
+                                        String serverPrefix = result.getString("server_prefix");
+                                        model.setStreamUrl("https://" + edgeServers.getString(0) + "/cam/mp4:" + streamName + "_h264_aac_480p/playlist.m3u8");
+
+                                        if(result.has("tsize")) {
+                                            long unixtime = System.currentTimeMillis() / 1000;
+                                            String tsize = result.getString("tsize");
+                                            String preview = "https://thumbs-orig.camsoda.com/thumbs/"
+                                                    + streamName + '/' + serverPrefix + '/' + tsize + '/' + unixtime + '/' + name + ".jpg?cb=" + unixtime;
+                                            model.setPreview(preview);
+                                        }
+
+                                        model.setSortOrder(result.getFloat("sort_value"));
+                                        models.add(model);
+                                        if(result.has("status")) {
+                                            model.setOnlineState(result.getString("status"));
+                                        }
+                                    }
                                 }
                             }
                             return models.stream()

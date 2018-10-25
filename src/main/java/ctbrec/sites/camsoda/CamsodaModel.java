@@ -88,6 +88,10 @@ public class CamsodaModel extends AbstractModel {
         }
     }
 
+    public void setOnlineState(String state) {
+        this.status = state;
+    }
+
     @Override
     public List<StreamSource> getStreamSources() throws IOException, ExecutionException, ParseException, PlaylistException {
         LOG.trace("Loading master playlist {}", streamUrl);

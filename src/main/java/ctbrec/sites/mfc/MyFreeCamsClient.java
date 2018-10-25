@@ -171,6 +171,7 @@ public class MyFreeCamsClient {
                     while( (message = parseMessage(msgBuffer)) != null) {
                         switch (message.getType()) {
                         case NULL:
+                            LOG.trace("NULL websocket still alive");
                             break;
                         case LOGIN:
                             LOG.debug("LOGIN: {}", message);

@@ -85,6 +85,7 @@ public class MyFreeCamsClient {
         Thread watchDog = new Thread(() -> {
             while(running) {
                 if (ws == null) {
+                    LOG.info("Websocket is null. Starting a new connection");
                     Request req = new Request.Builder()
                             .url(wsUrl)
                             .addHeader("Origin", "http://m.myfreecams.com")

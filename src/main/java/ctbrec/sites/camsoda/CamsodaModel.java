@@ -35,6 +35,7 @@ public class CamsodaModel extends AbstractModel {
     private List<StreamSource> streamSources = null;
     private int[] resolution;
     private String status = "n/a";
+    private float sortOrder = 0;
 
     public String getStreamUrl() throws IOException {
         if(streamUrl == null) {
@@ -172,4 +173,11 @@ public class CamsodaModel extends AbstractModel {
         this.streamUrl = streamUrl;
     }
 
+    public float getSortOrder() {
+        return sortOrder;
+    }
+
+    public void setSortOrder(float sortOrder) {
+        this.sortOrder = sortOrder;
+    }
 }

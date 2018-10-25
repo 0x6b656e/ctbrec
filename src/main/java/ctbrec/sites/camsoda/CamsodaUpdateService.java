@@ -2,6 +2,7 @@ package ctbrec.sites.camsoda;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,9 +38,9 @@ public class CamsodaUpdateService extends PaginatedScheduledService {
         return new Task<List<Model>>() {
             @Override
             public List<Model> call() throws IOException {
-                List<Model> models = new ArrayList<>();
+                List<CamsodaModel> models = new ArrayList<>();
                 if(loginRequired && StringUtil.isBlank(ctbrec.Config.getInstance().getSettings().username)) {
-                    return models;
+                    return Collections.emptyList();
                 } else {
                     String url = CamsodaUpdateService.this.url;
                     LOG.debug("Fetching page {}", url);
@@ -55,7 +56,6 @@ public class CamsodaUpdateService extends PaginatedScheduledService {
                                     JSONArray tpl = result.getJSONArray("tpl");
                                     String name = tpl.getString(0);
                                     //                                    int connections = tpl.getInt(2);
-                                    //                                    float sortValue = tpl.getFloat(3);
                                     String streamName = tpl.getString(5);
                                     String tsize = tpl.getString(6);
                                     String serverPrefix = tpl.getString(7);
@@ -63,6 +63,7 @@ public class CamsodaUpdateService extends PaginatedScheduledService {
                                     CamsodaModel model = (CamsodaModel) camsoda.createModel(name);
                                     model.setDescription(tpl.getString(4));
                                     model.setStreamUrl("https://" + edgeServers.getString(0) + "/cam/mp4:" + streamName + "_h264_aac_480p/playlist.m3u8");
+                                    model.setSortOrder(tpl.getFloat(3));
                                     long unixtime = System.currentTimeMillis() / 1000;
                                     String preview = "https://thumbs-orig.camsoda.com/thumbs/"
                                             + streamName + '/' + serverPrefix + '/' + tsize + '/' + unixtime + '/' + name + ".jpg?cb=" + unixtime;
@@ -77,12 +78,13 @@ public class CamsodaUpdateService extends PaginatedScheduledService {
                                 }
                             }
                             return models.stream()
+                                    .sorted((m1,m2) -> (int)(m2.getSortOrder() - m1.getSortOrder()))
                                     .skip( (page-1) * modelsPerPage)
                                     .limit(modelsPerPage)
                                     .collect(Collectors.toList());
                         } else {
                             response.close();
-                            return models;
+                            return Collections.emptyList();
                         }
                     } else {
                         int code = response.code();

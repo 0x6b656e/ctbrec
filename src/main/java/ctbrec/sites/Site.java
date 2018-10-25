@@ -6,6 +6,7 @@ import ctbrec.Model;
 import ctbrec.io.HttpClient;
 import ctbrec.recorder.Recorder;
 import ctbrec.ui.TabProvider;
+import javafx.scene.Node;
 
 public interface Site {
     public String getName();
@@ -23,4 +24,6 @@ public interface Site {
     public boolean supportsTips();
     public boolean supportsFollow();
     public boolean isSiteForModel(Model m);
+    public Node getConfigurationGui();
+    public boolean credentialsAvailable();
 }

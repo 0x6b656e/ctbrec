@@ -367,8 +367,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                 }
             }
         });
-        String username = Config.getInstance().getSettings().username;
-        sendTip.setDisable(username == null || username.trim().isEmpty());
+        sendTip.setDisable(!site.credentialsAvailable());
 
         // check, if other cells are selected, too. in that case, we have to disable menu item, which make sense only for
         // single selections. but only do that, if the popup has been triggered on a selected cell. otherwise remove the
@@ -385,7 +384,6 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
             }
         }
 
-
         ContextMenu contextMenu = new ContextMenu();
         contextMenu.setAutoHide(true);
         contextMenu.setHideOnEscape(true);
@@ -393,7 +391,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         contextMenu.getItems().addAll(openInPlayer, startStop);
         if(site.supportsFollow()) {
             MenuItem followOrUnFollow = (this instanceof FollowedTab) ? unfollow : follow;
-            followOrUnFollow.setDisable(username == null || username.trim().isEmpty());
+            followOrUnFollow.setDisable(!site.credentialsAvailable());
             contextMenu.getItems().add(followOrUnFollow);
         }
         if(site.supportsTips()) {

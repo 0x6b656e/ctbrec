@@ -30,8 +30,8 @@ public class MyFreeCamsHttpClient extends HttpClient {
             return true;
         }
 
-        String username = Config.getInstance().getSettings().username;
-        String password = Config.getInstance().getSettings().password;
+        String username = Config.getInstance().getSettings().mfcUsername;
+        String password = Config.getInstance().getSettings().mfcPassword;
         RequestBody body = new FormBody.Builder()
                 .add("username", username)
                 .add("password", password)

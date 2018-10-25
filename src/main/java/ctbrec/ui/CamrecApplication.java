@@ -100,7 +100,7 @@ public class CamrecApplication extends Application {
         rootPane.getTabs().add(modelsTab);
         RecordingsTab recordingsTab = new RecordingsTab("Recordings", recorder, config, sites);
         rootPane.getTabs().add(recordingsTab);
-        settingsTab = new SettingsTab();
+        settingsTab = new SettingsTab(sites);
         rootPane.getTabs().add(settingsTab);
         rootPane.getTabs().add(new DonateTabFx());
 

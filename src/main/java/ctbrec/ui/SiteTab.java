@@ -1,6 +1,5 @@
 package ctbrec.ui;
 
-import ctbrec.Config;
 import ctbrec.sites.Site;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -24,9 +23,7 @@ public class SiteTab extends Tab implements TabSelectionListener {
         siteTabPane = new SiteTabPane(site, scene);
         rootPane.setCenter(siteTabPane);
 
-        String username = Config.getInstance().getSettings().username;
-        if (site.supportsTips() && username != null && !username.trim().isEmpty()) {
-
+        if (site.supportsTips() && site.credentialsAvailable()) {
             Button buyTokens = new Button("Buy Tokens");
             buyTokens.setOnAction((e) -> DesktopIntergation.open(site.getBuyTokensLink()));
             TokenLabel tokenBalance = new TokenLabel(site);

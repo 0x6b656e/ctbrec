@@ -20,8 +20,10 @@ public class Settings {
     public String httpServer = "localhost";
     public String recordingsDir = System.getProperty("user.home") + File.separator + "ctbrec";
     public String mediaPlayer = "/usr/bin/mpv";
-    public String username = "";
-    public String password = "";
+    public String username = ""; // chaturbate username TODO maybe rename this onetime
+    public String password = ""; // chaturbate password TODO maybe rename this onetime
+    public String mfcUsername = "";
+    public String mfcPassword = "";
     public String lastDownloadDir = "";
 
     public List<Model> models = new ArrayList<Model>();

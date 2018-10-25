@@ -216,7 +216,7 @@ public class MyFreeCamsClient {
                         case EXTDATA:
                             if(message.getArg1() == MessageTypes.LOGIN) {
                                 chatToken = message.getMessage();
-                                String username = Config.getInstance().getSettings().username;
+                                String username = Config.getInstance().getSettings().mfcUsername;
                                 if(StringUtil.isNotBlank(username)) {
                                     boolean login = mfc.getHttpClient().login();
                                     if (login) {

@@ -38,7 +38,7 @@ public class FriendsUpdateService extends PaginatedScheduledService {
         return new Task<List<Model>>() {
             @Override
             public List<Model> call() throws IOException {
-                if(StringUtil.isBlank(ctbrec.Config.getInstance().getSettings().username)) {
+                if(StringUtil.isBlank(ctbrec.Config.getInstance().getSettings().mfcUsername)) {
                     return Collections.emptyList();
                 } else {
                     List<MyFreeCamsModel> models = new ArrayList<>();

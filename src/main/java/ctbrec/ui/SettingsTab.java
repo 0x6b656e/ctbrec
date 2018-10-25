@@ -13,11 +13,10 @@ import com.sun.javafx.collections.ObservableListWrapper;
 
 import ctbrec.Config;
 import ctbrec.Hmac;
-import ctbrec.sites.chaturbate.Chaturbate;
+import ctbrec.sites.Site;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
-import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
@@ -25,7 +24,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
-import javafx.scene.control.PasswordField;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TextField;
@@ -40,6 +38,7 @@ import javafx.scene.layout.BorderWidths;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;;
@@ -48,29 +47,29 @@ public class SettingsTab extends Tab implements TabSelectionListener {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(SettingsTab.class);
 
-    private static final int CHECKBOX_MARGIN = 6;
+    public static final int CHECKBOX_MARGIN = 6;
     private TextField recordingsDirectory;
     private Button recordingsDirectoryButton;
     private TextField mediaPlayer;
-    private TextField username;
     private TextField server;
     private TextField port;
     private CheckBox loadResolution;
     private CheckBox secureCommunication = new CheckBox();
     private CheckBox chooseStreamQuality = new CheckBox();
     private CheckBox multiplePlayers = new CheckBox();
-    private PasswordField password;
     private RadioButton recordLocal;
     private RadioButton recordRemote;
     private ToggleGroup recordLocation;
     private ProxySettingsPane proxySettingsPane;
-    private TitledPane ctb;
     private ComboBox<SplitAfterOption> splitAfter;
+    private List<Site> sites;
 
-    public SettingsTab() {
+    public SettingsTab(List<Site> sites) {
+        this.sites = sites;
         setText("Settings");
         createGui();
         setClosable(false);
+        setRecordingMode(recordLocal.isSelected());
     }
 
     private void createGui() {
@@ -80,127 +79,34 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         mainLayout.setPadding(new Insets(15));
         setContent(mainLayout);
 
-        GridPane layout = createGridLayout();
-        Label l = new Label("Display stream resolution in overview");
-        layout.add(l, 0, 0);
-        loadResolution = new CheckBox();
-        loadResolution.setSelected(Config.getInstance().getSettings().determineResolution);
-        loadResolution.setOnAction((e) -> {
-            Config.getInstance().getSettings().determineResolution = loadResolution.isSelected();
-            if(!loadResolution.isSelected()) {
-                ThumbOverviewTab.queue.clear();
-            }
-        });
-        //GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
-        GridPane.setMargin(loadResolution, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        layout.add(loadResolution, 1, 0);
+        VBox leftSide = new VBox(15);
+        VBox rightSide = new VBox(15);
+        GridPane.setHgrow(leftSide, Priority.ALWAYS);
+        GridPane.setHgrow(rightSide, Priority.ALWAYS);
+        GridPane.setFillWidth(leftSide, true);
+        GridPane.setFillWidth(rightSide, true);
+        mainLayout.add(leftSide, 0, 0);
+        mainLayout.add(rightSide, 1, 0);
 
-        l = new Label("Manually select stream quality");
-        layout.add(l, 0, 1);
-        chooseStreamQuality.setSelected(Config.getInstance().getSettings().chooseStreamQuality);
-        chooseStreamQuality.setOnAction((e) -> Config.getInstance().getSettings().chooseStreamQuality = chooseStreamQuality.isSelected());
-        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
-        GridPane.setMargin(chooseStreamQuality, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
-        layout.add(chooseStreamQuality, 1, 1);
-
-        l = new Label("Split recordings after (minutes)");
-        layout.add(l, 0, 2);
-        List<SplitAfterOption> options = new ArrayList<>();
-        options.add(new SplitAfterOption("disabled", 0));
-        options.add(new SplitAfterOption("10 min", 10 * 60));
-        options.add(new SplitAfterOption("15 min", 15 * 60));
-        options.add(new SplitAfterOption("20 min", 20 * 60));
-        options.add(new SplitAfterOption("30 min", 30 * 60));
-        options.add(new SplitAfterOption("60 min", 60 * 60));
-        splitAfter = new ComboBox<>(new ObservableListWrapper<>(options));
-        layout.add(splitAfter, 1, 2);
-        setSplitAfterValue();
-        splitAfter.setOnAction((e) -> Config.getInstance().getSettings().splitRecordings = splitAfter.getSelectionModel().getSelectedItem().getValue());
-        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
-        GridPane.setMargin(splitAfter, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
-
-        TitledPane general = new TitledPane("General", layout);
-        general.setCollapsible(false);
-        mainLayout.add(general, 0, 0);
-
-        layout = createGridLayout();
-        layout.add(new Label("Recordings Directory"), 0, 0);
-        recordingsDirectory = new TextField(Config.getInstance().getSettings().recordingsDir);
-        recordingsDirectory.focusedProperty().addListener(createRecordingsDirectoryFocusListener());
-        recordingsDirectory.setPrefWidth(400);
-        GridPane.setFillWidth(recordingsDirectory, true);
-        GridPane.setHgrow(recordingsDirectory, Priority.ALWAYS);
-        GridPane.setColumnSpan(recordingsDirectory, 2);
-        layout.add(recordingsDirectory, 1, 0);
-        recordingsDirectoryButton = createRecordingsBrowseButton();
-        layout.add(recordingsDirectoryButton, 3, 0);
-
-        layout.add(new Label("Player"), 0, 1);
-        mediaPlayer = new TextField(Config.getInstance().getSettings().mediaPlayer);
-        mediaPlayer.focusedProperty().addListener(createMpvFocusListener());
-        GridPane.setFillWidth(mediaPlayer, true);
-        GridPane.setHgrow(mediaPlayer, Priority.ALWAYS);
-        GridPane.setColumnSpan(mediaPlayer, 2);
-        layout.add(mediaPlayer, 1, 1);
-        layout.add(createMpvBrowseButton(), 3, 1);
-
-        l = new Label("Allow multiple players");
-        layout.add(l, 0, 2);
-        multiplePlayers.setSelected(!Config.getInstance().getSettings().singlePlayer);
-        multiplePlayers.setOnAction((e) -> Config.getInstance().getSettings().singlePlayer = !multiplePlayers.isSelected());
-        GridPane.setMargin(recordingsDirectory, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        GridPane.setMargin(mediaPlayer, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
-        GridPane.setMargin(multiplePlayers, new Insets(3, 0, 0, CHECKBOX_MARGIN));
-        layout.add(multiplePlayers, 1, 2);
-
-        TitledPane locations = new TitledPane("Locations", layout);
-        locations.setCollapsible(false);
-        mainLayout.add(locations, 0, 1);
-
+        leftSide.getChildren().add(createGeneralPanel());
+        leftSide.getChildren().add(createLocationsPanel());
+        leftSide.getChildren().add(createRecordLocationPanel());
         proxySettingsPane = new ProxySettingsPane();
-        mainLayout.add(proxySettingsPane, 1, 0);
-        GridPane.setRowSpan(proxySettingsPane, 2);
-        GridPane.setFillWidth(proxySettingsPane, true);
-        GridPane.setHgrow(proxySettingsPane, Priority.ALWAYS);
-        GridPane.setValignment(proxySettingsPane, VPos.TOP);
+        leftSide.getChildren().add(proxySettingsPane);
 
-        layout = createGridLayout();
-        layout.add(new Label("Chaturbate User"), 0, 0);
-        username = new TextField(Config.getInstance().getSettings().username);
-        username.focusedProperty().addListener((e) -> Config.getInstance().getSettings().username = username.getText());
-        GridPane.setFillWidth(username, true);
-        GridPane.setHgrow(username, Priority.ALWAYS);
-        GridPane.setColumnSpan(username, 2);
-        layout.add(username, 1, 0);
-
-        layout.add(new Label("Chaturbate Password"), 0, 1);
-        password = new PasswordField();
-        password.setText(Config.getInstance().getSettings().password);
-        password.focusedProperty().addListener((e) -> {
-            if(!password.getText().isEmpty()) {
-                Config.getInstance().getSettings().password = password.getText();
+        for (Site site : sites) {
+            Node siteConfig = site.getConfigurationGui();
+            if(siteConfig != null) {
+                TitledPane pane = new TitledPane(site.getName(), siteConfig);
+                pane.setCollapsible(false);
+                rightSide.getChildren().add(pane);
             }
-        });
-        GridPane.setFillWidth(password, true);
-        GridPane.setHgrow(password, Priority.ALWAYS);
-        GridPane.setColumnSpan(password, 2);
-        layout.add(password, 1, 1);
+        }
+    }
 
-        Button createAccount = new Button("Create new Account");
-        createAccount.setOnAction((e) -> DesktopIntergation.open(Chaturbate.REGISTRATION_LINK));
-        layout.add(createAccount, 1, 2);
-        GridPane.setColumnSpan(createAccount, 2);
-        GridPane.setMargin(username, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        GridPane.setMargin(password, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        GridPane.setMargin(createAccount, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-
-        ctb = new TitledPane("Chaturbate", layout);
-        ctb.setCollapsible(false);
-        mainLayout.add(ctb, 0, 2);
-
-        layout = createGridLayout();
-        l = new Label("Record Location");
+    private Node createRecordLocationPanel() {
+        GridPane layout = createGridLayout();
+        Label l = new Label("Record Location");
         layout.add(l, 0, 0);
         recordLocation = new ToggleGroup();
         recordLocal = new RadioButton("Local");
@@ -280,9 +186,89 @@ public class SettingsTab extends Tab implements TabSelectionListener {
 
         TitledPane recordLocation = new TitledPane("Record Location", layout);
         recordLocation.setCollapsible(false);
-        mainLayout.add(recordLocation, 0, 3);
+        return recordLocation;
+    }
 
-        setRecordingMode(recordLocal.isSelected());
+    private Node createLocationsPanel() {
+        GridPane layout = createGridLayout();
+        layout.add(new Label("Recordings Directory"), 0, 0);
+        recordingsDirectory = new TextField(Config.getInstance().getSettings().recordingsDir);
+        recordingsDirectory.focusedProperty().addListener(createRecordingsDirectoryFocusListener());
+        recordingsDirectory.setPrefWidth(400);
+        GridPane.setFillWidth(recordingsDirectory, true);
+        GridPane.setHgrow(recordingsDirectory, Priority.ALWAYS);
+        GridPane.setColumnSpan(recordingsDirectory, 2);
+        layout.add(recordingsDirectory, 1, 0);
+        recordingsDirectoryButton = createRecordingsBrowseButton();
+        layout.add(recordingsDirectoryButton, 3, 0);
+
+        layout.add(new Label("Player"), 0, 1);
+        mediaPlayer = new TextField(Config.getInstance().getSettings().mediaPlayer);
+        mediaPlayer.focusedProperty().addListener(createMpvFocusListener());
+        GridPane.setFillWidth(mediaPlayer, true);
+        GridPane.setHgrow(mediaPlayer, Priority.ALWAYS);
+        GridPane.setColumnSpan(mediaPlayer, 2);
+        layout.add(mediaPlayer, 1, 1);
+        layout.add(createMpvBrowseButton(), 3, 1);
+
+        Label l = new Label("Allow multiple players");
+        layout.add(l, 0, 2);
+        multiplePlayers.setSelected(!Config.getInstance().getSettings().singlePlayer);
+        multiplePlayers.setOnAction((e) -> Config.getInstance().getSettings().singlePlayer = !multiplePlayers.isSelected());
+        GridPane.setMargin(recordingsDirectory, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        GridPane.setMargin(mediaPlayer, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
+        GridPane.setMargin(multiplePlayers, new Insets(3, 0, 0, CHECKBOX_MARGIN));
+        layout.add(multiplePlayers, 1, 2);
+
+        TitledPane locations = new TitledPane("Locations", layout);
+        locations.setCollapsible(false);
+        return locations;
+    }
+
+    private Node createGeneralPanel() {
+        GridPane layout = createGridLayout();
+        Label l = new Label("Display stream resolution in overview");
+        layout.add(l, 0, 0);
+        loadResolution = new CheckBox();
+        loadResolution.setSelected(Config.getInstance().getSettings().determineResolution);
+        loadResolution.setOnAction((e) -> {
+            Config.getInstance().getSettings().determineResolution = loadResolution.isSelected();
+            if(!loadResolution.isSelected()) {
+                ThumbOverviewTab.queue.clear();
+            }
+        });
+        //GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+        GridPane.setMargin(loadResolution, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        layout.add(loadResolution, 1, 0);
+
+        l = new Label("Manually select stream quality");
+        layout.add(l, 0, 1);
+        chooseStreamQuality.setSelected(Config.getInstance().getSettings().chooseStreamQuality);
+        chooseStreamQuality.setOnAction((e) -> Config.getInstance().getSettings().chooseStreamQuality = chooseStreamQuality.isSelected());
+        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+        GridPane.setMargin(chooseStreamQuality, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
+        layout.add(chooseStreamQuality, 1, 1);
+
+        l = new Label("Split recordings after (minutes)");
+        layout.add(l, 0, 2);
+        List<SplitAfterOption> options = new ArrayList<>();
+        options.add(new SplitAfterOption("disabled", 0));
+        options.add(new SplitAfterOption("10 min", 10 * 60));
+        options.add(new SplitAfterOption("15 min", 15 * 60));
+        options.add(new SplitAfterOption("20 min", 20 * 60));
+        options.add(new SplitAfterOption("30 min", 30 * 60));
+        options.add(new SplitAfterOption("60 min", 60 * 60));
+        splitAfter = new ComboBox<>(new ObservableListWrapper<>(options));
+        layout.add(splitAfter, 1, 2);
+        setSplitAfterValue();
+        splitAfter.setOnAction((e) -> Config.getInstance().getSettings().splitRecordings = splitAfter.getSelectionModel().getSelectedItem().getValue());
+        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+        GridPane.setMargin(splitAfter, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
+
+        TitledPane general = new TitledPane("General", layout);
+        general.setCollapsible(false);
+        return general;
     }
 
     private void setSplitAfterValue() {
@@ -302,7 +288,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         restart.show();
     }
 
-    static GridPane createGridLayout() {
+    public static GridPane createGridLayout() {
         GridPane layout = new GridPane();
         layout.setPadding(new Insets(10));
         layout.setHgap(5);

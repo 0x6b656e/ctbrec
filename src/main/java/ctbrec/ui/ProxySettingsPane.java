@@ -24,8 +24,10 @@ public class ProxySettingsPane extends TitledPane implements EventHandler<Action
     private TextField proxyPort = new TextField();
     private TextField proxyUser = new TextField();
     private PasswordField proxyPassword = new PasswordField();
+    private SettingsTab settingsTab;
 
-    public ProxySettingsPane() {
+    public ProxySettingsPane(SettingsTab settingsTab) {
+        this.settingsTab = settingsTab;
         createGui();
         loadConfig();
     }
@@ -84,7 +86,7 @@ public class ProxySettingsPane extends TitledPane implements EventHandler<Action
     @Override
     public void handle(ActionEvent event) {
         setComponentDisableState();
-        SettingsTab.showRestartRequired();
+        settingsTab.showRestartRequired();
     }
 
     private void setComponentDisableState() {

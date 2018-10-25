@@ -29,7 +29,7 @@ import ctbrec.Model;
 import ctbrec.Settings;
 import ctbrec.io.HttpClient;
 import ctbrec.recorder.Recorder;
-import ctbrec.sites.Site;
+import ctbrec.sites.AbstractSite;
 import ctbrec.ui.DesktopIntergation;
 import ctbrec.ui.HtmlParser;
 import ctbrec.ui.SettingsTab;
@@ -47,7 +47,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-public class Chaturbate implements Site {
+public class Chaturbate extends AbstractSite {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(Chaturbate.class);
     public static final String BASE_URI = "https://chaturbate.com";

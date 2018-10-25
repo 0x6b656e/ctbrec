@@ -26,4 +26,6 @@ public interface Site {
     public boolean isSiteForModel(Model m);
     public Node getConfigurationGui();
     public boolean credentialsAvailable();
+    public void setEnabled(boolean enabled);
+    public boolean isEnabled();
 }

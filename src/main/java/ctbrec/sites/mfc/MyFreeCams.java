@@ -7,7 +7,7 @@ import org.jsoup.select.Elements;
 import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.recorder.Recorder;
-import ctbrec.sites.Site;
+import ctbrec.sites.AbstractSite;
 import ctbrec.ui.DesktopIntergation;
 import ctbrec.ui.HtmlParser;
 import ctbrec.ui.SettingsTab;
@@ -23,7 +23,7 @@ import javafx.scene.layout.Priority;
 import okhttp3.Request;
 import okhttp3.Response;
 
-public class MyFreeCams implements Site {
+public class MyFreeCams extends AbstractSite {
 
     public static final String BASE_URI = "https://www.myfreecams.com";
 
@@ -157,7 +157,6 @@ public class MyFreeCams implements Site {
         GridPane.setMargin(createAccount, new Insets(0, 0, 0, SettingsTab.CHECKBOX_MARGIN));
         return layout;
     }
-
 
     @Override
     public boolean credentialsAvailable() {

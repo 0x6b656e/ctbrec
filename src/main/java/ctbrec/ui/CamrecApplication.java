@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executors;
@@ -65,14 +66,16 @@ public class CamrecApplication extends Application {
         hostServices = getHostServices();
         createRecorder();
         for (Site site : sites) {
-            try {
-                site.setRecorder(recorder);
-                site.init();
-                if (!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
-                    site.login();
+            if(site.isEnabled()) {
+                try {
+                    site.setRecorder(recorder);
+                    site.init();
+                    if (!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
+                        site.login();
+                    }
+                } catch(Exception e) {
+                    LOG.error("Error while initializing site {}", site.getName(), e);
                 }
-            } catch(Exception e) {
-                LOG.error("Error while initializing site {}", site.getName(), e);
             }
         }
         createGui(primaryStage);
@@ -90,11 +93,16 @@ public class CamrecApplication extends Application {
         rootPane = new TabPane();
         Scene scene = new Scene(rootPane, windowWidth, windowHeight);
         primaryStage.setScene(scene);
-        for (Site site : sites) {
-            SiteTab siteTab = new SiteTab(site, scene);
-            rootPane.getTabs().add(siteTab);
+        for (Iterator<Site> iterator = sites.iterator(); iterator.hasNext();) {
+            Site site = iterator.next();
+            if(site.isEnabled()) {
+                SiteTab siteTab = new SiteTab(site, scene);
+                rootPane.getTabs().add(siteTab);
+            }
         }
-        ((SiteTab)rootPane.getTabs().get(0)).selected();
+        try {
+            ((SiteTab)rootPane.getTabs().get(0)).selected();
+        } catch(ClassCastException | IndexOutOfBoundsException e) {}
 
         RecordedModelsTab modelsTab = new RecordedModelsTab("Recording", recorder, sites);
         rootPane.getTabs().add(modelsTab);
@@ -129,7 +137,9 @@ public class CamrecApplication extends Application {
                     settingsTab.saveConfig();
                     recorder.shutdown();
                     for (Site site : sites) {
-                        site.shutdown();
+                        if(site.isEnabled()) {
+                            site.shutdown();
+                        }
                     }
                     try {
                         Config.getInstance().save();

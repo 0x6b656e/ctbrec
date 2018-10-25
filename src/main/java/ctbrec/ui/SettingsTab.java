@@ -13,13 +13,14 @@ import com.sun.javafx.collections.ObservableListWrapper;
 
 import ctbrec.Config;
 import ctbrec.Hmac;
+import ctbrec.Settings;
 import ctbrec.sites.Site;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
@@ -41,6 +42,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;;
 
@@ -64,6 +66,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private ProxySettingsPane proxySettingsPane;
     private ComboBox<SplitAfterOption> splitAfter;
     private List<Site> sites;
+    private Label restartLabel;
 
     public SettingsTab(List<Site> sites) {
         this.sites = sites;
@@ -74,6 +77,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     }
 
     private void createGui() {
+        // set up main layout, 2 columns with VBoxes 50/50
         GridPane mainLayout = createGridLayout();
         mainLayout.setHgap(15);
         mainLayout.setVgap(15);
@@ -82,22 +86,33 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         cc.setPercentWidth(50);
         mainLayout.getColumnConstraints().setAll(cc, cc);
         setContent(mainLayout);
-
         VBox leftSide = new VBox(15);
         VBox rightSide = new VBox(15);
         GridPane.setHgrow(leftSide, Priority.ALWAYS);
         GridPane.setHgrow(rightSide, Priority.ALWAYS);
         GridPane.setFillWidth(leftSide, true);
         GridPane.setFillWidth(rightSide, true);
-        mainLayout.add(leftSide, 0, 0);
-        mainLayout.add(rightSide, 1, 0);
+        mainLayout.add(leftSide, 0, 1);
+        mainLayout.add(rightSide, 1, 1);
 
+        // restart info label
+        restartLabel = new Label("A restart is required to apply changes you made!");
+        restartLabel.setVisible(false);
+        restartLabel.setFont(Font.font(24));
+        restartLabel.setTextFill(Color.RED);
+        mainLayout.add(restartLabel, 0, 0);
+        GridPane.setColumnSpan(restartLabel, 2);
+        GridPane.setHalignment(restartLabel, HPos.CENTER);
+
+        // left side
         leftSide.getChildren().add(createGeneralPanel());
         leftSide.getChildren().add(createLocationsPanel());
         leftSide.getChildren().add(createRecordLocationPanel());
-        proxySettingsPane = new ProxySettingsPane();
+        proxySettingsPane = new ProxySettingsPane(this);
         leftSide.getChildren().add(proxySettingsPane);
 
+        //right side
+        rightSide.getChildren().add(createSiteSelectionPanel());
         for (Site site : sites) {
             Node siteConfig = site.getConfigurationGui();
             if(siteConfig != null) {
@@ -106,6 +121,34 @@ public class SettingsTab extends Tab implements TabSelectionListener {
                 rightSide.getChildren().add(pane);
             }
         }
+    }
+
+    private Node createSiteSelectionPanel() {
+        Settings settings = Config.getInstance().getSettings();
+        GridPane layout = createGridLayout();
+
+        int row = 0;
+        for (Site site : sites) {
+            Label l = new Label(site.getName());
+            layout.add(l, 0, row);
+            CheckBox enabled = new CheckBox();
+            enabled.setSelected(!settings.disabledSites.contains(site.getName()));
+            enabled.setOnAction((e) -> {
+                if(enabled.isSelected()) {
+                    settings.disabledSites.remove(site.getName());
+                } else {
+                    settings.disabledSites.add(site.getName());
+                }
+                showRestartRequired();
+            });
+            GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+            GridPane.setMargin(enabled, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
+            layout.add(enabled, 1, row++);
+        }
+
+        TitledPane siteSelection = new TitledPane("Enabled Sites", layout);
+        siteSelection.setCollapsible(false);
+        return siteSelection;
     }
 
     private Node createRecordLocationPanel() {
@@ -284,12 +327,8 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         }
     }
 
-    static void showRestartRequired() {
-        Alert restart = new AutosizeAlert(AlertType.INFORMATION);
-        restart.setTitle("Restart required");
-        restart.setHeaderText("Restart required");
-        restart.setContentText("Changes get applied after a restart of the application");
-        restart.show();
+    void showRestartRequired() {
+        restartLabel.setVisible(true);
     }
 
     public static GridPane createGridLayout() {

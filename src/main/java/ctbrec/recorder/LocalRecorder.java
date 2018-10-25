@@ -138,7 +138,7 @@ public class LocalRecorder implements Recorder {
                 try {
                     download.start(model, config);
                 } catch (IOException e) {
-                    LOG.error("Download failed. Download alive: {}", download.isAlive(), e);
+                    LOG.error("Download for {} failed. Download alive: {}", model.getName(), download.isAlive(), e);
                 }
             }
         }.start();

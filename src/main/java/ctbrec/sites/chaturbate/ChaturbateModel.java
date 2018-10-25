@@ -39,11 +39,6 @@ public class ChaturbateModel extends AbstractModel {
     }
 
     @Override
-    public boolean isOnline() throws IOException, ExecutionException, InterruptedException {
-        return isOnline(false);
-    }
-
-    @Override
     public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException {
         StreamInfo info;
         if(ignoreCache) {

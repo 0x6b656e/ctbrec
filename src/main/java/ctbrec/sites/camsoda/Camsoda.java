@@ -5,12 +5,13 @@ import java.io.IOException;
 import ctbrec.Model;
 import ctbrec.io.HttpClient;
 import ctbrec.recorder.Recorder;
-import ctbrec.sites.Site;
+import ctbrec.sites.AbstractSite;
 import ctbrec.ui.TabProvider;
 import javafx.scene.Node;
 
-public class Camsoda implements Site {
+public class Camsoda extends AbstractSite {
 
+    public static final String BASE_URI = "https://www.camsoda.com";
     private Recorder recorder;
     private HttpClient httpClient;
 
@@ -21,7 +22,7 @@ public class Camsoda implements Site {
 
     @Override
     public String getBaseUrl() {
-        return "https://www.camsoda.com";
+        return BASE_URI;
     }
 
     @Override
@@ -36,7 +37,7 @@ public class Camsoda implements Site {
 
     @Override
     public TabProvider getTabProvider() {
-        return new CamsodaTabProvider();
+        return new CamsodaTabProvider(this, recorder);
     }
 
     @Override
@@ -44,6 +45,7 @@ public class Camsoda implements Site {
         CamsodaModel model = new CamsodaModel();
         model.setName(name);
         model.setUrl(getBaseUrl() + "/" + name);
+        model.setSite(this);
         return model;
     }
 
@@ -107,5 +109,4 @@ public class Camsoda implements Site {
     public boolean credentialsAvailable() {
         return false;
     }
-
 }

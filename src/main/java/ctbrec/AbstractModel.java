@@ -21,6 +21,11 @@ public abstract class AbstractModel implements Model {
     private int streamUrlIndex = -1;
 
     @Override
+    public boolean isOnline() throws IOException, ExecutionException, InterruptedException {
+        return isOnline(false);
+    }
+
+    @Override
     public String getUrl() {
         return url;
     }

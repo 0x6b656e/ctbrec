@@ -1,5 +1,6 @@
 package ctbrec.ui;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -207,8 +208,14 @@ public class ThumbCell extends StackPane {
                     LOG.trace("Removing invalid resolution value for {}", model.getName());
                     model.invalidateCacheEntries();
                 }
-            } catch (ExecutionException | IOException | InterruptedException e1) {
+            } catch (IOException | InterruptedException e1) {
                 LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e1);
+            } catch(ExecutionException e) {
+                if(e.getCause() instanceof EOFException) {
+                    LOG.warn("Couldn't update resolution tag for model {}. Playlist empty", model.getName());
+                } else {
+                    LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e);
+                }
             } finally {
                 ThumbOverviewTab.resolutionProcessing.remove(model);
             }

@@ -35,6 +35,7 @@ import javafx.scene.layout.Border;
 import javafx.scene.layout.BorderStroke;
 import javafx.scene.layout.BorderStrokeStyle;
 import javafx.scene.layout.BorderWidths;
+import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
@@ -77,6 +78,9 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         mainLayout.setHgap(15);
         mainLayout.setVgap(15);
         mainLayout.setPadding(new Insets(15));
+        ColumnConstraints cc = new ColumnConstraints();
+        cc.setPercentWidth(50);
+        mainLayout.getColumnConstraints().setAll(cc, cc);
         setContent(mainLayout);
 
         VBox leftSide = new VBox(15);

@@ -239,7 +239,9 @@ public class LocalRecorder implements Recorder {
                         restart.add(m);
                         try {
                             finishRecording(d.getDirectory());
-                        } catch(NullPointerException e) {}//fail silently
+                        } catch(Exception e) {
+                            LOG.error("Error while finishing recording for model {}", m.getName(), e);
+                        }
                     }
                 }
                 for (Model m : restart) {

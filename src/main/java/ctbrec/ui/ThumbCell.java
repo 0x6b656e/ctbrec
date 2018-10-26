@@ -80,12 +80,12 @@ public class ThumbCell extends StackPane {
         this.model = model;
         this.recorder = recorder;
         recording = recorder.isRecording(model);
+        this.setStyle("-fx-background-color: lightgray");
 
         iv = new ImageView();
-        setImage(model.getPreview());
         iv.setSmooth(true);
         iv.setPreserveRatio(true);
-        iv.setStyle("-fx-background-color: #000");
+        setImage(model.getPreview());
         getChildren().add(iv);
 
         nameBackground = new Rectangle();
@@ -251,9 +251,9 @@ public class ThumbCell extends StackPane {
                 @Override
                 public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
                     if(newValue.doubleValue() == 1.0) {
-                        imgAspectRatio = img.getHeight() / img.getWidth();
-                        setThumbWidth(Config.getInstance().getSettings().thumbWidth);
+                        //imgAspectRatio = img.getHeight() / img.getWidth();
                         iv.setImage(img);
+                        setThumbWidth(Config.getInstance().getSettings().thumbWidth);
                     }
                 }
             });
@@ -473,6 +473,7 @@ public class ThumbCell extends StackPane {
 
     public void setThumbWidth(int width) {
         int height = (int) (width * imgAspectRatio);
+        setPrefSize(width, height);
         setSize(width, height);
     }
 

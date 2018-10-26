@@ -170,7 +170,16 @@ public class CamsodaModel extends AbstractModel {
 
     @Override
     public void setSite(Site site) {
-        this.site = site;
+        if(site instanceof Camsoda) {
+            this.site = site;
+        } else {
+            throw new IllegalArgumentException("Site has to be an instance of Camsoda");
+        }
+    }
+
+    @Override
+    public Site getSite() {
+        return site;
     }
 
     public void setStreamUrl(String streamUrl) {

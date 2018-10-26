@@ -70,14 +70,14 @@ public class CamsodaUpdateService extends PaginatedScheduledService {
                                     model.setPreview(preview);
                                     models.add(model);
                                 } else {
-                                    LOG.debug("{}", result.toString(2));
+                                    //LOG.debug("{}", result.toString(2));
                                     String name = result.getString("username");
                                     CamsodaModel model = (CamsodaModel) camsoda.createModel(name);
-                                    JSONArray edgeServers = result.getJSONArray("edge_servers");
-                                    String streamName = result.getString("stream_name");
 
                                     if(result.has("server_prefix")) {
                                         String serverPrefix = result.getString("server_prefix");
+                                        String streamName = result.getString("stream_name");
+                                        JSONArray edgeServers = result.getJSONArray("edge_servers");
                                         model.setStreamUrl("https://" + edgeServers.getString(0) + "/cam/mp4:" + streamName + "_h264_aac_480p/playlist.m3u8");
 
                                         if(result.has("tsize")) {

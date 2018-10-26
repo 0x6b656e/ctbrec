@@ -55,7 +55,11 @@ public class LocalRecorder implements Recorder {
     public LocalRecorder(Config config) {
         this.config = config;
         config.getSettings().models.stream().forEach((m) -> {
-            models.add(m);
+            if(m.getSite().isEnabled()) {
+                models.add(m);
+            } else {
+                LOG.info("{} disabled -> ignoring {}", m.getSite().getName(), m.getName());
+            }
         });
 
         recording = true;

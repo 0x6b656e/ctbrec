@@ -303,4 +303,9 @@ public class MyFreeCamsModel extends AbstractModel {
             throw new IllegalArgumentException("Site has to be an instance of MyFreeCams");
         }
     }
+
+    @Override
+    public Site getSite() {
+        return site;
+    }
 }

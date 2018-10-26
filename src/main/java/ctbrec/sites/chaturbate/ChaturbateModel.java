@@ -175,4 +175,9 @@ public class ChaturbateModel extends AbstractModel {
             throw new IllegalArgumentException("Site has to be an instance of Chaturbate");
         }
     }
+
+    @Override
+    public Site getSite() {
+        return site;
+    }
 }

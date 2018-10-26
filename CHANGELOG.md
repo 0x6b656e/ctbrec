@@ -1,6 +1,7 @@
 1.6.0
 ========================
 * Added support for multiple cam sites
+* Sites can be switched on and off in the settings
 * Added MyFreeCams
 * Fixed proxy authentication for HTTP and SOCKS
 

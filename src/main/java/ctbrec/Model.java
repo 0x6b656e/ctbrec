@@ -34,4 +34,5 @@ public interface Model {
     public boolean follow() throws IOException;
     public boolean unfollow() throws IOException;
     public void setSite(Site site);
+    public Site getSite();
 }

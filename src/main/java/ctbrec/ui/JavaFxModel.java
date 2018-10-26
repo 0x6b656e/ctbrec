@@ -142,4 +142,9 @@ public class JavaFxModel extends AbstractModel {
     public void setSite(Site site) {
         delegate.setSite(site);
     }
+
+    @Override
+    public Site getSite() {
+        return delegate.getSite();
+    }
 }

@@ -25,6 +25,7 @@ public class CamsodaTabProvider extends TabProvider {
     public List<Tab> getTabs(Scene scene) {
         List<Tab> tabs = new ArrayList<>();
         tabs.add(createTab("Online", BASE_URI + "/api/v1/browse/online"));
+        tabs.add(new CamsodaShowsTab(camsoda, recorder));
         //        ChaturbateFollowedTab followedTab = new ChaturbateFollowedTab("Followed", BASE_URI + "/followed-cams/", chaturbate);
         //        followedTab.setRecorder(recorder);
         //        followedTab.setScene(scene);

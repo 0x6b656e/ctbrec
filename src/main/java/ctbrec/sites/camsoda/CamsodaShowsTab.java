@@ -61,7 +61,7 @@ public class CamsodaShowsTab extends Tab implements TabSelectionListener {
     }
 
     private void createGui() {
-        showList = new VBox(10);
+        showList = new VBox();
         progressIndicator = new ProgressIndicator();
         progressIndicator.setPrefSize(100, 100);
         setContent(progressIndicator);
@@ -120,7 +120,7 @@ public class CamsodaShowsTab extends Tab implements TabSelectionListener {
                         showList.getChildren().clear();
                         for (ShowBox showBox : boxes) {
                             showList.getChildren().add(showBox);
-                            VBox.setMargin(showBox, new Insets(20));
+                            VBox.setMargin(showBox, new Insets(20, 20, 0, 20));
                         }
                     } catch (Exception e) {
                         LOG.error("Couldn't load upcoming camsoda shows", e);
@@ -147,8 +147,10 @@ public class CamsodaShowsTab extends Tab implements TabSelectionListener {
     }
 
     private class ShowBox extends TitledPane {
+
         BorderPane root = new BorderPane();
         int thumbSize = 200;
+
         public ShowBox(Model model, ZonedDateTime startTime, ZonedDateTime endTime) {
             setText(model.getName());
             setPrefHeight(268);
@@ -203,22 +205,25 @@ public class CamsodaShowsTab extends Tab implements TabSelectionListener {
                             JSONObject user = json.getJSONObject("user");
                             if(user.has("settings")) {
                                 JSONObject settings = user.getJSONObject("settings");
+                                String imageUrl;
                                 if(settings.has("offline_picture")) {
-                                    Platform.runLater(() -> {
-                                        String imageUrl = settings.getString("offline_picture");
-                                        Image img = new Image(imageUrl, 1000, thumbSize, true, true, true);
-                                        img.progressProperty().addListener(new ChangeListener<Number>() {
-                                            @Override
-                                            public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
-                                                if(newValue.doubleValue() == 1.0) {
-                                                    thumb.setImage(img);
-                                                    root.setLeft(thumb);
-                                                }
-                                            }
-                                        });
-
-                                    });
+                                    imageUrl = settings.getString("offline_picture");
+                                } else {
+                                    imageUrl = "https:" + user.getString("thumb");
                                 }
+                                Platform.runLater(() -> {
+                                    Image img = new Image(imageUrl, 1000, thumbSize, true, true, true);
+                                    img.progressProperty().addListener(new ChangeListener<Number>() {
+                                        @Override
+                                        public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
+                                            if(newValue.doubleValue() == 1.0) {
+                                                thumb.setImage(img);
+                                                root.setLeft(thumb);
+                                            }
+                                        }
+                                    });
+
+                                });
                             }
                         }
                     }

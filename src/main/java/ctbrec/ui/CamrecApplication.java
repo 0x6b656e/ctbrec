@@ -27,6 +27,7 @@ import ctbrec.recorder.LocalRecorder;
 import ctbrec.recorder.Recorder;
 import ctbrec.recorder.RemoteRecorder;
 import ctbrec.sites.Site;
+import ctbrec.sites.cam4.Cam4;
 import ctbrec.sites.chaturbate.Chaturbate;
 import ctbrec.sites.mfc.MyFreeCams;
 import javafx.application.Application;
@@ -60,6 +61,7 @@ public class CamrecApplication extends Application {
     public void start(Stage primaryStage) throws Exception {
         sites.add(new Chaturbate());
         sites.add(new MyFreeCams());
+        sites.add(new Cam4());
         loadConfig();
         createHttpClient();
         bus = new AsyncEventBus(Executors.newSingleThreadExecutor());

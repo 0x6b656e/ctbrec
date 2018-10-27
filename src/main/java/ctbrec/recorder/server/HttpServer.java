@@ -20,6 +20,7 @@ import ctbrec.Config;
 import ctbrec.recorder.LocalRecorder;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
+import ctbrec.sites.cam4.Cam4;
 import ctbrec.sites.chaturbate.Chaturbate;
 import ctbrec.sites.mfc.MyFreeCams;
 
@@ -60,6 +61,7 @@ public class HttpServer {
     private void createSites() {
         sites.add(new Chaturbate());
         sites.add(new MyFreeCams());
+        sites.add(new Cam4());
     }
 
     private void addShutdownHook() {

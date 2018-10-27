@@ -22,12 +22,19 @@ public class Cam4TabProvider extends TabProvider {
     @Override
     public List<Tab> getTabs(Scene scene) {
         List<Tab> tabs = new ArrayList<>();
-        String url = cam4.getBaseUrl() + "/directoryResults?online=true&gender=female&orderBy=MOST_VIEWERS";
-        Cam4UpdateService female = new Cam4UpdateService(url, false, cam4);
-        ThumbOverviewTab tab = new ThumbOverviewTab("Female", female, cam4);
-        tab.setRecorder(recorder);
-        tabs.add(tab);
+
+        tabs.add(createTab("Female", cam4.getBaseUrl() + "/directoryResults?online=true&gender=female&orderBy=MOST_VIEWERS"));
+        tabs.add(createTab("HD", cam4.getBaseUrl() + "/directoryResults?online=true&hd=true&orderBy=VIDEO_QUALITY"));
+
+
         return tabs;
+    }
+
+    private Tab createTab(String name, String url) {
+        Cam4UpdateService updateService = new Cam4UpdateService(url, false, cam4);
+        ThumbOverviewTab tab = new ThumbOverviewTab(name, updateService, cam4);
+        tab.setRecorder(recorder);
+        return tab;
     }
 
 }

@@ -72,7 +72,8 @@ public class Cam4UpdateService extends PaginatedScheduledService {
                             Cam4Model model = (Cam4Model) site.createModel(slug);
                             String playlistUrl = profileLink.attr("data-hls-preview-url");
                             model.setPlaylistUrl(playlistUrl);
-                            model.setPreview(HtmlParser.getTag(boxHtml, "a img").attr("data-src"));
+                            //model.setPreview(HtmlParser.getTag(boxHtml, "a img").attr("data-src"));
+                            model.setPreview("https://snapshots.xcdnpro.com/thumbnails/"+model.getName()+"?s=" + System.currentTimeMillis());
                             model.setDescription(parseDesription(boxHtml));
                             //model.setOnlineState(parseOnlineState(boxHtml));
                             models.add(model);

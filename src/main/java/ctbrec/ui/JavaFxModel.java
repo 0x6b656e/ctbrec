@@ -2,7 +2,6 @@ package ctbrec.ui;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 import com.iheartradio.m3u8.ParseException;
@@ -20,14 +19,13 @@ import javafx.beans.property.SimpleBooleanProperty;
  */
 public class JavaFxModel extends AbstractModel {
     private transient BooleanProperty onlineProperty = new SimpleBooleanProperty();
-
     private Model delegate;
 
     public JavaFxModel(Model delegate) {
         this.delegate = delegate;
         try {
-            onlineProperty.set(Objects.equals("public", delegate.getOnlineState(true)));
-        } catch (IOException | ExecutionException e) {}
+            onlineProperty.set(delegate.isOnline());
+        } catch (IOException | ExecutionException | InterruptedException e) {}
     }
 
     @Override

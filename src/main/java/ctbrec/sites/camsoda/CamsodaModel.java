@@ -25,6 +25,7 @@ import ctbrec.AbstractModel;
 import ctbrec.recorder.download.StreamSource;
 import ctbrec.sites.Site;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class CamsodaModel extends AbstractModel {
@@ -94,32 +95,30 @@ public class CamsodaModel extends AbstractModel {
 
     @Override
     public List<StreamSource> getStreamSources() throws IOException, ExecutionException, ParseException, PlaylistException {
-        LOG.trace("Loading master playlist {}", streamUrl);
-        if(streamSources == null) {
-            Request req = new Request.Builder().url(streamUrl).build();
-            Response response = site.getHttpClient().execute(req);
-            try {
-                InputStream inputStream = response.body().byteStream();
-                PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
-                Playlist playlist = parser.parse();
-                MasterPlaylist master = playlist.getMasterPlaylist();
-                PlaylistData playlistData = master.getPlaylists().get(0);
-                StreamSource streamsource = new StreamSource();
-                streamsource.mediaPlaylistUrl = streamUrl.replace("playlist.m3u8", playlistData.getUri());
-                if(playlistData.hasStreamInfo()) {
-                    StreamInfo info = playlistData.getStreamInfo();
-                    streamsource.bandwidth = info.getBandwidth();
-                    streamsource.width = info.hasResolution() ? info.getResolution().width : 0;
-                    streamsource.height = info.hasResolution() ? info.getResolution().height : 0;
-                } else {
-                    streamsource.bandwidth = 0;
-                    streamsource.width = 0;
-                    streamsource.height = 0;
-                }
-                streamSources = Collections.singletonList(streamsource);
-            } finally {
-                response.close();
+        LOG.debug("Loading master playlist {}", streamUrl);
+        Request req = new Request.Builder().url(streamUrl).build();
+        Response response = site.getHttpClient().execute(req);
+        try {
+            InputStream inputStream = response.body().byteStream();
+            PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
+            Playlist playlist = parser.parse();
+            MasterPlaylist master = playlist.getMasterPlaylist();
+            PlaylistData playlistData = master.getPlaylists().get(0);
+            StreamSource streamsource = new StreamSource();
+            streamsource.mediaPlaylistUrl = streamUrl.replace("playlist.m3u8", playlistData.getUri());
+            if(playlistData.hasStreamInfo()) {
+                StreamInfo info = playlistData.getStreamInfo();
+                streamsource.bandwidth = info.getBandwidth();
+                streamsource.width = info.hasResolution() ? info.getResolution().width : 0;
+                streamsource.height = info.hasResolution() ? info.getResolution().height : 0;
+            } else {
+                streamsource.bandwidth = 0;
+                streamsource.width = 0;
+                streamsource.height = 0;
             }
+            streamSources = Collections.singletonList(streamsource);
+        } finally {
+            response.close();
         }
         return streamSources;
     }
@@ -153,18 +152,47 @@ public class CamsodaModel extends AbstractModel {
     @Override
     public void receiveTip(int tokens) throws IOException {
         // TODO Auto-generated method stub
-
+        /*
+              sendTip: function(i, a, r, o, c, d) {
+                    if (!s.isAuthenticated()) return s.showRegister(), t.when(!1);
+                    var u = t.defer();
+                    return e.post("/api/v1/tip/" + i, {
+                        amount: a,
+                        comment: o,
+                        type: r,
+                        app_data: c,
+                        source_id: d
+                    }).then(function(e) {
+                        1 == e.data.status ? (s.currentUser.tokens = e.data.total, void 0 != e.data.tipped_performer_last_24hrs && e.data.tipped_performer_last_24hrs >= 25 && (n.$emit("local.allowed_to_rate"), 0 == n.allowedToRate && (n.allowedToRate = !0, l.pop("info", "Voting Unlocked", "You tipped " + i + " 25 tokens in the past 24 hours, you may now vote!"))), u.resolve(e.data)) : (l.pop("error", e.data.error, e.data.message), u.reject(e.data))
+                    }), u.promise
+                },
+         */
     }
 
     @Override
     public boolean follow() throws IOException {
-        // TODO Auto-generated method stub
-        return false;
+        String url = Camsoda.BASE_URI + "/api/v1/follow/" + getName();
+        //RequestBody body = new FormBody.Builder().build();
+        LOG.debug("Sending follow request {}", url);
+        Request request = new Request.Builder()
+                .url(url)
+                .post(RequestBody.create(null, ""))
+                .addHeader("Content-Lentgh", "0")
+                .addHeader("Referer", Camsoda.BASE_URI + '/' + getName())
+                .build();
+        Response resp = site.getHttpClient().execute(request, true);
+        if (resp.isSuccessful()) {
+            System.out.println(resp.body().string());
+            return true;
+        } else {
+            resp.close();
+            throw new IOException("HTTP status " + resp.code() + " " + resp.message());
+        }
     }
 
     @Override
     public boolean unfollow() throws IOException {
-        // TODO Auto-generated method stub
+        // TODO /api/v1/unfollow/" + n.slug
         return false;
     }
 

@@ -24,6 +24,8 @@ public class Settings {
     public String password = ""; // chaturbate password TODO maybe rename this onetime
     public String mfcUsername = "";
     public String mfcPassword = "";
+    public String camsodaUsername = "";
+    public String camsodaPassword = "";
     public String lastDownloadDir = "";
 
     public List<Model> models = new ArrayList<Model>();

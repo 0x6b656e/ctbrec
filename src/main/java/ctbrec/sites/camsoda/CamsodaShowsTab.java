@@ -33,13 +33,13 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TitledPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import okhttp3.Request;
@@ -51,7 +51,7 @@ public class CamsodaShowsTab extends Tab implements TabSelectionListener {
 
     private Camsoda camsoda;
     private Recorder recorder;
-    private VBox showList;
+    private GridPane showList;
     private ProgressIndicator progressIndicator;
 
     public CamsodaShowsTab(Camsoda camsoda, Recorder recorder) {
@@ -61,7 +61,10 @@ public class CamsodaShowsTab extends Tab implements TabSelectionListener {
     }
 
     private void createGui() {
-        showList = new VBox();
+        showList = new GridPane();
+        showList.setPadding(new Insets(5));
+        showList.setHgap(5);
+        showList.setVgap(5);
         progressIndicator = new ProgressIndicator();
         progressIndicator.setPrefSize(100, 100);
         setContent(progressIndicator);
@@ -118,14 +121,15 @@ public class CamsodaShowsTab extends Tab implements TabSelectionListener {
                     try {
                         List<ShowBox> boxes = get();
                         showList.getChildren().clear();
+                        int index = 0;
                         for (ShowBox showBox : boxes) {
-                            showList.getChildren().add(showBox);
-                            VBox.setMargin(showBox, new Insets(20, 20, 0, 20));
+                            showList.add(showBox, index%2, index++/2);
+                            GridPane.setMargin(showBox, new Insets(20, 20, 0, 20));
                         }
                     } catch (Exception e) {
                         LOG.error("Couldn't load upcoming camsoda shows", e);
                     }
-                    setContent(showList);
+                    setContent(new ScrollPane(showList));
                 });
             }
         };

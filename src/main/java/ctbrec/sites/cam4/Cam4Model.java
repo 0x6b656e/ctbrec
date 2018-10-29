@@ -9,6 +9,7 @@ import java.util.concurrent.ExecutionException;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.jsoup.nodes.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,9 +23,13 @@ import com.iheartradio.m3u8.data.Playlist;
 import com.iheartradio.m3u8.data.PlaylistData;
 
 import ctbrec.AbstractModel;
+import ctbrec.Config;
 import ctbrec.recorder.download.StreamSource;
 import ctbrec.sites.Site;
+import ctbrec.ui.HtmlParser;
+import okhttp3.FormBody;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class Cam4Model extends AbstractModel {
@@ -147,14 +152,57 @@ public class Cam4Model extends AbstractModel {
 
     @Override
     public boolean follow() throws IOException {
-        // TODO Auto-generated method stub
-        return false;
+        String url = site.getBaseUrl() + "/profiles/addFriendFavorite?action=addFavorite&object=" + getName() + "&_=" + System.currentTimeMillis();
+        Request req = new Request.Builder()
+                .url(url)
+                .addHeader("X-Requested-With", "XMLHttpRequest")
+                .build();
+        Response response = site.getHttpClient().execute(req, true);
+        boolean success = response.isSuccessful();
+        response.close();
+        return success;
     }
 
     @Override
     public boolean unfollow() throws IOException {
-        // TODO Auto-generated method stub
-        return false;
+        // get model user id
+        String url = site.getBaseUrl() + '/' + getName();
+        Request req = new Request.Builder().url(url).build();
+        Response response = site.getHttpClient().execute(req, true);
+        String broadCasterId = null;
+        if(response.isSuccessful()) {
+            String content = response.body().string();
+            try {
+                Element tag = HtmlParser.getTag(content, "input[name=\"broadcasterId\"]");
+                broadCasterId = tag.attr("value");
+            } catch(Exception e) {
+                LOG.debug(content);
+                throw new IOException(e);
+            }
+
+            // send unfollow request
+            String username = Config.getInstance().getSettings().cam4Username;
+            url = site.getBaseUrl() + '/' + username + "/edit/friends_favorites";
+            RequestBody body = new FormBody.Builder()
+                    .add("deleteFavorites", broadCasterId)
+                    .add("simpleresult", "true")
+                    .build();
+            req = new Request.Builder()
+                    .url(url)
+                    .post(body)
+                    .addHeader("X-Requested-With", "XMLHttpRequest")
+                    .build();
+            response = site.getHttpClient().execute(req, true);
+            if(response.isSuccessful()) {
+                return Objects.equals(response.body().string(), "Ok");
+            } else {
+                response.close();
+                return false;
+            }
+        } else {
+            response.close();
+            return false;
+        }
     }
 
     @Override
@@ -173,5 +221,9 @@ public class Cam4Model extends AbstractModel {
 
     public void setPlaylistUrl(String playlistUrl) {
         this.playlistUrl = playlistUrl;
+    }
+
+    public void setOnlineState(String onlineState) {
+        this.onlineState = onlineState;
     }
 }

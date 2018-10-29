@@ -52,7 +52,7 @@ public class Cam4UpdateService extends PaginatedScheduledService {
         return new Task<List<Model>>() {
             @Override
             public List<Model> call() throws IOException {
-                if(loginRequired && StringUtil.isBlank(Config.getInstance().getSettings().username)) { // FIXME change to cam4 username
+                if(loginRequired && StringUtil.isBlank(Config.getInstance().getSettings().cam4Username)) {
                     return Collections.emptyList();
                 } else {
                     String url = Cam4UpdateService.this.url + "&page=" + page;
@@ -72,10 +72,8 @@ public class Cam4UpdateService extends PaginatedScheduledService {
                             Cam4Model model = (Cam4Model) site.createModel(slug);
                             String playlistUrl = profileLink.attr("data-hls-preview-url");
                             model.setPlaylistUrl(playlistUrl);
-                            //model.setPreview(HtmlParser.getTag(boxHtml, "a img").attr("data-src"));
                             model.setPreview("https://snapshots.xcdnpro.com/thumbnails/"+model.getName()+"?s=" + System.currentTimeMillis());
                             model.setDescription(parseDesription(boxHtml));
-                            //model.setOnlineState(parseOnlineState(boxHtml));
                             models.add(model);
                         }
                         response.close();

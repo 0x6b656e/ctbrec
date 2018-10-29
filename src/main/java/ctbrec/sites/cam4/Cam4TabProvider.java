@@ -25,7 +25,11 @@ public class Cam4TabProvider extends TabProvider {
 
         tabs.add(createTab("Female", cam4.getBaseUrl() + "/directoryResults?online=true&gender=female&orderBy=MOST_VIEWERS"));
         tabs.add(createTab("HD", cam4.getBaseUrl() + "/directoryResults?online=true&hd=true&orderBy=VIDEO_QUALITY"));
-
+        if(cam4.credentialsAvailable()) {
+            Cam4FollowedTab followed = new Cam4FollowedTab(cam4);
+            followed.setRecorder(recorder);
+            tabs.add(followed);
+        }
 
         return tabs;
     }

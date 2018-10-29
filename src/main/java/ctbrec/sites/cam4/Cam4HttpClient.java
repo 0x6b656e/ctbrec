@@ -5,10 +5,15 @@ import java.net.HttpCookie;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ctbrec.io.HttpClient;
+import javafx.application.Platform;
 import okhttp3.Cookie;
 import okhttp3.HttpUrl;
 import okhttp3.Request;
@@ -16,15 +21,43 @@ import okhttp3.Response;
 
 public class Cam4HttpClient extends HttpClient {
 
+    private static final transient Logger LOG = LoggerFactory.getLogger(Cam4HttpClient.class);
+
     @Override
     public boolean login() throws IOException {
-        // login with javafx WebView
-        Cam4LoginDialog loginDialog = new Cam4LoginDialog();
+        BlockingQueue<Boolean> queue = new LinkedBlockingQueue<>();
+        LOG.debug("Launching dialog");
 
-        // transfer cookies from WebView to OkHttp cookie jar
-        transferCookies(loginDialog);
+        Runnable showDialog = () -> {
+            // login with javafx WebView
+            Cam4LoginDialog loginDialog = new Cam4LoginDialog();
 
-        return checkLoginSuccess();
+            // transfer cookies from WebView to OkHttp cookie jar
+            transferCookies(loginDialog);
+
+            try {
+                queue.put(true);
+            } catch (InterruptedException e) {
+                LOG.error("Error while signaling termination", e);
+            }
+        };
+
+        if(Platform.isFxApplicationThread()) {
+            showDialog.run();
+        } else {
+            Platform.runLater(showDialog);
+            LOG.debug("waiting for queue");
+            try {
+                queue.take();
+            } catch (InterruptedException e) {
+                LOG.error("Error while waiting for login dialog to close", e);
+                throw new IOException(e);
+            }
+        }
+
+
+        loggedIn = checkLoginSuccess();
+        return loggedIn;
     }
 
     /**

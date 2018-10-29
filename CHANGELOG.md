@@ -1,3 +1,7 @@
+1.6.1
+========================
+* Fixed UI freeze, which occured for a high number of recorded models
+
 1.6.0
 ========================
 * Added support for multiple cam sites

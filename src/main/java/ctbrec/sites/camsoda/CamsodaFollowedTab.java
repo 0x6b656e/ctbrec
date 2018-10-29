@@ -54,7 +54,11 @@ public class CamsodaFollowedTab extends ThumbOverviewTab implements FollowedTab 
 
     @Override
     protected void onFail(WorkerStateEvent event) {
-        status.setText("Login failed");
+        String msg = "";
+        if (event.getSource().getException() != null) {
+            msg = ": " + event.getSource().getException().getMessage();
+        }
+        status.setText("Login failed" + msg);
         super.onFail(event);
     }
 

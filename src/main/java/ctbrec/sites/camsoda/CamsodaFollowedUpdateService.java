@@ -42,7 +42,7 @@ public class CamsodaFollowedUpdateService extends PaginatedScheduledService {
                             JSONObject m = following.getJSONObject(i);
                             CamsodaModel model = (CamsodaModel) camsoda.createModel(m.getString("followname"));
                             boolean online = m.getInt("online") == 1;
-                            model.setOnlineState(online ? "offline" : "online");
+                            model.setOnlineState(online ? "online" : "offline");
                             model.setPreview("https://md.camsoda.com/thumbs/" + model.getName() + ".jpg");
                             models.add(model);
                         }

@@ -25,7 +25,6 @@ import ctbrec.AbstractModel;
 import ctbrec.recorder.download.StreamSource;
 import ctbrec.sites.Site;
 import okhttp3.Request;
-import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class CamsodaModel extends AbstractModel {
@@ -171,29 +170,36 @@ public class CamsodaModel extends AbstractModel {
 
     @Override
     public boolean follow() throws IOException {
-        String url = Camsoda.BASE_URI + "/api/v1/follow/" + getName();
-        //RequestBody body = new FormBody.Builder().build();
-        LOG.debug("Sending follow request {}", url);
-        Request request = new Request.Builder()
-                .url(url)
-                .post(RequestBody.create(null, ""))
-                .addHeader("Content-Lentgh", "0")
-                .addHeader("Referer", Camsoda.BASE_URI + '/' + getName())
-                .build();
-        Response resp = site.getHttpClient().execute(request, true);
-        if (resp.isSuccessful()) {
-            System.out.println(resp.body().string());
-            return true;
-        } else {
-            resp.close();
-            throw new IOException("HTTP status " + resp.code() + " " + resp.message());
-        }
+        // FIXME follow and unfollow don't work yet, because the HTTP requests need to have
+        // the cross-site scripting prevention header (e.g. X-CSRF-Token: YDixu6rFg3ovqos9C1YuYpsVd7bxuXlpNnZnelKG),
+        // but i didn't find out yet, how to get the token (cookie, hmac calc, ?!?)
+        throw new RuntimeException("Not implemented, yet");
+
+        //        String url = Camsoda.BASE_URI + "/api/v1/follow/" + getName();
+        //        //RequestBody body = new FormBody.Builder().build();
+        //        LOG.debug("Sending follow request {}", url);
+        //        Request request = new Request.Builder()
+        //                .url(url)
+        //                .post(RequestBody.create(null, ""))
+        //                .addHeader("Referer", Camsoda.BASE_URI + '/' + getName())
+        //                .addHeader("User-Agent", " Mozilla/5.0 (X11; Linux x86_64; rv:62.0) Gecko/20100101 Firefox/62.0")
+        //                .addHeader("Accept", " application/json, text/plain, */*")
+        //                .addHeader("Accept-Language", " de,en-US;q=0.7,en;q=0.3")
+        //                .build();
+        //        Response resp = site.getHttpClient().execute(request, false);
+        //        if (resp.isSuccessful()) {
+        //            System.out.println(resp.body().string());
+        //            return true;
+        //        } else {
+        //            resp.close();
+        //            throw new IOException("HTTP status " + resp.code() + " " + resp.message());
+        //        }
     }
 
     @Override
     public boolean unfollow() throws IOException {
         // TODO /api/v1/unfollow/" + n.slug
-        return false;
+        throw new RuntimeException("Not implemented, yet");
     }
 
     @Override

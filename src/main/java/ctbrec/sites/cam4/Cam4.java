@@ -62,17 +62,13 @@ public class Cam4 extends AbstractSite {
 
     @Override
     public void login() throws IOException {
+        getHttpClient().login();
     }
 
     @Override
     public HttpClient getHttpClient() {
         if(httpClient == null) {
-            httpClient = new HttpClient() {
-                @Override
-                public boolean login() throws IOException {
-                    return false;
-                }
-            };
+            httpClient = new Cam4HttpClient();
         }
         return httpClient;
     }

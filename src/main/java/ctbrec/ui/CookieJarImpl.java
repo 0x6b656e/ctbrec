@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +51,11 @@ public class CookieJarImpl implements CookieJar {
     public List<Cookie> loadForRequest(HttpUrl url) {
         String host = getHost(url);
         List<Cookie> cookies = cookieStore.get(host);
-        LOG.debug("Cookies for {}: {}", url.host(), cookies);
+        LOG.debug("Cookies for {}", url);
+        Optional.ofNullable(cookies).ifPresent(cookiez -> cookiez.forEach(c -> {
+            LOG.debug("  {} expires on:{}", c, c.expiresAt());
+        }));
+        //LOG.debug("Cookies for {}: {}", url.host(), cookies);
         return cookies != null ? cookies : new ArrayList<Cookie>();
     }
 

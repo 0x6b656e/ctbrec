@@ -26,7 +26,6 @@ public class Cam4HttpClient extends HttpClient {
     @Override
     public boolean login() throws IOException {
         BlockingQueue<Boolean> queue = new LinkedBlockingQueue<>();
-        LOG.debug("Launching dialog");
 
         Runnable showDialog = () -> {
             // login with javafx WebView
@@ -46,7 +45,6 @@ public class Cam4HttpClient extends HttpClient {
             showDialog.run();
         } else {
             Platform.runLater(showDialog);
-            LOG.debug("waiting for queue");
             try {
                 queue.take();
             } catch (InterruptedException e) {
@@ -54,7 +52,6 @@ public class Cam4HttpClient extends HttpClient {
                 throw new IOException(e);
             }
         }
-
 
         loggedIn = checkLoginSuccess();
         return loggedIn;

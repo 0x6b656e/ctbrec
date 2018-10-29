@@ -1,5 +1,6 @@
 package ctbrec.sites.cam4;
 
+import java.io.InputStream;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.HttpCookie;
@@ -15,6 +16,7 @@ import ctbrec.Config;
 import javafx.concurrent.Worker.State;
 import javafx.scene.Scene;
 import javafx.scene.control.ProgressIndicator;
+import javafx.scene.image.Image;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.web.WebEngine;
@@ -33,13 +35,14 @@ public class Cam4LoginDialog {
     public Cam4LoginDialog() {
         Stage stage = new Stage();
         stage.setTitle("Cam4 Login");
+        InputStream icon = getClass().getResourceAsStream("/icon.png");
+        stage.getIcons().add(new Image(icon));
         CookieManager cookieManager = new CookieManager();
         CookieHandler.setDefault(cookieManager);
         WebView webView = createWebView(stage);
 
         veil = new Region();
         veil.setStyle("-fx-background-color: rgba(0, 0, 0, 0.4)");
-        //veil.setPrefSize(240, 160);
         p = new ProgressIndicator();
         p.setMaxSize(140, 140);
 
@@ -67,7 +70,6 @@ public class Cam4LoginDialog {
             url = newV.toString();
         });
         webEngine.getLoadWorker().stateProperty().addListener((observable, oldState, newState) -> {
-            System.out.println(newState);
             if (newState == State.SUCCEEDED) {
                 String username = Config.getInstance().getSettings().cam4Username;
                 if (username != null && !username.trim().isEmpty()) {

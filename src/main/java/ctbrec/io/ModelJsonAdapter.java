@@ -69,7 +69,7 @@ public class ModelJsonAdapter extends JsonAdapter<Model> {
             }
             return model;
         } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
-            throw new IOException("Couldn't instantiate mode class [" + type + "]", e);
+            throw new IOException("Couldn't instantiate model class [" + type + "]", e);
         }
     }
 

@@ -32,10 +32,13 @@ public class Cam4HttpClient extends HttpClient {
      * @throws IOException
      */
     private boolean checkLoginSuccess() throws IOException {
-        String mailUrl = "https://www.cam4.de.com/mail/unreadThreads";
-        Request req = new Request.Builder().url(mailUrl).build();
+        String mailUrl = Cam4.BASE_URI + "/mail/unreadThreads";
+        Request req = new Request.Builder()
+                .url(mailUrl)
+                .addHeader("X-Requested-With", "XMLHttpRequest")
+                .build();
         Response response = execute(req);
-        if(response.isSuccessful()) {
+        if(response.isSuccessful() && response.body().contentLength() > 0) {
             JSONObject json = new JSONObject(response.body().string());
             return json.has("status") && Objects.equals("success", json.getString("status"));
         } else {

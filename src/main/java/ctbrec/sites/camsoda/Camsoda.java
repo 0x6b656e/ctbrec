@@ -118,7 +118,7 @@ public class Camsoda extends AbstractSite {
 
     @Override
     public boolean supportsTips() {
-        return true;
+        return false;
     }
 
     @Override

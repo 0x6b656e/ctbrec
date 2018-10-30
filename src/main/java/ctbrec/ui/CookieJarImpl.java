@@ -34,6 +34,7 @@ public class CookieJarImpl implements CookieJar {
                     if(newCookie.name().equalsIgnoreCase(name)) {
                         LOG.debug("Replacing cookie {} {} -> {} [{}]", oldCookie.name(), oldCookie.value(), newCookie.value(), oldCookie.domain());
                         iterator.remove();
+                        break;
                     }
                 }
             }

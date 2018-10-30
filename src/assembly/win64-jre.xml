@@ -22,7 +22,7 @@
 	</files>
 	<fileSets>
 		<fileSet>
-			<directory>jre/jre1.8.0_181_win64</directory>
+			<directory>jre/jre1.8.0_192_win64</directory>
 			<includes>
 				<include>**/*</include>
 			</includes>

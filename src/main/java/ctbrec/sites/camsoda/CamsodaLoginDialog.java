@@ -19,6 +19,8 @@ import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import javafx.stage.Stage;
 
+// FIXME this dialog does not help, because google's recaptcha does not work
+// with WebView even though it does work in Cam4LoginDialog
 public class CamsodaLoginDialog {
 
     public static final String URL = Camsoda.BASE_URI;
@@ -94,9 +96,6 @@ public class CamsodaLoginDialog {
     }
 
     public List<HttpCookie> getCookies() {
-        for (HttpCookie httpCookie : cookies) {
-            System.out.println(httpCookie);
-        }
         return cookies;
     }
 

@@ -60,6 +60,9 @@ public class Cam4Model extends AbstractModel {
         Response response = site.getHttpClient().execute(req);
         if(response.isSuccessful()) {
             JSONArray json = new JSONArray(response.body().string());
+            if(json.length() == 0) {
+                throw new IOException("Couldn't fetch model details");
+            }
             JSONObject details = json.getJSONObject(0);
             onlineState = details.getString("showType");
             playlistUrl = details.getString("hlsPreviewUrl");

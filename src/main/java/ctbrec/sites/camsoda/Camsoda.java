@@ -94,7 +94,9 @@ public class Camsoda extends AbstractSite {
 
     @Override
     public void login() throws IOException {
-        getHttpClient().login();
+        if(credentialsAvailable()) {
+            getHttpClient().login();
+        }
     }
 
     @Override

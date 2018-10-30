@@ -23,8 +23,11 @@ public class Cam4TabProvider extends TabProvider {
     public List<Tab> getTabs(Scene scene) {
         List<Tab> tabs = new ArrayList<>();
 
-        tabs.add(createTab("Female", cam4.getBaseUrl() + "/directoryResults?online=true&gender=female&orderBy=MOST_VIEWERS"));
-        tabs.add(createTab("HD", cam4.getBaseUrl() + "/directoryResults?online=true&hd=true&orderBy=VIDEO_QUALITY"));
+        tabs.add(createTab("Female",    cam4.getBaseUrl() + "/directoryResults?online=true&gender=female&orderBy=MOST_VIEWERS"));
+        tabs.add(createTab("Male",      cam4.getBaseUrl() + "/directoryResults?online=true&gender=male&orderBy=MOST_VIEWERS"));
+        tabs.add(createTab("Couples",   cam4.getBaseUrl() + "/directoryResults?online=true&broadcastType=male_group&broadcastType=female_group&broadcastType=male_female_group&orderBy=MOST_VIEWERS"));
+        tabs.add(createTab("HD",        cam4.getBaseUrl() + "/directoryResults?online=true&hd=true&orderBy=MOST_VIEWERS"));
+
         Cam4FollowedTab followed = new Cam4FollowedTab(cam4);
         followed.setRecorder(recorder);
         tabs.add(followed);

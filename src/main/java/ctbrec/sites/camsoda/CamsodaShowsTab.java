@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import ctbrec.Model;
 import ctbrec.recorder.Recorder;
 import ctbrec.ui.AutosizeAlert;
+import ctbrec.ui.DesktopIntergation;
 import ctbrec.ui.TabSelectionListener;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
@@ -123,7 +124,7 @@ public class CamsodaShowsTab extends Tab implements TabSelectionListener {
                         showList.getChildren().clear();
                         int index = 0;
                         for (ShowBox showBox : boxes) {
-                            showList.add(showBox, index%2, index++/2);
+                            showList.add(showBox, index % 2, index++ / 2);
                             GridPane.setMargin(showBox, new Insets(20, 20, 0, 20));
                         }
                     } catch (Exception e) {
@@ -175,26 +176,53 @@ public class CamsodaShowsTab extends Tab implements TabSelectionListener {
             grid.add(createLabel("End", true), 0, 1);
             grid.add(createLabel(formatter.format(endTime), false), 1, 1);
             Button record = new Button("Record Model");
+            record.setOnAction((evt) -> record(model));
             grid.add(record, 1, 2);
             GridPane.setMargin(record, new Insets(10));
+            Button follow = new Button("Follow");
+            follow.setOnAction((evt) -> follow(model));
+            grid.add(follow, 1, 3);
+            GridPane.setMargin(follow, new Insets(10));
+            Button openInBrowser = new Button("Open in Browser");
+            openInBrowser.setOnAction((evt) -> DesktopIntergation.open(model.getUrl()));
+            grid.add(openInBrowser, 1, 4);
+            GridPane.setMargin(openInBrowser, new Insets(10));
             root.setCenter(grid);
-
-            record.setOnAction((evt) -> {
-                setCursor(Cursor.WAIT);
-                new Thread(() -> {
-                    try {
-                        recorder.startRecording(model);
-                    } catch (InvalidKeyException | NoSuchAlgorithmException | IllegalStateException | IOException e) {
-                        showErrorDialog("Oh no!", "Couldn't add model to the recorder", "Recorder error: " + e.getMessage());
-                    } finally {
-                        Platform.runLater(() ->{
-                            setCursor(Cursor.DEFAULT);
-                        });
-                    }
-                }).start();
-            });
-
             loadImage(model, thumb);
+
+            record.prefWidthProperty().bind(openInBrowser.widthProperty());
+            follow.prefWidthProperty().bind(openInBrowser.widthProperty());
+        }
+
+        private void follow(Model model) {
+            setCursor(Cursor.WAIT);
+            new Thread(() -> {
+                try {
+                    model.follow();
+                } catch (Exception e) {
+                    LOG.error("Couldn't follow model {}", model, e);
+                    showErrorDialog("Oh no!", "Couldn't follow model", e.getMessage());
+                } finally {
+                    Platform.runLater(() -> {
+                        setCursor(Cursor.DEFAULT);
+                    });
+                }
+            }).start();
+        }
+
+        private void record(Model model) {
+            setCursor(Cursor.WAIT);
+            new Thread(() -> {
+                try {
+                    recorder.startRecording(model);
+                } catch (InvalidKeyException | NoSuchAlgorithmException | IllegalStateException | IOException e) {
+                    showErrorDialog("Oh no!", "Couldn't add model to the recorder", "Recorder error: " + e.getMessage());
+                } finally {
+                    Platform.runLater(() -> {
+                        setCursor(Cursor.DEFAULT);
+                    });
+                }
+            }).start();
         }
 
         private void loadImage(Model model, ImageView thumb) {
@@ -205,12 +233,12 @@ public class CamsodaShowsTab extends Tab implements TabSelectionListener {
                     Response resp = camsoda.getHttpClient().execute(detailRequest);
                     if (resp.isSuccessful()) {
                         JSONObject json = new JSONObject(resp.body().string());
-                        if(json.optBoolean("status") && json.has("user")) {
+                        if (json.optBoolean("status") && json.has("user")) {
                             JSONObject user = json.getJSONObject("user");
-                            if(user.has("settings")) {
+                            if (user.has("settings")) {
                                 JSONObject settings = user.getJSONObject("settings");
                                 String imageUrl;
-                                if(settings.has("offline_picture")) {
+                                if (settings.has("offline_picture")) {
                                     imageUrl = settings.getString("offline_picture");
                                 } else {
                                     imageUrl = "https:" + user.getString("thumb");
@@ -220,7 +248,7 @@ public class CamsodaShowsTab extends Tab implements TabSelectionListener {
                                     img.progressProperty().addListener(new ChangeListener<Number>() {
                                         @Override
                                         public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
-                                            if(newValue.doubleValue() == 1.0) {
+                                            if (newValue.doubleValue() == 1.0) {
                                                 thumb.setImage(img);
                                                 root.setLeft(thumb);
                                             }
@@ -232,7 +260,7 @@ public class CamsodaShowsTab extends Tab implements TabSelectionListener {
                         }
                     }
                     resp.close();
-                } catch(Exception e) {
+                } catch (Exception e) {
                     LOG.error("Couldn't load model details", e);
                 }
             }).start();

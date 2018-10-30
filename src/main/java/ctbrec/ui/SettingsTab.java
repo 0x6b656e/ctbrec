@@ -20,6 +20,7 @@ import javafx.beans.value.ObservableValue;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
+import javafx.scene.control.Accordion;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -67,6 +68,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private ComboBox<SplitAfterOption> splitAfter;
     private List<Site> sites;
     private Label restartLabel;
+    private Accordion credentialsAccordion = new Accordion();
 
     public SettingsTab(List<Site> sites) {
         this.sites = sites;
@@ -113,14 +115,16 @@ public class SettingsTab extends Tab implements TabSelectionListener {
 
         //right side
         rightSide.getChildren().add(createSiteSelectionPanel());
-        for (Site site : sites) {
+        rightSide.getChildren().add(credentialsAccordion);
+        for (int i = 0; i < sites.size(); i++) {
+            Site site = sites.get(i);
             Node siteConfig = site.getConfigurationGui();
             if(siteConfig != null) {
                 TitledPane pane = new TitledPane(site.getName(), siteConfig);
-                pane.setCollapsible(false);
-                rightSide.getChildren().add(pane);
+                credentialsAccordion.getPanes().add(pane);
             }
         }
+        credentialsAccordion.setExpandedPane(credentialsAccordion.getPanes().get(0));
     }
 
     private Node createSiteSelectionPanel() {

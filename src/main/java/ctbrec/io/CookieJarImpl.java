@@ -1,4 +1,4 @@
-package ctbrec.ui;
+package ctbrec.io;
 
 import java.util.ArrayList;
 import java.util.HashMap;

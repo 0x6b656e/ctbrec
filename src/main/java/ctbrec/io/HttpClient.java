@@ -7,7 +7,6 @@ import java.util.concurrent.TimeUnit;
 
 import ctbrec.Config;
 import ctbrec.Settings.ProxyType;
-import ctbrec.ui.CookieJarImpl;
 import okhttp3.ConnectionPool;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;

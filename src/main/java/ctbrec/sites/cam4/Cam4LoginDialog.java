@@ -1,5 +1,6 @@
 package ctbrec.sites.cam4;
 
+import java.io.File;
 import java.io.InputStream;
 import java.net.CookieHandler;
 import java.net.CookieManager;
@@ -13,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
+import ctbrec.OS;
 import javafx.concurrent.Worker.State;
 import javafx.scene.Scene;
 import javafx.scene.control.ProgressIndicator;
@@ -89,6 +91,7 @@ public class Cam4LoginDialog {
                 p.setVisible(false);
             }
         });
+        webEngine.setUserDataDirectory(new File(OS.getConfigDir(), "webengine"));
         webEngine.load(URL);
         return browser;
     }

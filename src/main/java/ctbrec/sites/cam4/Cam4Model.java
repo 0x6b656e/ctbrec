@@ -124,14 +124,13 @@ public class Cam4Model extends AbstractModel {
 
     @Override
     public void invalidateCacheEntries() {
-        // TODO Auto-generated method stub
-
+        resolution = null;
+        playlistUrl = null;
     }
 
     @Override
     public void receiveTip(int tokens) throws IOException {
-        // TODO Auto-generated method stub
-
+        throw new RuntimeException("Not implemented for Cam4, yet");
     }
 
     @Override

@@ -24,7 +24,11 @@ public class Cam4HttpClient extends HttpClient {
     private static final transient Logger LOG = LoggerFactory.getLogger(Cam4HttpClient.class);
 
     @Override
-    public boolean login() throws IOException {
+    public synchronized boolean login() throws IOException {
+        if(loggedIn) {
+            return true;
+        }
+
         BlockingQueue<Boolean> queue = new LinkedBlockingQueue<>();
 
         Runnable showDialog = () -> {
@@ -93,5 +97,13 @@ public class Cam4HttpClient extends HttpClient {
             cookies.add(cookie);
         }
         cookieJar.saveFromResponse(origUrl, cookies);
+    }
+
+    protected int getTokenBalance() throws IOException {
+        if(!loggedIn) {
+            login();
+        }
+
+        throw new RuntimeException("Not implemented, yet");
     }
 }

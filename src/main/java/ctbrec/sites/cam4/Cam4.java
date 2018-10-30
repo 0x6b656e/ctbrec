@@ -66,7 +66,10 @@ public class Cam4 extends AbstractSite {
 
     @Override
     public Integer getTokenBalance() throws IOException {
-        return 0;
+        if (!credentialsAvailable()) {
+            throw new IOException("Not logged in");
+        }
+        return ((Cam4HttpClient)getHttpClient()).getTokenBalance();
     }
 
     @Override

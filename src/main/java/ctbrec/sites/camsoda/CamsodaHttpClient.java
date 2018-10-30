@@ -9,12 +9,14 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.json.JSONObject;
+import org.jsoup.nodes.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
 import ctbrec.io.HttpClient;
 import ctbrec.sites.cam4.Cam4LoginDialog;
+import ctbrec.ui.HtmlParser;
 import javafx.application.Platform;
 import okhttp3.Cookie;
 import okhttp3.FormBody;
@@ -25,6 +27,7 @@ import okhttp3.Response;
 public class CamsodaHttpClient extends HttpClient {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(CamsodaHttpClient.class);
+    private String csrfToken = null;
 
     @Override
     public boolean login() throws IOException {
@@ -97,6 +100,7 @@ public class CamsodaHttpClient extends HttpClient {
      * @throws IOException
      */
     private boolean checkLoginSuccess() throws IOException {
+        // TODO load /api/v1/user/current and check status or so
         return true;
     }
 
@@ -116,5 +120,22 @@ public class CamsodaHttpClient extends HttpClient {
             cookies.add(cookie);
         }
         cookieJar.saveFromResponse(origUrl, cookies);
+    }
+
+    protected String getCsrfToken() throws IOException {
+        if(csrfToken == null) {
+            String url = Camsoda.BASE_URI;
+            Request request = new Request.Builder().url(url).build();
+            Response resp = execute(request, true);
+            if(resp.isSuccessful()) {
+                Element meta = HtmlParser.getTag(resp.body().string(), "meta[name=\"_token\"]");
+                csrfToken = meta.attr("content");
+            } else {
+                IOException e = new IOException(resp.code() + " " + resp.message());
+                resp.close();
+                throw e;
+            }
+        }
+        return csrfToken;
     }
 }

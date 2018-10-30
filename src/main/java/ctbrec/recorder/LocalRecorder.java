@@ -166,7 +166,12 @@ public class LocalRecorder implements Recorder {
 
     @Override
     public List<Model> getModelsRecording() {
-        return Collections.unmodifiableList(new ArrayList<>(models));
+        lock.lock();
+        try {
+            return Collections.unmodifiableList(new ArrayList<>(models));
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
@@ -308,24 +313,19 @@ public class LocalRecorder implements Recorder {
         public void run() {
             running = true;
             while (running) {
-                lock.lock();
-                try {
-                    for (Model model : getModelsRecording()) {
-                        try {
-                            if (!recordingProcesses.containsKey(model)) {
-                                boolean isOnline = model.isOnline(IGNORE_CACHE);
-                                LOG.trace("Checking online state for {}: {}", model, (isOnline ? "online" : "offline"));
-                                if (isOnline) {
-                                    LOG.info("Model {}'s room back to public. Starting recording", model);
-                                    startRecordingProcess(model);
-                                }
+                for (Model model : getModelsRecording()) {
+                    try {
+                        if (!recordingProcesses.containsKey(model)) {
+                            boolean isOnline = model.isOnline(IGNORE_CACHE);
+                            LOG.trace("Checking online state for {}: {}", model, (isOnline ? "online" : "offline"));
+                            if (isOnline) {
+                                LOG.info("Model {}'s room back to public. Starting recording", model);
+                                startRecordingProcess(model);
                             }
-                        } catch (Exception e) {
-                            LOG.error("Couldn't check if model {} is online", model.getName(), e);
                         }
+                    } catch (Exception e) {
+                        LOG.error("Couldn't check if model {} is online", model.getName(), e);
                     }
-                } finally {
-                    lock.unlock();
                 }
 
                 try {

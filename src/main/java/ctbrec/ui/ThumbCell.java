@@ -208,6 +208,8 @@ public class ThumbCell extends StackPane {
                     LOG.trace("Removing invalid resolution value for {}", model.getName());
                     model.invalidateCacheEntries();
                 }
+                
+                Thread.sleep(500);
             } catch (IOException | InterruptedException e1) {
                 LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e1);
             } catch(ExecutionException e) {
@@ -419,13 +421,11 @@ public class ThumbCell extends StackPane {
     }
 
     public void setModel(Model model) {
-        //this.model = model;
         this.model.setName(model.getName());
         this.model.setDescription(model.getDescription());
         this.model.setPreview(model.getPreview());
         this.model.setTags(model.getTags());
         this.model.setUrl(model.getUrl());
-
         update();
     }
 

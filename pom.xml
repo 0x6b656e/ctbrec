@@ -5,7 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>ctbrec</groupId>
 	<artifactId>ctbrec</artifactId>
-	<version>1.6.0</version>
+	<version>1.6.1</version>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -66,6 +66,7 @@
 								<descriptor>src/assembly/win64-jre.xml</descriptor>
                                 <descriptor>src/assembly/win32-jre.xml</descriptor>
 								<descriptor>src/assembly/linux.xml</descriptor>
+								<descriptor>src/assembly/macos-jre.xml</descriptor>
 							</descriptors>
 						</configuration>
 					</execution>
@@ -77,7 +78,7 @@
 				<version>1.7.22</version>
 				<executions>
 					<execution>
-						<id>l4j-clui</id>
+						<id>l4j-win</id>
 						<phase>package</phase>
 						<goals>
 							<goal>launch4j</goal>

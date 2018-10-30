@@ -26,7 +26,6 @@ import com.squareup.moshi.Moshi;
 
 import ctbrec.Config;
 import ctbrec.Model;
-import ctbrec.Settings;
 import ctbrec.io.HttpClient;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.AbstractSite;
@@ -121,8 +120,7 @@ public class Chaturbate extends AbstractSite {
 
     @Override
     public void login() {
-        Settings settings = Config.getInstance().getSettings();
-        if (settings.username != null && !settings.username.isEmpty()) {
+        if (credentialsAvailable()) {
             new Thread() {
                 @Override
                 public void run() {

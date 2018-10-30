@@ -26,6 +26,8 @@ public class Settings {
     public String mfcPassword = "";
     public String camsodaUsername = "";
     public String camsodaPassword = "";
+    public String cam4Username;
+    public String cam4Password;
     public String lastDownloadDir = "";
 
     public List<Model> models = new ArrayList<Model>();

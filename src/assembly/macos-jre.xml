@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<assembly>
+	<id>macos-jre</id>
+	<formats>
+		<format>zip</format>
+	</formats>
+	<includeBaseDirectory>false</includeBaseDirectory>
+	<files>
+		<file>
+			<source>${project.basedir}/ctbrec-macos.sh</source>
+			<outputDirectory>ctbrec</outputDirectory>
+			<filtered>true</filtered>
+		</file>
+		<file>
+			<source>${project.basedir}/server-macos.sh</source>
+			<outputDirectory>ctbrec</outputDirectory>
+			<filtered>true</filtered>
+		</file>
+		<file>
+			<source>${project.build.directory}/${name.final}.jar</source>
+			<outputDirectory>ctbrec</outputDirectory>
+		</file>
+	</files>
+	<fileSets>
+		<fileSet>
+			<directory>jre/jre1.8.0_192_macos</directory>
+			<includes>
+				<include>**/*</include>
+			</includes>
+			<outputDirectory>ctbrec/jre</outputDirectory>
+			<filtered>false</filtered>
+		</fileSet>
+	</fileSets>
+</assembly>

@@ -8,6 +8,8 @@ import java.util.concurrent.ExecutionException;
 
 import com.iheartradio.m3u8.ParseException;
 import com.iheartradio.m3u8.PlaylistException;
+import com.squareup.moshi.JsonReader;
+import com.squareup.moshi.JsonWriter;
 
 import ctbrec.recorder.download.StreamSource;
 
@@ -91,6 +93,16 @@ public abstract class AbstractModel implements Model {
             url = streamSources.get(streamSources.size()-1).getMediaPlaylistUrl();
         }
         return url;
+    }
+
+    @Override
+    public void readSiteSpecificData(JsonReader reader) throws IOException {
+        // noop default implementation, can be overriden by concrete models
+    }
+
+    @Override
+    public void writeSiteSpecificData(JsonWriter writer) throws IOException {
+        // noop default implementation, can be overriden by concrete models
     }
 
     @Override

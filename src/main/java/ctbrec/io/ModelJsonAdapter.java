@@ -32,45 +32,51 @@ public class ModelJsonAdapter extends JsonAdapter<Model> {
         String url = null;
         String type = null;
         int streamUrlIndex = -1;
+
+        Model model = null;
         while(reader.hasNext()) {
-            Token token = reader.peek();
-            if(token == Token.NAME) {
-                String key = reader.nextName();
-                if(key.equals("name")) {
-                    name = reader.nextString();
-                } else if(key.equals("description")) {
-                    description = reader.nextString();
-                } else if(key.equals("url")) {
-                    url = reader.nextString();
-                } else if(key.equals("type")) {
-                    type = reader.nextString();
-                } else if(key.equals("streamUrlIndex")) {
-                    streamUrlIndex = reader.nextInt();
+            try {
+                Token token = reader.peek();
+                if(token == Token.NAME) {
+                    String key = reader.nextName();
+                    if(key.equals("name")) {
+                        name = reader.nextString();
+                        model.setName(name);
+                    } else if(key.equals("description")) {
+                        description = reader.nextString();
+                        model.setDescription(description);
+                    } else if(key.equals("url")) {
+                        url = reader.nextString();
+                        model.setUrl(url);
+                    } else if(key.equals("type")) {
+                        type = reader.nextString();
+                        Class<?> modelClass = Class.forName(Optional.ofNullable(type).orElse(ChaturbateModel.class.getName()));
+                        model = (Model) modelClass.newInstance();
+                    } else if(key.equals("streamUrlIndex")) {
+                        streamUrlIndex = reader.nextInt();
+                        model.setStreamUrlIndex(streamUrlIndex);
+                    } else if(key.equals("siteSpecific")) {
+                        reader.beginObject();
+                        model.readSiteSpecificData(reader);
+                        reader.endObject();
+                    }
+                } else {
+                    reader.skipValue();
                 }
-            } else {
-                reader.skipValue();
+            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+                throw new IOException("Couldn't instantiate model class [" + type + "]", e);
             }
         }
         reader.endObject();
 
-        try {
-            Class<?> modelClass = Class.forName(Optional.ofNullable(type).orElse(ChaturbateModel.class.getName()));
-            Model model = (Model) modelClass.newInstance();
-            model.setName(name);
-            model.setDescription(description);
-            model.setUrl(url);
-            model.setStreamUrlIndex(streamUrlIndex);
-            if(sites != null) {
-                for (Site site : sites) {
-                    if(site.isSiteForModel(model)) {
-                        model.setSite(site);
-                    }
+        if(sites != null) {
+            for (Site site : sites) {
+                if(site.isSiteForModel(model)) {
+                    model.setSite(site);
                 }
             }
-            return model;
-        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
-            throw new IOException("Couldn't instantiate model class [" + type + "]", e);
         }
+        return model;
     }
 
     @Override
@@ -81,6 +87,10 @@ public class ModelJsonAdapter extends JsonAdapter<Model> {
         writeValueIfSet(writer, "description", model.getDescription());
         writeValueIfSet(writer, "url", model.getUrl());
         writer.name("streamUrlIndex").value(model.getStreamUrlIndex());
+        writer.name("siteSpecific");
+        writer.beginObject();
+        model.writeSiteSpecificData(writer);
+        writer.endObject();
         writer.endObject();
     }
 

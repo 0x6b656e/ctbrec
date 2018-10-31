@@ -57,6 +57,7 @@ public class MyFreeCamsClient {
     private String ctxenc;
     private String chatToken;
     private int sessionId;
+    private long heartBeat;
 
     private EvictingQueue<String> receivedTextHistory = EvictingQueue.create(10000);
 
@@ -135,6 +136,7 @@ public class MyFreeCamsClient {
                     // TODO find out, what the values in the json message mean, at the moment we hust send 0s, which seems to work, too
                     // webSocket.send("1 0 0 81 0 %7B%22err%22%3A0%2C%22start%22%3A1540159843072%2C%22stop%22%3A1540159844121%2C%22a%22%3A6392%2C%22time%22%3A1540159844%2C%22key%22%3A%228da80f985c9db390809713dac71df297%22%2C%22cid%22%3A%22c504d684%22%2C%22pid%22%3A1%2C%22site%22%3A%22www%22%7D\n");
                     webSocket.send("1 0 0 81 0 %7B%22err%22%3A0%2C%22start%22%3A0%2C%22stop%22%3A0%2C%22a%22%3A0%2C%22time%22%3A0%2C%22key%22%3A%22%22%2C%22cid%22%3A%22%22%2C%22pid%22%3A1%2C%22site%22%3A%22www%22%7D\n");
+                    heartBeat = System.currentTimeMillis();
                     startKeepAlive(webSocket);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -165,6 +167,7 @@ public class MyFreeCamsClient {
             @Override
             public void onMessage(WebSocket webSocket, String text) {
                 super.onMessage(webSocket, text);
+                heartBeat = System.currentTimeMillis();
                 receivedTextHistory.add(text);
                 msgBuffer.append(text);
                 Message message;
@@ -469,6 +472,14 @@ public class MyFreeCamsClient {
                 LOG.trace("--> NULL to keep the connection alive");
                 try {
                     ws.send("0 0 0 0 0 -\n");
+
+                    long millisSinceLastMessage = System.currentTimeMillis() - heartBeat;
+                    if(millisSinceLastMessage > TimeUnit.MINUTES.toMillis(2)) {
+                        LOG.info("No message since 2 mins. Restarting websocket");
+                        ws.close(1000, "");
+                        MyFreeCamsClient.this.ws = null;
+                    }
+
                     Thread.sleep(TimeUnit.SECONDS.toMillis(15));
                 } catch (Exception e) {
                     e.printStackTrace();

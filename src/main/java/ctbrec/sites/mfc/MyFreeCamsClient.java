@@ -484,7 +484,7 @@ public class MyFreeCamsClient {
         lock.lock();
         try {
             for (SessionState state : sessionStates.values()) {
-                if(Objects.equals(state.getNm(), model.getName())) {
+                if(Objects.equals(state.getNm(), model.getName()) || Objects.equals(model.getUid(), state.getUid())) {
                     model.update(state, getStreamUrl(state));
                     return;
                 }

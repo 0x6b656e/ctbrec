@@ -23,6 +23,8 @@ import com.iheartradio.m3u8.PlaylistParser;
 import com.iheartradio.m3u8.data.MasterPlaylist;
 import com.iheartradio.m3u8.data.Playlist;
 import com.iheartradio.m3u8.data.PlaylistData;
+import com.squareup.moshi.JsonReader;
+import com.squareup.moshi.JsonWriter;
 
 import ctbrec.AbstractModel;
 import ctbrec.recorder.download.StreamSource;
@@ -37,7 +39,7 @@ public class MyFreeCamsModel extends AbstractModel {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(MyFreeCamsModel.class);
 
-    private int uid;
+    private int uid = -1; // undefined
     private String hlsUrl;
     private double camScore;
     private int viewerCount;
@@ -207,7 +209,17 @@ public class MyFreeCamsModel extends AbstractModel {
         this.state = state;
     }
 
+    @Override
+    public void setName(String name) {
+        if(getName() != null && name != null && !getName().equals(name)) {
+            LOG.debug("Model name changed {} -> {}", getName(), name);
+        }
+        super.setName(name);
+    }
+
     public void update(SessionState state, String streamUrl) {
+        uid = Integer.parseInt(state.getUid().toString());
+        setName(state.getNm());
         setCamScore(state.getM().getCamscore());
         setState(State.of(state.getVs()));
         setStreamUrl(streamUrl);
@@ -307,5 +319,16 @@ public class MyFreeCamsModel extends AbstractModel {
     @Override
     public Site getSite() {
         return site;
+    }
+
+    @Override
+    public void readSiteSpecificData(JsonReader reader) throws IOException {
+        reader.nextName();
+        uid = reader.nextInt();
+    }
+
+    @Override
+    public void writeSiteSpecificData(JsonWriter writer) throws IOException {
+        writer.name("uid").value(uid);
     }
 }

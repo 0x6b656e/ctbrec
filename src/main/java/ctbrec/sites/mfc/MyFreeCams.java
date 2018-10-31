@@ -55,7 +55,7 @@ public class MyFreeCams extends AbstractSite {
 
     @Override
     public String getAffiliateLink() {
-        return "";
+        return BASE_URI + "/?baf=8127165";
     }
 
     @Override
@@ -93,7 +93,7 @@ public class MyFreeCams extends AbstractSite {
 
     @Override
     public String getBuyTokensLink() {
-        return "https://www.myfreecams.com/php/purchase.php?request=tokens";
+        return BASE_URI + "/php/purchase.php?request=tokens";
     }
 
     @Override
@@ -149,7 +149,7 @@ public class MyFreeCams extends AbstractSite {
         layout.add(password, 1, 1);
 
         Button createAccount = new Button("Create new Account");
-        createAccount.setOnAction((e) -> DesktopIntergation.open(BASE_URI + "/php/signup.php?request=register"));
+        createAccount.setOnAction((e) -> DesktopIntergation.open(getAffiliateLink()));
         layout.add(createAccount, 1, 2);
         GridPane.setColumnSpan(createAccount, 2);
         GridPane.setMargin(username, new Insets(0, 0, 0, SettingsTab.CHECKBOX_MARGIN));

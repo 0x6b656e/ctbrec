@@ -102,8 +102,16 @@ public class CamsodaHttpClient extends HttpClient {
      * @throws IOException
      */
     private boolean checkLoginSuccess() throws IOException {
-        // TODO load /api/v1/user/current and check status or so
-        return true;
+        String url = Camsoda.BASE_URI + "/api/v1/user/current";
+        Request request = new Request.Builder().url(url).build();
+        try(Response response = execute(request)) {
+            if(response.isSuccessful()) {
+                JSONObject resp = new JSONObject(response.body().string());
+                return resp.optBoolean("status");
+            } else {
+                return false;
+            }
+        }
     }
 
     private void transferCookies(CamsodaLoginDialog loginDialog) {

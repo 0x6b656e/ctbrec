@@ -49,8 +49,9 @@ public class CamsodaHttpClient extends HttpClient {
             JSONObject resp = new JSONObject(response.body().string());
             if(resp.has("error")) {
                 String error = resp.getString("error");
-                if(Objects.equals(error, "Please confirm that you are not a robot.")) {
-                    return loginWithDialog();
+                if (Objects.equals(error, "Please confirm that you are not a robot.")) {
+                    //return loginWithDialog();
+                    throw new IOException("CamSoda requested to solve a captcha. Please try again in a while (maybe 15 min).");
                 } else {
                     throw new IOException(resp.getString("error"));
                 }
@@ -62,6 +63,7 @@ public class CamsodaHttpClient extends HttpClient {
         }
     }
 
+    @SuppressWarnings("unused")
     private boolean loginWithDialog() throws IOException {
         BlockingQueue<Boolean> queue = new LinkedBlockingQueue<>();
 

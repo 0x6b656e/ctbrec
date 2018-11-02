@@ -65,11 +65,11 @@ public class Camsoda extends AbstractSite {
 
     @Override
     public Integer getTokenBalance() throws IOException {
-        String username = Config.getInstance().getSettings().camsodaUsername;
-        if (username == null || username.trim().isEmpty()) {
-            throw new IOException("Not logged in");
+        if (!credentialsAvailable()) {
+            throw new IOException("Account settings not available");
         }
 
+        String username = Config.getInstance().getSettings().camsodaUsername;
         String url = BASE_URI + "/api/v1/user/" + username;
         Request request = new Request.Builder().url(url).build();
         Response response = getHttpClient().execute(request, true);
@@ -113,12 +113,14 @@ public class Camsoda extends AbstractSite {
 
     @Override
     public void shutdown() {
-        httpClient.shutdown();
+        if(httpClient != null) {
+            httpClient.shutdown();
+        }
     }
 
     @Override
     public boolean supportsTips() {
-        return false;
+        return true;
     }
 
     @Override

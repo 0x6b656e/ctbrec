@@ -1,3 +1,8 @@
+1.6.2
+========================
+* Added detection of model name changes for MyFreeCams
+
+
 1.6.1
 ========================
 * Fixed UI freeze, which occured for a high number of recorded models

@@ -12,6 +12,7 @@ import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -37,6 +38,7 @@ import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TitledPane;
+import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
@@ -176,14 +178,17 @@ public class CamsodaShowsTab extends Tab implements TabSelectionListener {
             grid.add(createLabel("End", true), 0, 1);
             grid.add(createLabel(formatter.format(endTime), false), 1, 1);
             Button record = new Button("Record Model");
+            record.setTooltip(new Tooltip(record.getText()));
             record.setOnAction((evt) -> record(model));
             grid.add(record, 1, 2);
             GridPane.setMargin(record, new Insets(10));
             Button follow = new Button("Follow");
+            follow.setTooltip(new Tooltip(follow.getText()));
             follow.setOnAction((evt) -> follow(model));
             grid.add(follow, 1, 3);
             GridPane.setMargin(follow, new Insets(10));
             Button openInBrowser = new Button("Open in Browser");
+            openInBrowser.setTooltip(new Tooltip(openInBrowser.getText()));
             openInBrowser.setOnAction((evt) -> DesktopIntergation.open(model.getUrl()));
             grid.add(openInBrowser, 1, 4);
             GridPane.setMargin(openInBrowser, new Insets(10));
@@ -238,10 +243,14 @@ public class CamsodaShowsTab extends Tab implements TabSelectionListener {
                             if (user.has("settings")) {
                                 JSONObject settings = user.getJSONObject("settings");
                                 String imageUrl;
-                                if (settings.has("offline_picture")) {
-                                    imageUrl = settings.getString("offline_picture");
+                                if(Objects.equals(System.getenv("CTBREC_DEV"), "1"))  {
+                                    imageUrl = getClass().getResource("/image_not_found.png").toString();
                                 } else {
-                                    imageUrl = "https:" + user.getString("thumb");
+                                    if (settings.has("offline_picture")) {
+                                        imageUrl = settings.getString("offline_picture");
+                                    } else {
+                                        imageUrl = "https:" + user.getString("thumb");
+                                    }
                                 }
                                 Platform.runLater(() -> {
                                     Image img = new Image(imageUrl, 1000, thumbSize, true, true, true);

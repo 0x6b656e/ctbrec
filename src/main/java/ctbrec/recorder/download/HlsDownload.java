@@ -48,7 +48,7 @@ public class HlsDownload extends AbstractHlsDownload {
                 throw new IOException(model.getName() +"'s room is not public");
             }
 
-            String segments = model.getSegmentPlaylistUrl();
+            String segments = getSegmentPlaylistUrl(model);
             if(segments != null) {
                 if (!Files.exists(downloadDir, LinkOption.NOFOLLOW_LINKS)) {
                     Files.createDirectories(downloadDir);

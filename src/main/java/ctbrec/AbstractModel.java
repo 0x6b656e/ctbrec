@@ -2,16 +2,11 @@ package ctbrec;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-import com.iheartradio.m3u8.ParseException;
-import com.iheartradio.m3u8.PlaylistException;
 import com.squareup.moshi.JsonReader;
 import com.squareup.moshi.JsonWriter;
-
-import ctbrec.recorder.download.StreamSource;
 
 public abstract class AbstractModel implements Model {
 
@@ -85,19 +80,6 @@ public abstract class AbstractModel implements Model {
     @Override
     public void setStreamUrlIndex(int streamUrlIndex) {
         this.streamUrlIndex = streamUrlIndex;
-    }
-
-    @Override
-    public String getSegmentPlaylistUrl() throws IOException, ExecutionException, ParseException, PlaylistException {
-        List<StreamSource> streamSources = getStreamSources();
-        String url = null;
-        if(getStreamUrlIndex() >= 0 && getStreamUrlIndex() < streamSources.size()) {
-            url = streamSources.get(getStreamUrlIndex()).getMediaPlaylistUrl();
-        } else {
-            Collections.sort(streamSources);
-            url = streamSources.get(streamSources.size()-1).getMediaPlaylistUrl();
-        }
-        return url;
     }
 
     @Override

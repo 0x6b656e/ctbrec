@@ -6,7 +6,9 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -20,6 +22,7 @@ import com.iheartradio.m3u8.data.MediaPlaylist;
 import com.iheartradio.m3u8.data.Playlist;
 import com.iheartradio.m3u8.data.TrackData;
 
+import ctbrec.Model;
 import ctbrec.io.HttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -67,6 +70,19 @@ public abstract class AbstractHlsDownload implements Download {
         } finally {
             response.close();
         }
+    }
+
+
+    String getSegmentPlaylistUrl(Model model) throws IOException, ExecutionException, ParseException, PlaylistException {
+        List<StreamSource> streamSources = model.getStreamSources();
+        String url = null;
+        if(model.getStreamUrlIndex() >= 0 && model.getStreamUrlIndex() < streamSources.size()) {
+            url = streamSources.get(model.getStreamUrlIndex()).getMediaPlaylistUrl();
+        } else {
+            Collections.sort(streamSources);
+            url = streamSources.get(streamSources.size()-1).getMediaPlaylistUrl();
+        }
+        return url;
     }
 
     @Override

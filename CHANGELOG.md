@@ -1,4 +1,4 @@
-1.6.2
+1.7.0
 ========================
 * Added CamSoda
 * Added detection of model name changes for MyFreeCams

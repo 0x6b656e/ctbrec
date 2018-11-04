@@ -34,7 +34,7 @@ import ctbrec.recorder.Recorder;
 import ctbrec.recorder.download.MergedHlsDownload;
 import ctbrec.sites.Site;
 import javafx.application.Platform;
-import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.ScheduledService;
@@ -47,6 +47,7 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -57,6 +58,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.stage.FileChooser;
+import javafx.util.Callback;
 import javafx.util.Duration;
 
 public class RecordingsTab extends Tab implements TabSelectionListener {
@@ -99,12 +101,28 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
         TableColumn<JavaFxRecording, String> name = new TableColumn<>("Model");
         name.setPrefWidth(200);
         name.setCellValueFactory(new PropertyValueFactory<JavaFxRecording, String>("modelName"));
-        TableColumn<JavaFxRecording, String> date = new TableColumn<>("Date");
+        TableColumn<JavaFxRecording, Instant> date = new TableColumn<>("Date");
         date.setCellValueFactory((cdf) -> {
             Instant instant = cdf.getValue().getStartDate();
-            ZonedDateTime time = instant.atZone(ZoneId.systemDefault());
-            DateTimeFormatter dtf = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.MEDIUM);
-            return new SimpleStringProperty(dtf.format(time));
+            return new SimpleObjectProperty<Instant>(instant);
+        });
+        date.setCellFactory(new Callback<TableColumn<JavaFxRecording, Instant>, TableCell<JavaFxRecording, Instant>>() {
+            @Override
+            public TableCell<JavaFxRecording, Instant> call(TableColumn<JavaFxRecording, Instant> param) {
+                TableCell<JavaFxRecording, Instant> cell = new TableCell<JavaFxRecording, Instant>() {
+                    @Override
+                    protected void updateItem(Instant instant, boolean empty) {
+                        if(empty || instant == null) {
+                            setText(null);
+                        } else {
+                            ZonedDateTime time = instant.atZone(ZoneId.systemDefault());
+                            DateTimeFormatter dtf = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.MEDIUM);
+                            setText(dtf.format(time));
+                        }
+                    }
+                };
+                return cell;
+            }
         });
         date.setPrefWidth(200);
         TableColumn<JavaFxRecording, String> status = new TableColumn<>("Status");

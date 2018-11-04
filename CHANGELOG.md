@@ -3,6 +3,7 @@
 * Added CamSoda
 * Added detection of model name changes for MyFreeCams
 * Added setting to define a maximum resolution
+* Fixed sorting by date in recordings table
 
 1.6.1
 ========================

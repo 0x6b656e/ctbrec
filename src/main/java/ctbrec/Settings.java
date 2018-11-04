@@ -34,6 +34,7 @@ public class Settings {
     public boolean determineResolution = false;
     public boolean requireAuthentication = false;
     public boolean chooseStreamQuality = false;
+    public int maximumResolution = 0;
     public byte[] key = null;
     public ProxyType proxyType = ProxyType.DIRECT;
     public String proxyHost;

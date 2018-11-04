@@ -1,5 +1,6 @@
 package ctbrec.sites.cam4;
 
+import java.io.File;
 import java.io.InputStream;
 import java.net.CookieHandler;
 import java.net.CookieManager;
@@ -13,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
+import ctbrec.OS;
 import javafx.concurrent.Worker.State;
 import javafx.scene.Scene;
 import javafx.scene.control.ProgressIndicator;
@@ -71,24 +73,29 @@ public class Cam4LoginDialog {
         });
         webEngine.getLoadWorker().stateProperty().addListener((observable, oldState, newState) -> {
             if (newState == State.SUCCEEDED) {
-                String username = Config.getInstance().getSettings().cam4Username;
-                if (username != null && !username.trim().isEmpty()) {
-                    webEngine.executeScript("$('input[name=username]').attr('value','" + username + "')");
-                }
-                String password = Config.getInstance().getSettings().cam4Password;
-                if (password != null && !password.trim().isEmpty()) {
-                    webEngine.executeScript("$('input[name=password]').attr('value','" + password + "')");
-                }
-                webEngine.executeScript("$('div[class~=navbar]').css('display','none')");
-                webEngine.executeScript("$('div#footer').css('display','none')");
-                webEngine.executeScript("$('div#content').css('padding','0')");
                 veil.setVisible(false);
                 p.setVisible(false);
+                try {
+                    String username = Config.getInstance().getSettings().cam4Username;
+                    if (username != null && !username.trim().isEmpty()) {
+                        webEngine.executeScript("$('input[name=username]').attr('value','" + username + "')");
+                    }
+                    String password = Config.getInstance().getSettings().cam4Password;
+                    if (password != null && !password.trim().isEmpty()) {
+                        webEngine.executeScript("$('input[name=password]').attr('value','" + password + "')");
+                    }
+                    webEngine.executeScript("$('div[class~=navbar]').css('display','none')");
+                    webEngine.executeScript("$('div#footer').css('display','none')");
+                    webEngine.executeScript("$('div#content').css('padding','0')");
+                } catch(Exception e) {
+                    LOG.warn("Couldn't auto fill username and password for Cam4", e);
+                }
             } else if (newState == State.CANCELLED || newState == State.FAILED) {
                 veil.setVisible(false);
                 p.setVisible(false);
             }
         });
+        webEngine.setUserDataDirectory(new File(OS.getConfigDir(), "webengine"));
         webEngine.load(URL);
         return browser;
     }

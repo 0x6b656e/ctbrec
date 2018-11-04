@@ -2,14 +2,11 @@ package ctbrec;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-import com.iheartradio.m3u8.ParseException;
-import com.iheartradio.m3u8.PlaylistException;
-
-import ctbrec.recorder.download.StreamSource;
+import com.squareup.moshi.JsonReader;
+import com.squareup.moshi.JsonWriter;
 
 public abstract class AbstractModel implements Model {
 
@@ -19,6 +16,11 @@ public abstract class AbstractModel implements Model {
     private String description;
     private List<String> tags = new ArrayList<>();
     private int streamUrlIndex = -1;
+
+    @Override
+    public boolean isOnline() throws IOException, ExecutionException, InterruptedException {
+        return isOnline(false);
+    }
 
     @Override
     public String getUrl() {
@@ -81,16 +83,13 @@ public abstract class AbstractModel implements Model {
     }
 
     @Override
-    public String getSegmentPlaylistUrl() throws IOException, ExecutionException, ParseException, PlaylistException {
-        List<StreamSource> streamSources = getStreamSources();
-        String url = null;
-        if(getStreamUrlIndex() >= 0 && getStreamUrlIndex() < streamSources.size()) {
-            url = streamSources.get(getStreamUrlIndex()).getMediaPlaylistUrl();
-        } else {
-            Collections.sort(streamSources);
-            url = streamSources.get(streamSources.size()-1).getMediaPlaylistUrl();
-        }
-        return url;
+    public void readSiteSpecificData(JsonReader reader) throws IOException {
+        // noop default implementation, can be overriden by concrete models
+    }
+
+    @Override
+    public void writeSiteSpecificData(JsonWriter writer) throws IOException {
+        // noop default implementation, can be overriden by concrete models
     }
 
     @Override

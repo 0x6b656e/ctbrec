@@ -13,6 +13,7 @@ import ctbrec.sites.Site;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
 
 public class TokenLabel extends Label {
 
@@ -26,10 +27,10 @@ public class TokenLabel extends Label {
         CamrecApplication.bus.register(new Object() {
             @Subscribe
             public void tokensUpdates(Map<String, Object> e) {
-                if(Objects.equals("tokens", e.get("event"))) {
+                if (Objects.equals("tokens", e.get("event"))) {
                     tokens = (int) e.get("amount");
                     updateText();
-                } else if(Objects.equals("tokens.sent", e.get("event"))) {
+                } else if (Objects.equals("tokens.sent", e.get("event"))) {
                     int _tokens = (int) e.get("amount");
                     tokens -= _tokens;
                     updateText();
@@ -70,7 +71,10 @@ public class TokenLabel extends Label {
                     update(tokens);
                 } catch (InterruptedException | ExecutionException e) {
                     LOG.error("Couldn't retrieve account balance", e);
-                    Platform.runLater(() -> setText("Tokens: error"));
+                    Platform.runLater(() -> {
+                        setText("Tokens: error");
+                        setTooltip(new Tooltip(e.getMessage()));
+                    });
                 }
             }
         };

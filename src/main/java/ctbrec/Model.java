@@ -6,6 +6,8 @@ import java.util.concurrent.ExecutionException;
 
 import com.iheartradio.m3u8.ParseException;
 import com.iheartradio.m3u8.PlaylistException;
+import com.squareup.moshi.JsonReader;
+import com.squareup.moshi.JsonWriter;
 
 import ctbrec.recorder.download.StreamSource;
 import ctbrec.sites.Site;
@@ -27,7 +29,6 @@ public interface Model {
     public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException;
     public String getOnlineState(boolean failFast) throws IOException, ExecutionException;
     public List<StreamSource> getStreamSources() throws IOException, ExecutionException, ParseException, PlaylistException;
-    public String getSegmentPlaylistUrl() throws IOException, ExecutionException, ParseException, PlaylistException;
     public void invalidateCacheEntries();
     public void receiveTip(int tokens) throws IOException;
     public int[] getStreamResolution(boolean failFast) throws ExecutionException;
@@ -35,4 +36,6 @@ public interface Model {
     public boolean unfollow() throws IOException;
     public void setSite(Site site);
     public Site getSite();
+    public void writeSiteSpecificData(JsonWriter writer) throws IOException;
+    public void readSiteSpecificData(JsonReader reader) throws IOException;
 }

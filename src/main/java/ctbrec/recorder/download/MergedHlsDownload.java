@@ -101,7 +101,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
                 target = new File(targetFile.getAbsolutePath().replaceAll("\\.ts", "-00000.ts"));
             }
 
-            String segments = model.getSegmentPlaylistUrl();
+            String segments = getSegmentPlaylistUrl(model);
             mergeThread = createMergeThread(target, null, true);
             mergeThread.start();
             if(segments != null) {

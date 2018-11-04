@@ -1,5 +1,6 @@
 package ctbrec.ui;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -207,10 +208,16 @@ public class ThumbCell extends StackPane {
                     LOG.trace("Removing invalid resolution value for {}", model.getName());
                     model.invalidateCacheEntries();
                 }
-
+                
                 Thread.sleep(500);
-            } catch (ExecutionException | IOException | InterruptedException e1) {
+            } catch (IOException | InterruptedException e1) {
                 LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e1);
+            } catch(ExecutionException e) {
+                if(e.getCause() instanceof EOFException) {
+                    LOG.warn("Couldn't update resolution tag for model {}. Playlist empty", model.getName());
+                } else {
+                    LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e);
+                }
             } finally {
                 ThumbOverviewTab.resolutionProcessing.remove(model);
             }
@@ -485,13 +492,13 @@ public class ThumbCell extends StackPane {
         nameBackground.setWidth(w);
         nameBackground.setHeight(20);
         topicBackground.setWidth(w);
-        topicBackground.setHeight(h-nameBackground.getHeight());
-        topic.prefHeight(h-25);
-        topic.maxHeight(h-25);
+        topicBackground.setHeight(getHeight()-nameBackground.getHeight());
+        topic.prefHeight(getHeight()-25);
+        topic.maxHeight(getHeight()-25);
         int margin = 4;
         topic.maxWidth(w-margin*2);
         topic.setWrappingWidth(w-margin*2);
         selectionOverlay.setWidth(w);
-        selectionOverlay.setHeight(h);
+        selectionOverlay.setHeight(getHeight());
     }
 }

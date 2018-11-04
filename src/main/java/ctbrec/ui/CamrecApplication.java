@@ -28,6 +28,7 @@ import ctbrec.recorder.Recorder;
 import ctbrec.recorder.RemoteRecorder;
 import ctbrec.sites.Site;
 import ctbrec.sites.cam4.Cam4;
+import ctbrec.sites.camsoda.Camsoda;
 import ctbrec.sites.chaturbate.Chaturbate;
 import ctbrec.sites.mfc.MyFreeCams;
 import javafx.application.Application;
@@ -61,6 +62,7 @@ public class CamrecApplication extends Application {
     public void start(Stage primaryStage) throws Exception {
         sites.add(new Chaturbate());
         sites.add(new MyFreeCams());
+        sites.add(new Camsoda());
         sites.add(new Cam4());
         loadConfig();
         createHttpClient();
@@ -72,9 +74,6 @@ public class CamrecApplication extends Application {
                 try {
                     site.setRecorder(recorder);
                     site.init();
-                    if (!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
-                        site.login();
-                    }
                 } catch(Exception e) {
                     LOG.error("Error while initializing site {}", site.getName(), e);
                 }

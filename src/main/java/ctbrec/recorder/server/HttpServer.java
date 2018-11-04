@@ -21,6 +21,7 @@ import ctbrec.recorder.LocalRecorder;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
 import ctbrec.sites.cam4.Cam4;
+import ctbrec.sites.camsoda.Camsoda;
 import ctbrec.sites.chaturbate.Chaturbate;
 import ctbrec.sites.mfc.MyFreeCams;
 
@@ -53,7 +54,9 @@ public class HttpServer {
         }
         recorder = new LocalRecorder(config);
         for (Site site : sites) {
-            site.init();
+            if(site.isEnabled()) {
+                site.init();
+            }
         }
         startHttpServer();
     }
@@ -61,6 +64,7 @@ public class HttpServer {
     private void createSites() {
         sites.add(new Chaturbate());
         sites.add(new MyFreeCams());
+        sites.add(new Camsoda());
         sites.add(new Cam4());
     }
 

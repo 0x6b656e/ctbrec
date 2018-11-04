@@ -2,11 +2,12 @@ package ctbrec.ui;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 import com.iheartradio.m3u8.ParseException;
 import com.iheartradio.m3u8.PlaylistException;
+import com.squareup.moshi.JsonReader;
+import com.squareup.moshi.JsonWriter;
 
 import ctbrec.AbstractModel;
 import ctbrec.Model;
@@ -20,14 +21,13 @@ import javafx.beans.property.SimpleBooleanProperty;
  */
 public class JavaFxModel extends AbstractModel {
     private transient BooleanProperty onlineProperty = new SimpleBooleanProperty();
-
     private Model delegate;
 
     public JavaFxModel(Model delegate) {
         this.delegate = delegate;
         try {
-            onlineProperty.set(Objects.equals("public", delegate.getOnlineState(true)));
-        } catch (IOException | ExecutionException e) {}
+            onlineProperty.set(delegate.isOnline());
+        } catch (IOException | ExecutionException | InterruptedException e) {}
     }
 
     @Override
@@ -146,5 +146,15 @@ public class JavaFxModel extends AbstractModel {
     @Override
     public Site getSite() {
         return delegate.getSite();
+    }
+
+    @Override
+    public void readSiteSpecificData(JsonReader reader) throws IOException {
+        delegate.readSiteSpecificData(reader);
+    }
+
+    @Override
+    public void writeSiteSpecificData(JsonWriter writer) throws IOException {
+        delegate.writeSiteSpecificData(writer);
     }
 }

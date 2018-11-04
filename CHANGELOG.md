@@ -1,7 +1,8 @@
 1.6.2
 ========================
+* Added CamSoda
 * Added detection of model name changes for MyFreeCams
-
+* Added setting to define a maximum resolution
 
 1.6.1
 ========================

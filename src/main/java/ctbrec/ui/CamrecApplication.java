@@ -27,6 +27,7 @@ import ctbrec.recorder.LocalRecorder;
 import ctbrec.recorder.Recorder;
 import ctbrec.recorder.RemoteRecorder;
 import ctbrec.sites.Site;
+import ctbrec.sites.bonga.BongaCams;
 import ctbrec.sites.cam4.Cam4;
 import ctbrec.sites.camsoda.Camsoda;
 import ctbrec.sites.chaturbate.Chaturbate;
@@ -64,6 +65,7 @@ public class CamrecApplication extends Application {
         sites.add(new MyFreeCams());
         sites.add(new Camsoda());
         sites.add(new Cam4());
+        sites.add(new BongaCams());
         loadConfig();
         createHttpClient();
         bus = new AsyncEventBus(Executors.newSingleThreadExecutor());

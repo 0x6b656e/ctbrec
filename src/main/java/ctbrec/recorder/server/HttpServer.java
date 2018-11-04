@@ -20,6 +20,7 @@ import ctbrec.Config;
 import ctbrec.recorder.LocalRecorder;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
+import ctbrec.sites.bonga.BongaCams;
 import ctbrec.sites.cam4.Cam4;
 import ctbrec.sites.camsoda.Camsoda;
 import ctbrec.sites.chaturbate.Chaturbate;
@@ -66,6 +67,7 @@ public class HttpServer {
         sites.add(new MyFreeCams());
         sites.add(new Camsoda());
         sites.add(new Cam4());
+        sites.add(new BongaCams());
     }
 
     private void addShutdownHook() {

@@ -93,7 +93,7 @@ public abstract class AbstractHlsDownload implements Download {
                 for (Iterator<StreamSource> iterator = streamSources.iterator(); iterator.hasNext();) {
                     StreamSource streamSource = iterator.next();
                     if(streamSource.height > 0 && maxRes < streamSource.height) {
-                        LOG.debug("Res too high {} > {}", streamSource.height, maxRes);
+                        LOG.trace("Res too high {} > {}", streamSource.height, maxRes);
                         iterator.remove();
                     }
                 }

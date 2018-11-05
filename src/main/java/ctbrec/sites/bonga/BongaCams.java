@@ -2,12 +2,19 @@ package ctbrec.sites.bonga;
 
 import java.io.IOException;
 
+import org.json.JSONObject;
+
+import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.io.HttpClient;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.AbstractSite;
+import ctbrec.sites.ConfigUI;
 import ctbrec.ui.TabProvider;
-import javafx.scene.Node;
+import okhttp3.FormBody;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 public class BongaCams extends AbstractSite {
 
@@ -29,7 +36,7 @@ public class BongaCams extends AbstractSite {
 
     @Override
     public String getAffiliateLink() {
-        return BASE_URL;
+        return "http://bongacams2.com/track?c=610249";
     }
 
     @Override
@@ -54,20 +61,43 @@ public class BongaCams extends AbstractSite {
 
     @Override
     public Integer getTokenBalance() throws IOException {
-        // TODO Auto-generated method stub
+        String url = BongaCams.BASE_URL + "/tools/amf.php";
+        RequestBody body = new FormBody.Builder()
+                .add("method", "ping")
+                .add("args[]", "66050808")
+                .build();
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("User-Agent", "Mozilla/5.0 (Android 9.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0")
+                .addHeader("Accept", "application/json, text/javascript, */*")
+                .addHeader("Accept-Language", "en")
+                .addHeader("Referer", BongaCams.BASE_URL)
+                .addHeader("X-Requested-With", "XMLHttpRequest")
+                .post(body)
+                .build();
+        try(Response response = getHttpClient().execute(request, true)) {
+            if(response.isSuccessful()) {
+                JSONObject json = new JSONObject(response.body().string());
+                if(json.optString("status").equals("success")) {
+                    System.out.println(json.toString(2));
+                } else {
+                    throw new IOException("Request was not successful: " + json.toString(2));
+                }
+            } else {
+                throw new IOException(response.code() + " " + response.message());
+            }
+        }
         return 0;
     }
 
     @Override
     public String getBuyTokensLink() {
-        // TODO Auto-generated method stub
-        return getBaseUrl();
+        return getAffiliateLink();
     }
 
     @Override
     public void login() throws IOException {
-        // TODO Auto-generated method stub
-
+        getHttpClient().login();
     }
 
     @Override
@@ -80,20 +110,18 @@ public class BongaCams extends AbstractSite {
 
     @Override
     public void init() throws IOException {
-        // TODO Auto-generated method stub
-
     }
 
     @Override
     public void shutdown() {
-        // TODO Auto-generated method stub
-
+        if(httpClient != null) {
+            httpClient.shutdown();
+        }
     }
 
     @Override
     public boolean supportsTips() {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     @Override
@@ -104,20 +132,18 @@ public class BongaCams extends AbstractSite {
 
     @Override
     public boolean isSiteForModel(Model m) {
-        // TODO Auto-generated method stub
-        return false;
+        return m instanceof BongaCamsModel;
     }
 
     @Override
-    public Node getConfigurationGui() {
-        // TODO Auto-generated method stub
-        return null;
+    public ConfigUI getConfigurationGui() {
+        return new BongaCamsConfigUI(this);
     }
 
     @Override
     public boolean credentialsAvailable() {
-        // TODO Auto-generated method stub
-        return false;
+        String username = Config.getInstance().getSettings().bongaUsername;
+        return username != null && !username.trim().isEmpty();
     }
 
 }

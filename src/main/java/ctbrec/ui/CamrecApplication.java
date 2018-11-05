@@ -61,11 +61,11 @@ public class CamrecApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+        sites.add(new BongaCams());
+        sites.add(new Cam4());
+        sites.add(new Camsoda());
         sites.add(new Chaturbate());
         sites.add(new MyFreeCams());
-        sites.add(new Camsoda());
-        sites.add(new Cam4());
-        sites.add(new BongaCams());
         loadConfig();
         createHttpClient();
         bus = new AsyncEventBus(Executors.newSingleThreadExecutor());

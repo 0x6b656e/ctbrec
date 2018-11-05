@@ -113,6 +113,7 @@ public class BongaCamsModel extends AbstractModel {
             if(response.isSuccessful()) {
                 JSONObject json = new JSONObject(response.body().string());
                 if(json.optString("status").equals("success")) {
+                    System.out.println(json.toString(2));
                     JSONObject localData = json.getJSONObject("localData");
                     String server = localData.getString("videoServerUrl");
                     return "https:" + server + "/hls/stream_" + getName() + "/playlist.m3u8";

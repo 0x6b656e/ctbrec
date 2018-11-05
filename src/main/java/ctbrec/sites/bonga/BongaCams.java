@@ -78,8 +78,9 @@ public class BongaCams extends AbstractSite {
         try(Response response = getHttpClient().execute(request, true)) {
             if(response.isSuccessful()) {
                 JSONObject json = new JSONObject(response.body().string());
-                if(json.optString("status").equals("success")) {
-                    System.out.println(json.toString(2));
+                if(json.optString("status").equals("online")) {
+                    JSONObject userData = json.getJSONObject("userData");
+                    return userData.getInt("balance");
                 } else {
                     throw new IOException("Request was not successful: " + json.toString(2));
                 }
@@ -87,7 +88,6 @@ public class BongaCams extends AbstractSite {
                 throw new IOException(response.code() + " " + response.message());
             }
         }
-        return 0;
     }
 
     @Override

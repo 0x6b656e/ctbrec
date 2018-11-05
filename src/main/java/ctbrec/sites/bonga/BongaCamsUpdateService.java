@@ -20,9 +20,11 @@ public class BongaCamsUpdateService extends PaginatedScheduledService {
     private static final transient Logger LOG = LoggerFactory.getLogger(BongaCamsUpdateService.class);
 
     private BongaCams bongaCams;
+    private String url;
 
-    public BongaCamsUpdateService(BongaCams bongaCams) {
+    public BongaCamsUpdateService(BongaCams bongaCams, String url) {
         this.bongaCams = bongaCams;
+        this.url = url;
     }
 
     @Override
@@ -30,10 +32,10 @@ public class BongaCamsUpdateService extends PaginatedScheduledService {
         return new Task<List<Model>>() {
             @Override
             public List<Model> call() throws IOException {
-                String url = BongaCams.BASE_URL + "/tools/listing_v3.php?livetab=female&online_only=true&is_mobile=true&offset=" + ((page-1) * 50);
+                String _url = url + ((page-1) * 50);
                 LOG.debug("Fetching page {}", url);
                 Request request = new Request.Builder()
-                        .url(url)
+                        .url(_url)
                         .addHeader("User-Agent", "Mozilla/5.0 (Android 9.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0")
                         .addHeader("Accept", "application/json, text/javascript, */*")
                         .addHeader("Accept-Language", "en")

@@ -24,8 +24,30 @@ public class BongaCamsTabProvider extends TabProvider {
     public List<Tab> getTabs(Scene scene) {
         List<Tab> tabs = new ArrayList<>();
 
-        BongaCamsUpdateService updateService = new BongaCamsUpdateService(bongaCams);
-        tabs.add(createTab("Online", updateService));
+        // female
+        String url = BongaCams.BASE_URL + "/tools/listing_v3.php?livetab=female&online_only=true&is_mobile=true&offset=";
+        BongaCamsUpdateService updateService = new BongaCamsUpdateService(bongaCams, url);
+        tabs.add(createTab("Female", updateService));
+
+        // male
+        url = BongaCams.BASE_URL + "/tools/listing_v3.php?livetab=male&online_only=true&is_mobile=true&offset=";
+        updateService = new BongaCamsUpdateService(bongaCams, url);
+        tabs.add(createTab("Male", updateService));
+
+        // couples
+        url = BongaCams.BASE_URL + "/tools/listing_v3.php?livetab=couples&online_only=true&is_mobile=true&offset=";
+        updateService = new BongaCamsUpdateService(bongaCams, url);
+        tabs.add(createTab("Couples", updateService));
+
+        // trans
+        url = BongaCams.BASE_URL + "/tools/listing_v3.php?livetab=transsexual&online_only=true&is_mobile=true&offset=";
+        updateService = new BongaCamsUpdateService(bongaCams, url);
+        tabs.add(createTab("Transsexual", updateService));
+
+        // new
+        url = BongaCams.BASE_URL + "/tools/listing_v3.php?livetab=new-models&online_only=true&is_mobile=true&offset=";
+        updateService = new BongaCamsUpdateService(bongaCams, url);
+        tabs.add(createTab("New", updateService));
 
         return tabs;
     }

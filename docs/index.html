@@ -109,19 +109,19 @@
     	</script>
         <div class="row text-center">
             <div class="col">
-                <a class="btn btn-xl btn-outline-dark" href="#donate" onclick="downloadFile('https://github.com/0xboobface/ctbrec/releases/download/1.7.0/ctbrec-1.7.0-win64-jre.zip');">
+                <a class="btn btn-xl btn-outline-dark" href="#donate" onclick="downloadFile('https://github.com/0xboobface/ctbrec/releases/download/1.6.0/ctbrec-1.6.0-win64-jre.zip');">
                     <i class="fa fa-windows mr-2"></i>
                     Download for Windows!
                 </a>
             </div>
             <div class="col">
-                <a class="btn btn-xl btn-outline-dark" href="#donate" onclick="downloadFile('https://github.com/0xboobface/ctbrec/releases/download/1.7.0/ctbrec-1.7.0-win64.zip');">
+                <a class="btn btn-xl btn-outline-dark" href="#donate" onclick="downloadFile('https://github.com/0xboobface/ctbrec/releases/download/1.6.0/ctbrec-1.6.0-win64.zip');">
                     <i class="fa fa-windows mr-2"></i>
                     Download for Windows (no JRE)!
                 </a>
             </div>
             <div class="col">
-                <a class="btn btn-xl btn-outline-dark" href="#donate" onclick="downloadFile('https://github.com/0xboobface/ctbrec/releases/download/1.7.0/ctbrec-1.7.0-linux.zip');">
+                <a class="btn btn-xl btn-outline-dark" href="#donate" onclick="downloadFile('https://github.com/0xboobface/ctbrec/releases/download/1.6.0/ctbrec-1.6.0-linux.zip');">
                     <i class="fa fa-linux mr-2"></i>
                     Download for Linux!
                 </a>
@@ -271,45 +271,7 @@
 			<hr class="star-light mb-5">
 			<div class="row">
 				<div class="col-lg-12">
-				<div class="accordion text-dark" id="accordionExample">
-				  
-				  <!-- no mac? -->
-				  <div class="card">
-				    <div class="card-header" id="headingEight">
-				      <h5 class="mb-0">
-				        <button class="btn btn-link text-dark collapsed" type="button" data-toggle="collapse" data-target="#collapseEight" aria-expanded="true" aria-controls="collapseEight">
-				          Is there no version for Mac?
-				        </button>
-				      </h5>
-				    </div>
-				    <div id="collapseEight" class="collapse show" aria-labelledby="headingEight" data-parent="#accordionExample">
-						<div class="card-body">
-							Try the Linux version. It contains shell scripts, which should work under Mac, too.
-							If they don't work, please <a href="https://github.com/0xboobface/ctbrec/issues">ask for help</a>.
-						</div>
-					</div>
-				  </div>
-				  
-				  <!-- only .ts files -->
-				  <div class="card">
-				    <div class="card-header" id="headingOne">
-				      <h5 class="mb-0">
-				        <button class="btn btn-link text-dark collapsed" type="button" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-				          The recordings directory only contains a bunch of .ts files. What do I do with them?
-				        </button>
-				      </h5>
-				    </div>
-				    <div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
-						<div class="card-body">CTB Recorder also creates a
-									playlist file called playlist.m3u8. If your media player is
-									capable of playing playlist, you can just open the playlist and
-									enjoy your recording. Alternatively go to the recordings tab, right
-									click on the recording and select "Merge segments". This will
-									create one big .ts file of the whole recording.
-						</div>
-					</div>
-				  </div>
-				  
+				<div class="accordion text-dark" id="accordionExample">			  
 				  <!-- What are .ts files -->
 				  <div class="card">
 				    <div class="card-header" id="headingTwo">
@@ -342,8 +304,9 @@
 				      <div class="card-body">
 				        The archive you downloaded contains a server.bat or server.sh, which can be used to start the server. On the first start, the server uses a default
 				        configuration. Once you terminate the server by pressing <kbd><kbd>ctrl</kbd> + <kbd>c</kbd></kbd>, the config is stored in your user home.<br/>
-				        On windows that is <code>C:\Users\{your user name}\AppData\Roaming\ctbrec\server.json</code><br/>
-				        On linux that is <code>~/.config/ctbrec/server.json</code><br/>
+				        On Windows that is <code>C:\Users\{your user name}\AppData\Roaming\ctbrec\server.json</code><br/>
+				        On Linux it is <code>~/.config/ctbrec/server.json</code><br/>
+				        On macOS it is <code>/Users/{your user name}/Library/Preferences/ctbrec</code><br/>
 				        You can open this file in a text editor and change it to your likings. You probably only want to change <code>httpPort</code> and <code>recordingsDir</code>.
 				        Most of the other stuff is irrelevant since the server and CTB Recorder use the same config file format.
 				        When the server is running, you can connect to it with CTB Recorder by changing the setting "Record location" to "Remote".

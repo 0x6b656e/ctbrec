@@ -14,6 +14,7 @@ import com.sun.javafx.collections.ObservableListWrapper;
 import ctbrec.Config;
 import ctbrec.Hmac;
 import ctbrec.Settings;
+import ctbrec.sites.ConfigUI;
 import ctbrec.sites.Site;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -119,9 +120,9 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         rightSide.getChildren().add(credentialsAccordion);
         for (int i = 0; i < sites.size(); i++) {
             Site site = sites.get(i);
-            Node siteConfig = site.getConfigurationGui();
+            ConfigUI siteConfig = site.getConfigurationGui();
             if(siteConfig != null) {
-                TitledPane pane = new TitledPane(site.getName(), siteConfig);
+                TitledPane pane = new TitledPane(site.getName(), siteConfig.createConfigPanel());
                 credentialsAccordion.getPanes().add(pane);
             }
         }

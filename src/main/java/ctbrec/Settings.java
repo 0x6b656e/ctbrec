@@ -22,6 +22,8 @@ public class Settings {
     public String mediaPlayer = "/usr/bin/mpv";
     public String username = ""; // chaturbate username TODO maybe rename this onetime
     public String password = ""; // chaturbate password TODO maybe rename this onetime
+    public String bongaUsername = "";
+    public String bongaPassword = "";
     public String mfcUsername = "";
     public String mfcPassword = "";
     public String camsodaUsername = "";

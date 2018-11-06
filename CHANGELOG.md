@@ -1,3 +1,11 @@
+1.7.1
+========================
+* Added possibility to suspend the recording for a model. The model stays in
+  the list of recorded models, but the actual recording is suspended
+* Server can run now run on OpenJRE
+* Added JVM parameter to define the configuration directory
+  (``-Dctbrec.config.dir``)
+
 1.7.0
 ========================
 * Added CamSoda

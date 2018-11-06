@@ -89,7 +89,7 @@ public class CookieJarImpl implements CookieJar {
         return sb.toString();
     }
 
-    protected Map<String, List<Cookie>> getCookies() {
+    public Map<String, List<Cookie>> getCookies() {
         return cookieStore;
     }
 }

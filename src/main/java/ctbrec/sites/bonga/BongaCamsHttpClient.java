@@ -3,7 +3,10 @@ package ctbrec.sites.bonga;
 import java.io.IOException;
 import java.net.HttpCookie;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -28,6 +31,30 @@ public class BongaCamsHttpClient extends HttpClient {
 
     public BongaCamsHttpClient() {
         super("bongacams");
+        addSortByPopularCookie();
+    }
+
+    /**
+     * Adds a cookie, which defines the sort order for returned model lists
+     */
+    private void addSortByPopularCookie() {
+        Cookie sortByCookie = new Cookie.Builder()
+                .domain("bongacams.com")
+                .name("bcmlsf9")
+                .value("%7B%22limit%22%3A20%2C%22c_limit%22%3A10%2C%22th_type%22%3A%22live%22%2C%22sorting%22%3A%22popular%22%2C%22display%22%3A%22auto%22%7D")
+                .build();
+
+        Map<String, List<Cookie>> cookies = cookieJar.getCookies();
+        for (Entry<String, List<Cookie>> entry : cookies.entrySet()) {
+            List<Cookie> cookieList = entry.getValue();
+            for (Iterator<Cookie> iterator = cookieList.iterator(); iterator.hasNext();) {
+                Cookie cookie = iterator.next();
+                if(cookie.name().equals("bcmlsf9")) {
+                    iterator.remove();
+                }
+            }
+            entry.getValue().add(sortByCookie);
+        }
     }
 
     @Override

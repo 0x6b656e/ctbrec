@@ -175,7 +175,7 @@ public class BongaCamsModel extends AbstractModel {
                 StreamSource best = streamSources.get(streamSources.size()-1);
                 resolution = new int[] {best.width, best.height};
             } catch (ExecutionException | IOException | ParseException | PlaylistException e) {
-                LOG.error("Couldn't determine stream resolution", e);
+                LOG.error("Couldn't determine stream resolution for {}", getName(), e);
             }
             return resolution;
         } else {

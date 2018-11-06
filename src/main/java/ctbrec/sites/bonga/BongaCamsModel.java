@@ -127,13 +127,11 @@ public class BongaCamsModel extends AbstractModel {
 
     @Override
     public void invalidateCacheEntries() {
-        // TODO Auto-generated method stub
-
+        resolution = null;
     }
 
     @Override
     public void receiveTip(int tokens) throws IOException {
-        // method=tipModel&args[]=Sweetsexbia&args[]=1&args[]=66050808&args[3]=&_csrf_token=dd304a3876025127cc487e71d44a5843
         String url = BongaCams.BASE_URL + "/chat-ajax-amf-service?" + System.currentTimeMillis();
         int userId = ((BongaCamsHttpClient)site.getHttpClient()).getUserId();
         RequestBody body = new FormBody.Builder()
@@ -154,16 +152,11 @@ public class BongaCamsModel extends AbstractModel {
                 .build();
         try(Response response = site.getHttpClient().execute(request, true)) {
             if(response.isSuccessful()) {
-                //  {
-                //    "dataKey": "d40f579faf592324c1b0b97bd711039f",
-                //    "amount": "1",
-                //    "balance": 11,
-                //    "actionKey": "b60f780c472e83b95167efe9bc9512bf",
-                //    "description": "Sie haben erfolgreich Sweetsexbia 1 Token Trinkgeld gegeben!",
-                //    "status": "success"
-                //  }
                 JSONObject json = new JSONObject(response.body().string());
-                System.out.println(json.toString(2));
+                if(!json.optString("status").equals("success")) {
+                    LOG.error("Sending tip failed {}", json.toString(2));
+                    throw new IOException("Sending tip failed");
+                }
             } else {
                 throw new IOException(response.code() + ' ' + response.message());
             }

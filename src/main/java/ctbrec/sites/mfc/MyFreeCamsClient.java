@@ -45,6 +45,8 @@ public class MyFreeCamsClient {
     private Moshi moshi;
     private volatile boolean running = false;
 
+    // TODO use caches for sessionStates and models to avoid OOME
+    // maybe write own eviction (if possible) to evict all offline models
     private Map<Integer, SessionState> sessionStates = new HashMap<>();
     private Map<Integer, MyFreeCamsModel> models = new HashMap<>();
     private Lock lock = new ReentrantLock();
@@ -59,7 +61,7 @@ public class MyFreeCamsClient {
     private int sessionId;
     private long heartBeat;
 
-    private EvictingQueue<String> receivedTextHistory = EvictingQueue.create(10000);
+    private EvictingQueue<String> receivedTextHistory = EvictingQueue.create(100);
 
     private MyFreeCamsClient() {
         moshi = new Moshi.Builder().build();

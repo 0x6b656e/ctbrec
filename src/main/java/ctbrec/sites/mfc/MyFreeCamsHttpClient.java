@@ -5,11 +5,13 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
+import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
 import ctbrec.io.HttpClient;
+import ctbrec.ui.HtmlParser;
 import okhttp3.Cookie;
 import okhttp3.CookieJar;
 import okhttp3.FormBody;
@@ -31,6 +33,12 @@ public class MyFreeCamsHttpClient extends HttpClient {
     @Override
     public boolean login() throws IOException {
         if(loggedIn) {
+            return true;
+        }
+
+        if(checkLogin()) {
+            loggedIn = true;
+            LOG.debug("Logged in with cookies");
             return true;
         }
 
@@ -62,6 +70,25 @@ public class MyFreeCamsHttpClient extends HttpClient {
             resp.close();
             LOG.error("Login failed {} {}", resp.code(), resp.message());
             return false;
+        }
+    }
+
+    private boolean checkLogin() throws IOException {
+        Request req = new Request.Builder().url(MyFreeCams.BASE_URI + "/php/account.php?request=status").build();
+        Response resp = execute(req);
+        if(resp.isSuccessful()) {
+            String content = resp.body().string();
+            try {
+                Elements tags = HtmlParser.getTags(content, "div.content > p > b");
+                tags.get(2).text();
+                return true;
+            } catch(Exception e) {
+                LOG.debug("Token tag not found. Login failed");
+                return false;
+            }
+        } else {
+            resp.close();
+            throw new IOException(resp.code() + " " + resp.message());
         }
     }
 

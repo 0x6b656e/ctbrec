@@ -33,6 +33,13 @@ public class Cam4HttpClient extends HttpClient {
             return true;
         }
 
+        boolean cookiesWorked = checkLoginSuccess();
+        if(cookiesWorked) {
+            loggedIn = true;
+            LOG.debug("Logged in with cookies");
+            return true;
+        }
+
         BlockingQueue<Boolean> queue = new LinkedBlockingQueue<>();
 
         Runnable showDialog = () -> {

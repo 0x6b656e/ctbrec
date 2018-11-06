@@ -39,6 +39,13 @@ public class CamsodaHttpClient extends HttpClient {
             return true;
         }
 
+        // persisted cookies might let us log in
+        if(checkLoginSuccess()) {
+            loggedIn = true;
+            LOG.debug("Logged in with cookies");
+            return true;
+        }
+
         String url = Camsoda.BASE_URI + "/api/v1/auth/login";
         FormBody body = new FormBody.Builder()
                 .add("username", Config.getInstance().getSettings().camsodaUsername)

@@ -88,7 +88,7 @@ public class RemoteRecorder implements Recorder {
 
             if("start".equals(action)) {
                 models.add(model);
-            } else {
+            } else if("stop".equals(action)) {
                 models.remove(model);
             }
         } else {
@@ -275,5 +275,15 @@ public class RemoteRecorder implements Recorder {
     @Override
     public void switchStreamSource(Model model) throws IOException, InvalidKeyException, NoSuchAlgorithmException, IllegalStateException {
         sendRequest("switch", model);
+    }
+
+    @Override
+    public void suspendRecording(Model model) throws InvalidKeyException, NoSuchAlgorithmException, IllegalStateException, IOException {
+        sendRequest("suspend", model);
+    }
+
+    @Override
+    public void resumeRecording(Model model) throws IOException, InvalidKeyException, NoSuchAlgorithmException, IllegalStateException {
+        sendRequest("resume", model);
     }
 }

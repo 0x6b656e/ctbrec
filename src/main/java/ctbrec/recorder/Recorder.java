@@ -28,4 +28,7 @@ public interface Recorder {
     public void delete(Recording recording) throws IOException, InvalidKeyException, NoSuchAlgorithmException, IllegalStateException;
 
     public void shutdown();
+
+    public void suspendRecording(Model model) throws IOException, InvalidKeyException, NoSuchAlgorithmException, IllegalStateException;
+    public void resumeRecording(Model model) throws IOException, InvalidKeyException, NoSuchAlgorithmException, IllegalStateException;
 }

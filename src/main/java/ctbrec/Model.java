@@ -38,4 +38,7 @@ public interface Model {
     public Site getSite();
     public void writeSiteSpecificData(JsonWriter writer) throws IOException;
     public void readSiteSpecificData(JsonReader reader) throws IOException;
+    public boolean isSuspended();
+    public void setSuspended(boolean suspended);
+
 }

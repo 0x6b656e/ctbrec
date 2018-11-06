@@ -112,6 +112,18 @@ public class RecorderServlet extends AbstractCtbrecServlet {
                     response = "{\"status\": \"success\", \"msg\": \"Resolution switched\"}";
                     resp.getWriter().write(response);
                     break;
+                case "suspend":
+                    LOG.debug("Suspend recording for model {} - {}", request.model.getName(), request.model.getUrl());
+                    recorder.suspendRecording(request.model);
+                    response = "{\"status\": \"success\", \"msg\": \"Recording suspended\"}";
+                    resp.getWriter().write(response);
+                    break;
+                case "resume":
+                    LOG.debug("Resume recording for model {} - {}", request.model.getName(), request.model.getUrl());
+                    recorder.resumeRecording(request.model);
+                    response = "{\"status\": \"success\", \"msg\": \"Recording resumed\"}";
+                    resp.getWriter().write(response);
+                    break;
                 default:
                     resp.setStatus(SC_BAD_REQUEST);
                     response = "{\"status\": \"error\", \"msg\": \"Unknown action\"}";

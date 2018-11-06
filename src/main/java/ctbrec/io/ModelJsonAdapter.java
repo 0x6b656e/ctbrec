@@ -32,6 +32,7 @@ public class ModelJsonAdapter extends JsonAdapter<Model> {
         String url = null;
         String type = null;
         int streamUrlIndex = -1;
+        boolean suspended = false;
 
         Model model = null;
         while(reader.hasNext()) {
@@ -55,6 +56,9 @@ public class ModelJsonAdapter extends JsonAdapter<Model> {
                     } else if(key.equals("streamUrlIndex")) {
                         streamUrlIndex = reader.nextInt();
                         model.setStreamUrlIndex(streamUrlIndex);
+                    } else if(key.equals("suspended")) {
+                        suspended = reader.nextBoolean();
+                        model.setSuspended(suspended);
                     } else if(key.equals("siteSpecific")) {
                         reader.beginObject();
                         model.readSiteSpecificData(reader);
@@ -87,6 +91,7 @@ public class ModelJsonAdapter extends JsonAdapter<Model> {
         writeValueIfSet(writer, "description", model.getDescription());
         writeValueIfSet(writer, "url", model.getUrl());
         writer.name("streamUrlIndex").value(model.getStreamUrlIndex());
+        writer.name("suspended").value(model.isSuspended());
         writer.name("siteSpecific");
         writer.beginObject();
         model.writeSiteSpecificData(writer);

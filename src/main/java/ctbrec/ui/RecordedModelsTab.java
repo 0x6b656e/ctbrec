@@ -67,7 +67,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
     ScrollPane scrollPane = new ScrollPane();
     TableView<JavaFxModel> table = new TableView<JavaFxModel>();
     ObservableList<JavaFxModel> observableModels = FXCollections.observableArrayList();
-    ContextMenu popup = createContextMenu();
+    ContextMenu popup;
 
     Label modelLabel = new Label("Model");
     TextField model = new TextField();
@@ -104,11 +104,17 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         online.setCellValueFactory((cdf) -> cdf.getValue().getOnlineProperty());
         online.setCellFactory(CheckBoxTableCell.forTableColumn(online));
         online.setPrefWidth(60);
-        table.getColumns().addAll(name, url, online);
+        TableColumn<JavaFxModel, Boolean> paused = new TableColumn<>("Paused");
+        paused.setCellValueFactory((cdf) -> cdf.getValue().getPausedProperty());
+        paused.setCellFactory(CheckBoxTableCell.forTableColumn(paused));
+        paused.setPrefWidth(60);
+        table.getColumns().addAll(name, url, online, paused);
         table.setItems(observableModels);
         table.addEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> {
             popup = createContextMenu();
-            popup.show(table, event.getScreenX(), event.getScreenY());
+            if(popup != null) {
+                popup.show(table, event.getScreenX(), event.getScreenY());
+            }
             event.consume();
         });
         table.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
@@ -194,6 +200,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
                     threadPool.submit(() -> {
                         try {
                             javaFxModel.getOnlineProperty().set(javaFxModel.isOnline());
+                            javaFxModel.setSuspended(model.isSuspended());
                         } catch (IOException | ExecutionException | InterruptedException e) {}
                     });
                 }
@@ -253,26 +260,37 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
     }
 
     private ContextMenu createContextMenu() {
-        MenuItem stop = new MenuItem("Stop Recording");
+        JavaFxModel selectedModel = table.getSelectionModel().getSelectedItem();
+        if(selectedModel == null) {
+            return null;
+        }
+        MenuItem stop = new MenuItem("Remove Model");
         stop.setOnAction((e) -> stopAction());
 
         MenuItem copyUrl = new MenuItem("Copy URL");
         copyUrl.setOnAction((e) -> {
-            Model selected = table.getSelectionModel().getSelectedItem();
+            Model selected = selectedModel;
             final Clipboard clipboard = Clipboard.getSystemClipboard();
             final ClipboardContent content = new ClipboardContent();
             content.putString(selected.getUrl());
             clipboard.setContent(content);
         });
 
+        MenuItem pauseRecording = new MenuItem("Pause Recording");
+        pauseRecording.setOnAction((e) -> pauseRecording());
+        MenuItem resumeRecording = new MenuItem("Resume Recording");
+        resumeRecording.setOnAction((e) -> resumeRecording());
         MenuItem openInBrowser = new MenuItem("Open in Browser");
-        openInBrowser.setOnAction((e) -> DesktopIntergation.open(table.getSelectionModel().getSelectedItem().getUrl()));
+        openInBrowser.setOnAction((e) -> DesktopIntergation.open(selectedModel.getUrl()));
         MenuItem openInPlayer = new MenuItem("Open in Player");
-        openInPlayer.setOnAction((e) -> Player.play(table.getSelectionModel().getSelectedItem().getUrl()));
+        openInPlayer.setOnAction((e) -> Player.play(selectedModel.getUrl()));
         MenuItem switchStreamSource = new MenuItem("Switch resolution");
-        switchStreamSource.setOnAction((e) -> switchStreamSource(table.getSelectionModel().getSelectedItem()));
+        switchStreamSource.setOnAction((e) -> switchStreamSource(selectedModel));
 
-        return new ContextMenu(stop, copyUrl, openInBrowser, switchStreamSource);
+        ContextMenu menu = new ContextMenu(stop);
+        menu.getItems().add(selectedModel.isSuspended() ? resumeRecording : pauseRecording);
+        menu.getItems().addAll(copyUrl, openInBrowser, switchStreamSource);
+        return menu;
     }
 
     private void switchStreamSource(JavaFxModel fxModel) {
@@ -336,6 +354,62 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
                             alert.setTitle("Error");
                             alert.setHeaderText("Couldn't stop recording");
                             alert.setContentText("Error while stopping the recording: " + e1.getLocalizedMessage());
+                            alert.showAndWait();
+                        });
+                    } finally {
+                        table.setCursor(Cursor.DEFAULT);
+                    }
+                }
+            }.start();
+        }
+    };
+
+    private void pauseRecording() {
+        JavaFxModel model = table.getSelectionModel().getSelectedItem();
+        Model delegate = table.getSelectionModel().getSelectedItem().getDelegate();
+        if (delegate != null) {
+            table.setCursor(Cursor.WAIT);
+            new Thread() {
+                @Override
+                public void run() {
+                    try {
+                        recorder.suspendRecording(delegate);
+                        Platform.runLater(() -> model.setSuspended(true));
+                    } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e1) {
+                        LOG.error("Couldn't pause recording", e1);
+                        Platform.runLater(() -> {
+                            Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+                            alert.setTitle("Error");
+                            alert.setHeaderText("Couldn't pause recording");
+                            alert.setContentText("Error while pausing the recording: " + e1.getLocalizedMessage());
+                            alert.showAndWait();
+                        });
+                    } finally {
+                        table.setCursor(Cursor.DEFAULT);
+                    }
+                }
+            }.start();
+        }
+    };
+
+    private void resumeRecording() {
+        JavaFxModel model = table.getSelectionModel().getSelectedItem();
+        Model delegate = table.getSelectionModel().getSelectedItem().getDelegate();
+        if (delegate != null) {
+            table.setCursor(Cursor.WAIT);
+            new Thread() {
+                @Override
+                public void run() {
+                    try {
+                        recorder.resumeRecording(delegate);
+                        Platform.runLater(() -> model.setSuspended(false));
+                    } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e1) {
+                        LOG.error("Couldn't resume recording", e1);
+                        Platform.runLater(() -> {
+                            Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+                            alert.setTitle("Error");
+                            alert.setHeaderText("Couldn't resume recording");
+                            alert.setContentText("Error while resuming the recording: " + e1.getLocalizedMessage());
                             alert.showAndWait();
                         });
                     } finally {

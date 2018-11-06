@@ -112,7 +112,12 @@ public class LocalRecorder implements Recorder {
     }
 
     private void startRecordingProcess(Model model) throws IOException {
-        LOG.debug("Restart recording for model {}", model.getName());
+        if(model.isSuspended()) {
+            LOG.info("Recording for model {} is suspended.", model);
+            return;
+        }
+
+        LOG.debug("Starting recording for model {}", model.getName());
         if (recordingProcesses.containsKey(model)) {
             LOG.error("A recording for model {} is already running", model);
             return;
@@ -315,7 +320,7 @@ public class LocalRecorder implements Recorder {
             while (running) {
                 for (Model model : getModelsRecording()) {
                     try {
-                        if (!recordingProcesses.containsKey(model)) {
+                        if (!model.isSuspended() && !recordingProcesses.containsKey(model)) {
                             boolean isOnline = model.isOnline(IGNORE_CACHE);
                             LOG.trace("Checking online state for {}: {}", model, (isOnline ? "online" : "offline"));
                             if (isOnline) {
@@ -528,5 +533,43 @@ public class LocalRecorder implements Recorder {
         LOG.debug("Switching stream source to index {} for model {}", model.getStreamUrlIndex(), model.getName());
         stopRecordingProcess(model);
         tryRestartRecording(model);
+    }
+
+    @Override
+    public void suspendRecording(Model model) {
+        lock.lock();
+        try {
+            if (models.contains(model)) {
+                int index = models.indexOf(model);
+                models.get(index).setSuspended(true);
+            } else {
+                return;
+            }
+        } finally {
+            lock.unlock();
+        }
+
+        Download download = recordingProcesses.get(model);
+        if(download != null) {
+            download.stop();
+            recordingProcesses.remove(model);
+        }
+    }
+
+    @Override
+    public void resumeRecording(Model model) throws IOException {
+        lock.lock();
+        try {
+            if (models.contains(model)) {
+                int index = models.indexOf(model);
+                Model m = models.get(index);
+                m.setSuspended(false);
+                startRecordingProcess(m);
+            } else {
+                return;
+            }
+        } finally {
+            lock.unlock();
+        }
     }
 }

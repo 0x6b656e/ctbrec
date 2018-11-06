@@ -24,6 +24,10 @@ public class MyFreeCamsHttpClient extends HttpClient {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(MyFreeCamsHttpClient.class);
 
+    public MyFreeCamsHttpClient() {
+        super("myfreecams");
+    }
+
     @Override
     public boolean login() throws IOException {
         if(loggedIn) {

@@ -27,6 +27,7 @@ import ctbrec.recorder.LocalRecorder;
 import ctbrec.recorder.Recorder;
 import ctbrec.recorder.RemoteRecorder;
 import ctbrec.sites.Site;
+import ctbrec.sites.bonga.BongaCams;
 import ctbrec.sites.cam4.Cam4;
 import ctbrec.sites.camsoda.Camsoda;
 import ctbrec.sites.chaturbate.Chaturbate;
@@ -60,10 +61,11 @@ public class CamrecApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+        sites.add(new BongaCams());
+        sites.add(new Cam4());
+        sites.add(new Camsoda());
         sites.add(new Chaturbate());
         sites.add(new MyFreeCams());
-        sites.add(new Camsoda());
-        sites.add(new Cam4());
         loadConfig();
         createHttpClient();
         bus = new AsyncEventBus(Executors.newSingleThreadExecutor());
@@ -198,7 +200,7 @@ public class CamrecApplication extends Application {
     }
 
     private void createHttpClient() {
-        httpClient = new HttpClient() {
+        httpClient = new HttpClient("camrec") {
             @Override
             public boolean login() throws IOException {
                 return false;

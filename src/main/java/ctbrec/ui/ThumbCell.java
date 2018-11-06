@@ -208,7 +208,7 @@ public class ThumbCell extends StackPane {
                     LOG.trace("Removing invalid resolution value for {}", model.getName());
                     model.invalidateCacheEntries();
                 }
-                
+
                 Thread.sleep(500);
             } catch (IOException | InterruptedException e1) {
                 LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e1);

@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
@@ -78,5 +80,16 @@ public class CookieJarImpl implements CookieJar {
         return host;
     }
 
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for (Entry<String, List<Cookie>> entry : cookieStore.entrySet()) {
+            sb.append(entry.getKey()).append(": ").append(entry.getValue()).append('\n');
+        }
+        return sb.toString();
+    }
 
+    protected Map<String, List<Cookie>> getCookies() {
+        return cookieStore;
+    }
 }

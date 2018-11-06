@@ -20,6 +20,10 @@ public class ChaturbateHttpClient extends HttpClient {
     private static final transient Logger LOG = LoggerFactory.getLogger(ChaturbateHttpClient.class);
     protected  String token;
 
+    public ChaturbateHttpClient() {
+        super("chaturbate");
+    }
+
     private void extractCsrfToken(Request request) {
         try {
             Cookie csrfToken = cookieJar.getCookie(request.url(), "csrftoken");

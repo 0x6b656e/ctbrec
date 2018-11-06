@@ -29,6 +29,10 @@ public class CamsodaHttpClient extends HttpClient {
     private static final transient Logger LOG = LoggerFactory.getLogger(CamsodaHttpClient.class);
     private String csrfToken = null;
 
+    public CamsodaHttpClient() {
+        super("camsoda");
+    }
+
     @Override
     public boolean login() throws IOException {
         if(loggedIn) {

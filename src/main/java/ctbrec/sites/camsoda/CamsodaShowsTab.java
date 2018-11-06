@@ -195,8 +195,8 @@ public class CamsodaShowsTab extends Tab implements TabSelectionListener {
             root.setCenter(grid);
             loadImage(model, thumb);
 
-            record.prefWidthProperty().bind(openInBrowser.widthProperty());
-            follow.prefWidthProperty().bind(openInBrowser.widthProperty());
+            record.minWidthProperty().bind(openInBrowser.widthProperty());
+            follow.minWidthProperty().bind(openInBrowser.widthProperty());
         }
 
         private void follow(Model model) {

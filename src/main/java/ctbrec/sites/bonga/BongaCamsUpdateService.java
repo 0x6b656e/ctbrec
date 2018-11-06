@@ -32,7 +32,7 @@ public class BongaCamsUpdateService extends PaginatedScheduledService {
         return new Task<List<Model>>() {
             @Override
             public List<Model> call() throws IOException {
-                String _url = url + ((page-1) * 50);
+                String _url = url + ((page-1) * 36);
                 LOG.debug("Fetching page {}", _url);
                 Request request = new Request.Builder()
                         .url(_url)

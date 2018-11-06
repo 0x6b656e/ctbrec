@@ -20,9 +20,6 @@ import okhttp3.HttpUrl;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import okhttp3.WebSocket;
-import okhttp3.WebSocketListener;
-import okio.ByteString;
 
 public class BongaCamsHttpClient extends HttpClient {
 
@@ -66,68 +63,11 @@ public class BongaCamsHttpClient extends HttpClient {
         loggedIn = checkLoginSuccess();
         if(loggedIn) {
             LOG.info("Logged in. User ID is {}", userId);
-            createWebSocket();
         } else {
             LOG.info("Login failed");
         }
         return loggedIn;
     }
-
-    private void createWebSocket() {
-        //        $.noticeSocket = new SocketAdapter('wss://notice.bcrncdn.com:443/ws');
-        //        $.noticeSocket.onopen = function(){
-        //          this.send({type: 'identify', data: '0387db666178a863395c49f5f912cf070055482716514804'});
-        //          $(document).trigger('onNoticeSocketOpen');
-        //        };
-        //        $.noticeSocket.onmessage = function(e){$(document).trigger('onNoticeSocketMessage', [e])};
-        //                          $(function() {
-        //                                  window.setTimeout($.checkAuth, 3600 * 5 * 1000);
-        //            if ($('#email_confirmed_popup').length > 0) {
-        //              $('#email_confirmed_popup').show();
-        //              setTimeout(function() { $('#email_confirmed_popup').fadeOut('fast');}, 5000);
-        //            }
-        //                  });
-        Request req = new Request.Builder()
-                .url("wss://notice.bcrncdn.com:443/ws")
-                .build();
-        LOG.debug("Creating websocket");
-        WebSocket ws = super.client.newWebSocket(req, new WebSocketListener() {
-            @Override
-            public void onOpen(WebSocket webSocket, Response response) {
-                super.onOpen(webSocket, response);
-                try {
-                    LOG.trace("open: [{}]", response.body().string());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            @Override
-            public void onClosed(WebSocket webSocket, int code, String reason) {
-                super.onClosed(webSocket, code, reason);
-                LOG.info("Bonga websocket closed: {} {}", code, reason);
-            }
-
-            @Override
-            public void onFailure(WebSocket webSocket, Throwable t, Response response) {
-                super.onFailure(webSocket, t, response);
-                LOG.error("Bonga websocket failure: {} {}", response.code(), response.message(), t);
-            }
-
-            @Override
-            public void onMessage(WebSocket webSocket, String text) {
-                super.onMessage(webSocket, text);
-                LOG.debug("onMessage {}", text);
-            }
-
-            @Override
-            public void onMessage(WebSocket webSocket, ByteString bytes) {
-                super.onMessage(webSocket, bytes);
-                LOG.debug("msgb: {}", bytes.hex());
-            }
-        });
-    }
-
 
     /**
      * Check, if the login worked by requesting roomdata and looking

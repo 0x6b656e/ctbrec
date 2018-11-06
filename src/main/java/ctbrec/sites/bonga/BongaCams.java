@@ -61,10 +61,11 @@ public class BongaCams extends AbstractSite {
 
     @Override
     public Integer getTokenBalance() throws IOException {
+        int userId = ((BongaCamsHttpClient)getHttpClient()).getUserId();
         String url = BongaCams.BASE_URL + "/tools/amf.php";
         RequestBody body = new FormBody.Builder()
                 .add("method", "ping")
-                .add("args[]", "66050808")
+                .add("args[]", Integer.toString(userId))
                 .build();
         Request request = new Request.Builder()
                 .url(url)

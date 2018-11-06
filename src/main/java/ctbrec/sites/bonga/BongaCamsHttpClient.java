@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,7 @@ import okio.ByteString;
 public class BongaCamsHttpClient extends HttpClient {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(BongaCamsHttpClient.class);
+    private int userId = 0;
 
     @Override
     public synchronized boolean login() throws IOException {
@@ -62,7 +64,12 @@ public class BongaCamsHttpClient extends HttpClient {
         }
 
         loggedIn = checkLoginSuccess();
-        createWebSocket();
+        if(loggedIn) {
+            LOG.info("Logged in. User ID is {}", userId);
+            createWebSocket();
+        } else {
+            LOG.info("Login failed");
+        }
         return loggedIn;
     }
 
@@ -123,17 +130,20 @@ public class BongaCamsHttpClient extends HttpClient {
 
 
     /**
-     *  check, if the login by sending a ping request
+     * Check, if the login worked by requesting roomdata and looking
      * @throws IOException
      */
     private boolean checkLoginSuccess() throws IOException {
+        String modelName = getAnyModelName();
+        // we request the roomData of a random model, because it contains
+        // user data, if the user is logged in, which we can use to verify, that the login worked
         String url = BongaCams.BASE_URL + "/tools/amf.php";
         RequestBody body = new FormBody.Builder()
-                //                .add("method", "getRoomData")
-                //                .add("args[]", name)
-                //                .add("args[]", "false")
-                .add("method", "ping")
-                .add("args[]", "66050808") // TODO where to get the userId
+                .add("method", "getRoomData")
+                .add("args[]", modelName)
+                .add("args[]", "false")
+                //.add("method", "ping")   // TODO alternative request, but
+                //.add("args[]", <userId>) // where to get the userId
                 .build();
         Request request = new Request.Builder()
                 .url(url)
@@ -147,13 +157,45 @@ public class BongaCamsHttpClient extends HttpClient {
         try(Response response = execute(request)) {
             if(response.isSuccessful()) {
                 JSONObject json = new JSONObject(response.body().string());
-                if(json.optString("status").equals("online")) {
-                    return true;
+                if(json.optString("status").equals("success")) {
+                    JSONObject userData = json.getJSONObject("userData");
+                    userId = userData.optInt("userId");
+                    return userId > 0;
                 } else {
                     throw new IOException("Request was not successful: " + json.toString(2));
                 }
             } else {
                 throw new IOException(response.code() + " " + response.message());
+            }
+        }
+    }
+
+    /**
+     * Fetches the list of online models and returns the name of the first model
+     */
+    private String getAnyModelName() throws IOException {
+        Request request = new Request.Builder()
+                .url(BongaCams.BASE_URL + "/tools/listing_v3.php?livetab=female&online_only=true&is_mobile=true&offset=0")
+                .addHeader("User-Agent", "Mozilla/5.0 (Android 9.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0")
+                .addHeader("Accept", "application/json, text/javascript, */*")
+                .addHeader("Accept-Language", "en")
+                .addHeader("Referer", BongaCams.BASE_URL)
+                .addHeader("X-Requested-With", "XMLHttpRequest")
+                .build();
+        try(Response response = execute(request)) {
+            if (response.isSuccessful()) {
+                String content = response.body().string();
+                JSONObject json = new JSONObject(content);
+                if(json.optString("status").equals("success")) {
+                    JSONArray _models = json.getJSONArray("models");
+                    JSONObject m = _models.getJSONObject(0);
+                    String name = m.getString("username");
+                    return name;
+                }  else {
+                    throw new IOException("Request was not successful: " + content);
+                }
+            } else {
+                throw new IOException(response.code() + ' ' + response.message());
             }
         }
     }
@@ -213,4 +255,10 @@ public class BongaCamsHttpClient extends HttpClient {
     //        }
     //    }
 
+    public int getUserId() throws IOException {
+        if(userId == 0) {
+            login();
+        }
+        return userId;
+    }
 }

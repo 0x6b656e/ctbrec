@@ -113,7 +113,6 @@ public class BongaCamsModel extends AbstractModel {
             if(response.isSuccessful()) {
                 JSONObject json = new JSONObject(response.body().string());
                 if(json.optString("status").equals("success")) {
-                    System.out.println(json.toString(2));
                     JSONObject localData = json.getJSONObject("localData");
                     String server = localData.getString("videoServerUrl");
                     return "https:" + server + "/hls/stream_" + getName() + "/playlist.m3u8";
@@ -134,8 +133,41 @@ public class BongaCamsModel extends AbstractModel {
 
     @Override
     public void receiveTip(int tokens) throws IOException {
-        // TODO Auto-generated method stub
-
+        // method=tipModel&args[]=Sweetsexbia&args[]=1&args[]=66050808&args[3]=&_csrf_token=dd304a3876025127cc487e71d44a5843
+        String url = BongaCams.BASE_URL + "/chat-ajax-amf-service?" + System.currentTimeMillis();
+        int userId = ((BongaCamsHttpClient)site.getHttpClient()).getUserId();
+        RequestBody body = new FormBody.Builder()
+                .add("method", "tipModel")
+                .add("args[]", getName())
+                .add("args[]", Integer.toString(tokens))
+                .add("args[]", Integer.toString(userId))
+                .add("args[3]", "")
+                .build();
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("User-Agent", "Mozilla/5.0 (Android 9.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0")
+                .addHeader("Accept", "application/json, text/javascript, */*")
+                .addHeader("Accept-Language", "en")
+                .addHeader("Referer", BongaCams.BASE_URL + '/' + getName())
+                .addHeader("X-Requested-With", "XMLHttpRequest")
+                .post(body)
+                .build();
+        try(Response response = site.getHttpClient().execute(request, true)) {
+            if(response.isSuccessful()) {
+                //  {
+                //    "dataKey": "d40f579faf592324c1b0b97bd711039f",
+                //    "amount": "1",
+                //    "balance": 11,
+                //    "actionKey": "b60f780c472e83b95167efe9bc9512bf",
+                //    "description": "Sie haben erfolgreich Sweetsexbia 1 Token Trinkgeld gegeben!",
+                //    "status": "success"
+                //  }
+                JSONObject json = new JSONObject(response.body().string());
+                System.out.println(json.toString(2));
+            } else {
+                throw new IOException(response.code() + ' ' + response.message());
+            }
+        }
     }
 
     @Override

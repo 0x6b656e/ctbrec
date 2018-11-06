@@ -101,4 +101,8 @@ public class Config {
     public boolean isServerMode() {
         return Objects.equals(System.getProperty("ctbrec.server.mode"), "1");
     }
+
+    public File getConfigDir() {
+        return configDir;
+    }
 }

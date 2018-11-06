@@ -1,10 +1,16 @@
 package ctbrec.io;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.Authenticator;
 import java.net.PasswordAuthentication;
+import java.nio.file.Files;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -105,6 +111,7 @@ public abstract class HttpClient {
 
     public void reconfigure() {
         loadProxySettings();
+        loadCookies();
         Builder builder = new OkHttpClient.Builder()
                 .cookieJar(cookieJar)
                 .connectTimeout(Config.getInstance().getSettings().httpTimeout, TimeUnit.MILLISECONDS)
@@ -132,14 +139,52 @@ public abstract class HttpClient {
 
     private void persistCookies() {
         try {
-            Map<String, List<Cookie>> cookies = cookieJar.getCookies();
-            Moshi moshi = new Moshi.Builder().add(Cookie.class, new CookieJsonAdapter()).build();
-            @SuppressWarnings("rawtypes")
-            JsonAdapter<Map> adapter = moshi.adapter(Map.class).indent("  ");
+            CookieContainer cookies = new CookieContainer();
+            cookies.putAll(cookieJar.getCookies());
+            Moshi moshi = new Moshi.Builder()
+                    .add(CookieContainer.class, new CookieContainerJsonAdapter())
+                    .build();
+            JsonAdapter<CookieContainer> adapter = moshi.adapter(CookieContainer.class).indent("  ");
             String json = adapter.toJson(cookies);
+
+            File cookieFile = new File(Config.getInstance().getConfigDir(), "cookies-" + name + ".json");
+            try(FileOutputStream fout = new FileOutputStream(cookieFile)) {
+                fout.write(json.getBytes("utf-8"));
+            }
         } catch (Exception e) {
             LOG.error("Couldn't persist cookies for {}", name, e);
         }
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private void loadCookies() {
+        try {
+            File cookieFile = new File(Config.getInstance().getConfigDir(), "cookies-" + name + ".json");
+            if(!cookieFile.exists()) {
+                return;
+            }
+            byte[] jsonBytes = Files.readAllBytes(cookieFile.toPath());
+            String json = new String(jsonBytes, "utf-8");
+
+            Map<String, List<Cookie>> cookies = cookieJar.getCookies();
+            Moshi moshi = new Moshi.Builder()
+                    .add(CookieContainer.class, new CookieContainerJsonAdapter())
+                    .build();
+            JsonAdapter<CookieContainer> adapter = moshi.adapter(CookieContainer.class).indent("  ");
+            CookieContainer fromJson = adapter.fromJson(json);
+            Set entries = fromJson.entrySet();
+            for (Object _entry : entries) {
+                Entry entry = (Entry) _entry;
+                cookies.put((String)entry.getKey(), (List<Cookie>)entry.getValue());
+            }
+
+        } catch (Exception e) {
+            LOG.error("Couldn't load cookies for {}", name, e);
+        }
+    }
+
+    public static class CookieContainer extends HashMap<String, List<Cookie>> {
+
     }
 
     private okhttp3.Authenticator createHttpProxyAuthenticator(String username, String password) {

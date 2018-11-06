@@ -13,6 +13,7 @@ public class CookieJsonAdapter extends JsonAdapter<Cookie> {
 
     @Override
     public Cookie fromJson(JsonReader reader) throws IOException {
+        reader.beginObject();
         Builder builder = new Cookie.Builder();
         // domain
         reader.nextName();
@@ -59,6 +60,7 @@ public class CookieJsonAdapter extends JsonAdapter<Cookie> {
         reader.nextName();
         builder.value(reader.nextString());
 
+        reader.endObject();
         return builder.build();
     }
 

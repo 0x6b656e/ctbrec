@@ -26,6 +26,10 @@ public class BongaCamsHttpClient extends HttpClient {
     private static final transient Logger LOG = LoggerFactory.getLogger(BongaCamsHttpClient.class);
     private int userId = 0;
 
+    public BongaCamsHttpClient() {
+        super("bongacams");
+    }
+
     @Override
     public synchronized boolean login() throws IOException {
         if(loggedIn) {

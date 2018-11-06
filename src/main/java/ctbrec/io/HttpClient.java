@@ -3,11 +3,20 @@ package ctbrec.io;
 import java.io.IOException;
 import java.net.Authenticator;
 import java.net.PasswordAuthentication;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.squareup.moshi.JsonAdapter;
+import com.squareup.moshi.Moshi;
 
 import ctbrec.Config;
 import ctbrec.Settings.ProxyType;
 import okhttp3.ConnectionPool;
+import okhttp3.Cookie;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 import okhttp3.OkHttpClient.Builder;
@@ -16,12 +25,16 @@ import okhttp3.Response;
 import okhttp3.Route;
 
 public abstract class HttpClient {
+    private static final transient Logger LOG = LoggerFactory.getLogger(HttpClient.class);
+
     protected  OkHttpClient client;
     protected CookieJarImpl cookieJar = new CookieJarImpl();
     protected  boolean loggedIn = false;
     protected  int loginTries = 0;
+    private String name;
 
-    protected HttpClient() {
+    protected HttpClient(String name) {
+        this.name = name;
         reconfigure();
     }
 
@@ -112,8 +125,21 @@ public abstract class HttpClient {
     }
 
     public void shutdown() {
+        persistCookies();
         client.connectionPool().evictAll();
         client.dispatcher().executorService().shutdown();
+    }
+
+    private void persistCookies() {
+        try {
+            Map<String, List<Cookie>> cookies = cookieJar.getCookies();
+            Moshi moshi = new Moshi.Builder().add(Cookie.class, new CookieJsonAdapter()).build();
+            @SuppressWarnings("rawtypes")
+            JsonAdapter<Map> adapter = moshi.adapter(Map.class).indent("  ");
+            String json = adapter.toJson(cookies);
+        } catch (Exception e) {
+            LOG.error("Couldn't persist cookies for {}", name, e);
+        }
     }
 
     private okhttp3.Authenticator createHttpProxyAuthenticator(String username, String password) {

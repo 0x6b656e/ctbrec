@@ -200,7 +200,7 @@ public class CamrecApplication extends Application {
     }
 
     private void createHttpClient() {
-        httpClient = new HttpClient() {
+        httpClient = new HttpClient("camrec") {
             @Override
             public boolean login() throws IOException {
                 return false;

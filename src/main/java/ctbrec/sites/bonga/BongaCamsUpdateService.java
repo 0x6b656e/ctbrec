@@ -45,7 +45,6 @@ public class BongaCamsUpdateService extends PaginatedScheduledService {
                 Response response = bongaCams.getHttpClient().execute(request);
                 if (response.isSuccessful()) {
                     String content = response.body().string();
-                    response.close();
                     List<Model> models = new ArrayList<>();
                     JSONObject json = new JSONObject(content);
                     if(json.optString("status").equals("success")) {

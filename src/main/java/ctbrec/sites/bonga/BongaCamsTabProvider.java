@@ -49,6 +49,11 @@ public class BongaCamsTabProvider extends TabProvider {
         updateService = new BongaCamsUpdateService(bongaCams, url);
         tabs.add(createTab("New", updateService));
 
+        // friends
+        url = BongaCams.BASE_URL + "/tools/listing_v3.php?livetab=friends&online_only=true&offset=";
+        updateService = new BongaCamsUpdateService(bongaCams, url);
+        tabs.add(createTab("Friends", updateService));
+
         return tabs;
     }
 

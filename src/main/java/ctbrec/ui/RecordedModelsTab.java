@@ -192,18 +192,20 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
             queue.clear();
             for (Model model : models) {
                 int index = observableModels.indexOf(model);
+                final JavaFxModel javaFxModel;
                 if (index == -1) {
-                    observableModels.add(new JavaFxModel(model));
+                    javaFxModel = new JavaFxModel(model);
+                    observableModels.add(javaFxModel);
                 } else {
                     // make sure to update the JavaFX online property, so that the table cell is updated
-                    JavaFxModel javaFxModel = observableModels.get(index);
-                    threadPool.submit(() -> {
-                        try {
-                            javaFxModel.getOnlineProperty().set(javaFxModel.isOnline());
-                            javaFxModel.setSuspended(model.isSuspended());
-                        } catch (IOException | ExecutionException | InterruptedException e) {}
-                    });
+                    javaFxModel = observableModels.get(index);
                 }
+                threadPool.submit(() -> {
+                    try {
+                        javaFxModel.getOnlineProperty().set(javaFxModel.isOnline());
+                        javaFxModel.setSuspended(model.isSuspended());
+                    } catch (IOException | ExecutionException | InterruptedException e) {}
+                });
             }
             for (Iterator<JavaFxModel> iterator = observableModels.iterator(); iterator.hasNext();) {
                 Model model = iterator.next();
@@ -211,7 +213,6 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
                     iterator.remove();
                 }
             }
-
         });
         updateService.setOnFailed((event) -> {
             LOG.info("Couldn't get list of models from recorder", event.getSource().getException());

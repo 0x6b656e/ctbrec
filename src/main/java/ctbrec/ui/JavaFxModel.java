@@ -25,10 +25,6 @@ public class JavaFxModel implements Model {
 
     public JavaFxModel(Model delegate) {
         this.delegate = delegate;
-        try {
-            onlineProperty.set(delegate.isOnline());
-            pausedProperty.set(delegate.isSuspended());
-        } catch (IOException | ExecutionException | InterruptedException e) {}
     }
 
     @Override

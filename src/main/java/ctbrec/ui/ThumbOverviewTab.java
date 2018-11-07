@@ -324,6 +324,12 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         stop.setOnAction((e) -> startStopAction(getSelectedThumbCells(cell), false));
         MenuItem startStop = recorder.isRecording(cell.getModel()) ? stop : start;
 
+        MenuItem pause = new MenuItem("Pause Recording");
+        pause.setOnAction((e) -> pauseResumeAction(getSelectedThumbCells(cell), true));
+        MenuItem resume = new MenuItem("Resume Recording");
+        resume.setOnAction((e) -> pauseResumeAction(getSelectedThumbCells(cell), false));
+        MenuItem pauseResume = recorder.isSuspended(cell.getModel()) ? resume : pause;
+
         MenuItem follow = new MenuItem("Follow");
         follow.setOnAction((e) -> follow(getSelectedThumbCells(cell), true));
         MenuItem unfollow = new MenuItem("Unfollow");
@@ -388,7 +394,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         contextMenu.setAutoHide(true);
         contextMenu.setHideOnEscape(true);
         contextMenu.setAutoFix(true);
-        contextMenu.getItems().addAll(openInPlayer, startStop);
+        contextMenu.getItems().addAll(openInPlayer, startStop, pauseResume);
         if(site.supportsFollow()) {
             MenuItem followOrUnFollow = (this instanceof FollowedTab) ? unfollow : follow;
             followOrUnFollow.setDisable(!site.credentialsAvailable());
@@ -428,6 +434,12 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     private void startStopAction(List<ThumbCell> selection, boolean start) {
         for (ThumbCell thumbCell : selection) {
             thumbCell.startStopAction(start);
+        }
+    }
+
+    private void pauseResumeAction(List<ThumbCell> selection, boolean pause) {
+        for (ThumbCell thumbCell : selection) {
+            thumbCell.pauseResumeAction(pause);
         }
     }
 

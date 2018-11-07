@@ -110,6 +110,17 @@ public class RemoteRecorder implements Recorder {
     }
 
     @Override
+    public boolean isSuspended(Model model) {
+        int index = models.indexOf(model);
+        if(index >= 0) {
+            Model m = models.get(index);
+            return m.isSuspended();
+        } else {
+            return false;
+        }
+    }
+
+    @Override
     public List<Model> getModelsRecording() {
         if(lastSync.isBefore(Instant.now().minusSeconds(60))) {
             throw new RuntimeException("Last sync was over a minute ago");
@@ -280,10 +291,24 @@ public class RemoteRecorder implements Recorder {
     @Override
     public void suspendRecording(Model model) throws InvalidKeyException, NoSuchAlgorithmException, IllegalStateException, IOException {
         sendRequest("suspend", model);
+        model.setSuspended(true);
+        // update cached model
+        int index = models.indexOf(model);
+        if(index >= 0) {
+            Model m = models.get(index);
+            m.setSuspended(true);
+        }
     }
 
     @Override
     public void resumeRecording(Model model) throws IOException, InvalidKeyException, NoSuchAlgorithmException, IllegalStateException {
         sendRequest("resume", model);
+        model.setSuspended(false);
+        // update cached model
+        int index = models.indexOf(model);
+        if(index >= 0) {
+            Model m = models.get(index);
+            m.setSuspended(false);
+        }
     }
 }

@@ -170,6 +170,22 @@ public class LocalRecorder implements Recorder {
     }
 
     @Override
+    public boolean isSuspended(Model model) {
+        lock.lock();
+        try {
+            int index = models.indexOf(model);
+            if(index >= 0) {
+                Model m = models.get(index);
+                return m.isSuspended();
+            } else {
+                return false;
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
     public List<Model> getModelsRecording() {
         lock.lock();
         try {

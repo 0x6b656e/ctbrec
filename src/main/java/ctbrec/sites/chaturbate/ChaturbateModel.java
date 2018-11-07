@@ -17,6 +17,7 @@ import com.iheartradio.m3u8.data.MasterPlaylist;
 import com.iheartradio.m3u8.data.PlaylistData;
 
 import ctbrec.AbstractModel;
+import ctbrec.Config;
 import ctbrec.recorder.download.StreamSource;
 import ctbrec.sites.Site;
 import okhttp3.Request;
@@ -147,7 +148,7 @@ public class ChaturbateModel extends AbstractModel {
                 .header("Accept", "*/*")
                 .header("Accept-Language", "en-US,en;q=0.5")
                 .header("Referer", getUrl())
-                .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:59.0) Gecko/20100101 Firefox/59.0")
+                .header("User-Agent", Config.getInstance().getSettings().httpUserAgent)
                 .header("X-CSRFToken", ((ChaturbateHttpClient)site.getHttpClient()).getToken())
                 .header("X-Requested-With", "XMLHttpRequest")
                 .build();

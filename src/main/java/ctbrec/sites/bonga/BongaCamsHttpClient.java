@@ -15,6 +15,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ctbrec.Config;
 import ctbrec.io.HttpClient;
 import javafx.application.Platform;
 import okhttp3.Cookie;
@@ -125,7 +126,7 @@ public class BongaCamsHttpClient extends HttpClient {
                 .build();
         Request request = new Request.Builder()
                 .url(url)
-                .addHeader("User-Agent", "Mozilla/5.0 (Android 9.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0")
+                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
                 .addHeader("Accept", "application/json, text/javascript, */*")
                 .addHeader("Accept-Language", "en")
                 .addHeader("Referer", BongaCams.BASE_URL)
@@ -154,7 +155,7 @@ public class BongaCamsHttpClient extends HttpClient {
     private String getAnyModelName() throws IOException {
         Request request = new Request.Builder()
                 .url(BongaCams.BASE_URL + "/tools/listing_v3.php?livetab=female&online_only=true&is_mobile=true&offset=0")
-                .addHeader("User-Agent", "Mozilla/5.0 (Android 9.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0")
+                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
                 .addHeader("Accept", "application/json, text/javascript, */*")
                 .addHeader("Accept-Language", "en")
                 .addHeader("Referer", BongaCams.BASE_URL)
@@ -211,7 +212,7 @@ public class BongaCamsHttpClient extends HttpClient {
     //        Request request = new Request.Builder()
     //                .url(url)
     //                .post(body)
-    //                .addHeader("User-Agent", "Mozilla/5.0 (Android 9.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0")
+    //                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
     //                .addHeader("Accept","application/json")
     //                .addHeader("Accept-Language", "en")
     //                .addHeader("Referer", BongaCams.BASE_URL)

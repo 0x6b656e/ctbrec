@@ -60,6 +60,7 @@ public class Cam4LoginDialog {
         WebView browser = new WebView();
         WebEngine webEngine = browser.getEngine();
         webEngine.setJavaScriptEnabled(true);
+        webEngine.setUserAgent(Config.getInstance().getSettings().httpUserAgent);
         webEngine.locationProperty().addListener((obs, oldV, newV) -> {
             try {
                 URL _url = new URL(newV);

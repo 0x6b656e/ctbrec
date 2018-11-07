@@ -69,7 +69,7 @@ public class BongaCams extends AbstractSite {
                 .build();
         Request request = new Request.Builder()
                 .url(url)
-                .addHeader("User-Agent", "Mozilla/5.0 (Android 9.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0")
+                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
                 .addHeader("Accept", "application/json, text/javascript, */*")
                 .addHeader("Accept-Language", "en")
                 .addHeader("Referer", BongaCams.BASE_URL)

@@ -17,6 +17,7 @@ public class Settings {
     public boolean localRecording = true;
     public int httpPort = 8080;
     public int httpTimeout = 10000;
+    public String httpUserAgent = "Mozilla/5.0 Gecko/20100101 Firefox/62.0";
     public String httpServer = "localhost";
     public String recordingsDir = System.getProperty("user.home") + File.separator + "ctbrec";
     public String mediaPlayer = "/usr/bin/mpv";

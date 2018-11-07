@@ -22,6 +22,7 @@ import com.iheartradio.m3u8.data.PlaylistData;
 import com.iheartradio.m3u8.data.StreamInfo;
 
 import ctbrec.AbstractModel;
+import ctbrec.Config;
 import ctbrec.recorder.download.StreamSource;
 import ctbrec.sites.Site;
 import okhttp3.FormBody;
@@ -102,7 +103,7 @@ public class BongaCamsModel extends AbstractModel {
                 .build();
         Request request = new Request.Builder()
                 .url(url)
-                .addHeader("User-Agent", "Mozilla/5.0 (Android 9.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0")
+                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
                 .addHeader("Accept", "application/json, text/javascript, */*")
                 .addHeader("Accept-Language", "en")
                 .addHeader("Referer", BongaCams.BASE_URL)
@@ -143,7 +144,7 @@ public class BongaCamsModel extends AbstractModel {
                 .build();
         Request request = new Request.Builder()
                 .url(url)
-                .addHeader("User-Agent", "Mozilla/5.0 (Android 9.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0")
+                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
                 .addHeader("Accept", "application/json, text/javascript, */*")
                 .addHeader("Accept-Language", "en")
                 .addHeader("Referer", BongaCams.BASE_URL + '/' + getName())

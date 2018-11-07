@@ -9,6 +9,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.ui.PaginatedScheduledService;
 import javafx.concurrent.Task;
@@ -36,7 +37,7 @@ public class BongaCamsUpdateService extends PaginatedScheduledService {
                 LOG.debug("Fetching page {}", _url);
                 Request request = new Request.Builder()
                         .url(_url)
-                        .addHeader("User-Agent", "Mozilla/5.0 (Android 9.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0")
+                        .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
                         .addHeader("Accept", "application/json, text/javascript, */*")
                         .addHeader("Accept-Language", "en")
                         .addHeader("Referer", bongaCams.getBaseUrl())

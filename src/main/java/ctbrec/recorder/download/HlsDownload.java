@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.Date;
 import java.util.concurrent.Callable;
 
@@ -39,6 +40,8 @@ public class HlsDownload extends AbstractHlsDownload {
     public void start(Model model, Config config) throws IOException {
         try {
             running = true;
+            startTime = Instant.now();
+            super.model = model;
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm");
             String startTime = sdf.format(new Date());
             Path modelDir = FileSystems.getDefault().getPath(config.getSettings().recordingsDir, model.getName());

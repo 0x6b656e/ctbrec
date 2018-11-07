@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.LinkedList;
@@ -58,9 +59,14 @@ public class MergedHlsDownload extends AbstractHlsDownload {
         super(client);
     }
 
+    public File getTargetFile() {
+        return targetFile;
+    }
+
     public void start(String segmentPlaylistUri, File targetFile, ProgressListener progressListener) throws IOException {
         try {
             running = true;
+            super.startTime = Instant.now();
             downloadDir = targetFile.getParentFile().toPath();
             mergeThread = createMergeThread(targetFile, progressListener, false);
             mergeThread.start();
@@ -75,7 +81,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
         } finally {
             alive = false;
             streamer.stop();
-            LOG.debug("Download for terminated");
+            LOG.debug("Download terminated for {}", segmentPlaylistUri);
         }
     }
 
@@ -84,6 +90,8 @@ public class MergedHlsDownload extends AbstractHlsDownload {
         this.config = config;
         try {
             running = true;
+            super.startTime = Instant.now();
+            super.model = model;
             startTime = ZonedDateTime.now();
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm");
             String startTime = sdf.format(new Date());

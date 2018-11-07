@@ -558,7 +558,9 @@ public class LocalRecorder implements Recorder {
             if (models.contains(model)) {
                 int index = models.indexOf(model);
                 models.get(index).setSuspended(true);
+                model.setSuspended(true);
             } else {
+                LOG.warn("Couldn't suspend model {}. Not found in list", model.getName());
                 return;
             }
         } finally {
@@ -581,7 +583,9 @@ public class LocalRecorder implements Recorder {
                 Model m = models.get(index);
                 m.setSuspended(false);
                 startRecordingProcess(m);
+                model.setSuspended(false);
             } else {
+                LOG.warn("Couldn't resume model {}. Not found in list", model.getName());
                 return;
             }
         } finally {

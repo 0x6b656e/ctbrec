@@ -118,7 +118,10 @@ public class ThumbCell extends StackPane {
         StackPane.setAlignment(name, Pos.BOTTOM_CENTER);
         getChildren().add(name);
 
-        topic = new Text(model.getDescription());
+        topic = new Text();
+        String txt = recording ? "    " : "";
+        txt += model.getDescription();
+        topic.setText(txt);
 
         topic.setFill(Color.WHITE);
         topic.setFont(new Font("Sansserif", 13));

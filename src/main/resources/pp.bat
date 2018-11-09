@@ -1,5 +1,6 @@
+REM This is an post-processing example script
 REM This script is just a wrapper to call the actual powershell script.
-REM But you do something complete different here, too.
+REM But you can do something completly different here, too.
 REM
 REM If you want to use powershell, make sure, that your system allows the execution of powershell scripts:
 REM 1. Open cmd.exe as administrator (Click on start, type cmd.exe, right-click on it and select "Run as administrator")

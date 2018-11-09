@@ -17,6 +17,10 @@
 			<filtered>true</filtered>
 		</file>
 		<file>
+			<source>${project.basedir}/src/main/resources/pp.sh</source>
+			<outputDirectory>ctbrec</outputDirectory>
+		</file>
+		<file>
 			<source>${project.build.directory}/${name.final}.jar</source>
 			<outputDirectory>ctbrec</outputDirectory>
 		</file>

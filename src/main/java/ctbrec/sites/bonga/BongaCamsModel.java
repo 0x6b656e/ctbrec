@@ -189,13 +189,11 @@ public class BongaCamsModel extends AbstractModel {
 
     @Override
     public boolean follow() throws IOException {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean unfollow() throws IOException {
-        // TODO Auto-generated method stub
         return false;
     }
 

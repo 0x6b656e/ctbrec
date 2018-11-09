@@ -127,7 +127,6 @@ public class BongaCams extends AbstractSite {
 
     @Override
     public boolean supportsFollow() {
-        // TODO Auto-generated method stub
         return false;
     }
 

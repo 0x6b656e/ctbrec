@@ -15,4 +15,4 @@ set model=%3
 set site=%4
 set unixtime=%5
 
-powershell -F C:\Users\henrik\Desktop\ctbrec\pp.ps1 -dir "%directory%" -file "%file%" -model "%model%" -site "%site%" -time "%unixtime%"
+powershell -F C:\Users\username\Desktop\ctbrec\pp.ps1 -dir "%directory%" -file "%file%" -model "%model%" -site "%site%" -time "%unixtime%"

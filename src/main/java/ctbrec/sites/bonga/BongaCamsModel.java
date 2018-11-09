@@ -171,12 +171,15 @@ public class BongaCamsModel extends AbstractModel {
                 return new int[2];
             }
             try {
+                if(!isOnline()) {
+                    return new int[2];
+                }
                 List<StreamSource> streamSources = getStreamSources();
                 Collections.sort(streamSources);
                 StreamSource best = streamSources.get(streamSources.size()-1);
                 resolution = new int[] {best.width, best.height};
-            } catch (ExecutionException | IOException | ParseException | PlaylistException e) {
-                LOG.error("Couldn't determine stream resolution for {}", getName(), e);
+            } catch (ExecutionException | IOException | ParseException | PlaylistException | InterruptedException e) {
+                LOG.warn("Couldn't determine stream resolution for {} - {}", getName(), e.getMessage());
             }
             return resolution;
         } else {

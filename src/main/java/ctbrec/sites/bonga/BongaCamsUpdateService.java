@@ -55,8 +55,18 @@ public class BongaCamsUpdateService extends PaginatedScheduledService {
                             String name = m.getString("username");
                             BongaCamsModel model = (BongaCamsModel) bongaCams.createModel(name);
                             model.setUserId(m.getInt("user_id"));
-                            model.setOnlineState(m.getString("room"));
-                            model.setOnline(m.optBoolean("online") && !m.optBoolean("is_away"));
+                            boolean away = m.optBoolean("is_away");
+                            boolean online = m.optBoolean("online") && !away;
+                            model.setOnline(online);
+                            if(online) {
+                                if(away) {
+                                    model.setOnlineState("away");
+                                } else {
+                                    model.setOnlineState(m.getString("room"));
+                                }
+                            } else {
+                                model.setOnlineState("offline");
+                            }
                             model.setPreview("https:" + m.getString("thumb_image"));
                             models.add(model);
                         }

@@ -226,6 +226,8 @@ public class ThumbCell extends StackPane {
             } catch(ExecutionException e) {
                 if(e.getCause() instanceof EOFException) {
                     LOG.warn("Couldn't update resolution tag for model {}. Playlist empty", model.getName());
+                } else if(e.getCause() instanceof ParseException) {
+                    LOG.warn("Couldn't update resolution tag for model {} - {}", model.getName(), e.getMessage());
                 } else {
                     LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e);
                 }

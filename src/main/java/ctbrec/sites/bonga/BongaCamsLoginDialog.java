@@ -1,4 +1,4 @@
-package ctbrec.sites.cam4;
+package ctbrec.sites.bonga;
 
 import java.io.File;
 import java.io.InputStream;
@@ -25,18 +25,18 @@ import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import javafx.stage.Stage;
 
-public class Cam4LoginDialog {
+public class BongaCamsLoginDialog {
 
-    private static final transient Logger LOG = LoggerFactory.getLogger(Cam4LoginDialog.class);
-    public static final String URL = Cam4.BASE_URI + "/login";
+    private static final transient Logger LOG = LoggerFactory.getLogger(BongaCamsLoginDialog.class);
+    public static final String URL = BongaCams.BASE_URL + "/login";
     private List<HttpCookie> cookies = null;
     private String url;
     private Region veil;
     private ProgressIndicator p;
 
-    public Cam4LoginDialog() {
+    public BongaCamsLoginDialog() {
         Stage stage = new Stage();
-        stage.setTitle("Cam4 Login");
+        stage.setTitle("BongaCams Login");
         InputStream icon = getClass().getResourceAsStream("/icon.png");
         stage.getIcons().add(new Image(icon));
         CookieManager cookieManager = new CookieManager();
@@ -51,7 +51,7 @@ public class Cam4LoginDialog {
         StackPane stackPane = new StackPane();
         stackPane.getChildren().addAll(webView, veil, p);
 
-        stage.setScene(new Scene(stackPane, 480, 854));
+        stage.setScene(new Scene(stackPane, 640, 480));
         stage.showAndWait();
         cookies = cookieManager.getCookieStore().getCookies();
     }
@@ -76,20 +76,25 @@ public class Cam4LoginDialog {
             if (newState == State.SUCCEEDED) {
                 veil.setVisible(false);
                 p.setVisible(false);
+                //System.out.println("############# " + webEngine.getLocation());
+                //System.out.println(webEngine.getDocument().getDocumentElement().getTextContent());
                 try {
-                    String username = Config.getInstance().getSettings().cam4Username;
+                    String username = Config.getInstance().getSettings().bongaUsername;
                     if (username != null && !username.trim().isEmpty()) {
-                        webEngine.executeScript("$('input[name=username]').attr('value','" + username + "')");
+                        webEngine.executeScript("$('input[name=\"log_in[username]\"]').attr('value','" + username + "')");
                     }
-                    String password = Config.getInstance().getSettings().cam4Password;
+                    String password = Config.getInstance().getSettings().bongaPassword;
                     if (password != null && !password.trim().isEmpty()) {
-                        webEngine.executeScript("$('input[name=password]').attr('value','" + password + "')");
+                        webEngine.executeScript("$('input[name=\"log_in[password]\"]').attr('value','" + password + "')");
                     }
-                    webEngine.executeScript("$('div[class~=navbar]').css('display','none')");
-                    webEngine.executeScript("$('div#footer').css('display','none')");
-                    webEngine.executeScript("$('div#content').css('padding','0')");
+                    webEngine.executeScript("$('div[class~=\"fancybox-overlay\"]').css('display','none')");
+                    webEngine.executeScript("$('div#header').css('display','none')");
+                    webEngine.executeScript("$('div.footer').css('display','none')");
+                    webEngine.executeScript("$('div.footer_copy').css('display','none')");
+                    webEngine.executeScript("$('div[class~=\"banner_top_index\"]').css('display','none')");
+                    webEngine.executeScript("$('td.menu_container').css('display','none')");
                 } catch(Exception e) {
-                    LOG.warn("Couldn't auto fill username and password for Cam4", e);
+                    LOG.warn("Couldn't auto fill username and password for BongaCams", e);
                 }
             } else if (newState == State.CANCELLED || newState == State.FAILED) {
                 veil.setVisible(false);
@@ -102,6 +107,9 @@ public class Cam4LoginDialog {
     }
 
     public List<HttpCookie> getCookies() {
+        //        for (HttpCookie httpCookie : cookies) {
+        //            LOG.debug("Cookie: {}", httpCookie);
+        //        }
         return cookies;
     }
 

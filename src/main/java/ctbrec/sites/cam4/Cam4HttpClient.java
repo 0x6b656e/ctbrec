@@ -23,9 +23,20 @@ public class Cam4HttpClient extends HttpClient {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(Cam4HttpClient.class);
 
+    public Cam4HttpClient() {
+        super("cam4");
+    }
+
     @Override
     public synchronized boolean login() throws IOException {
         if(loggedIn) {
+            return true;
+        }
+
+        boolean cookiesWorked = checkLoginSuccess();
+        if(cookiesWorked) {
+            loggedIn = true;
+            LOG.debug("Logged in with cookies");
             return true;
         }
 

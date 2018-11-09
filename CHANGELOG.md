@@ -1,3 +1,15 @@
+1.8.0
+========================
+* Added BongaCams
+* Added possibility to suspend the recording for a model. The model stays in
+  the list of recorded models, but the actual recording is suspended
+* HTTP sessions are restored on startup. This should reduce the number of 
+  logins needed (especially for Cam4, BongaCams and CamSoda).
+* Server can run now run on OpenJRE
+* Added JVM parameter to define the configuration directory
+  (``-Dctbrec.config.dir``)
+* Improved memory management for MyFreeCams
+
 1.7.0
 ========================
 * Added CamSoda

@@ -37,8 +37,12 @@ public class X {
         if(x == null) {
             return;
         }
-        fcext.merge(x.fcext);
-        share.merge(x.share);
+        if (fcext != null) {
+            fcext.merge(x.fcext);
+        }
+        if (share != null) {
+            share.merge(x.share);
+        }
         additionalProperties.putAll(x.additionalProperties);
 
     }

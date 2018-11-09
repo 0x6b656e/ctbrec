@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -41,6 +42,8 @@ public abstract class AbstractHlsDownload implements Download {
     volatile boolean running = false;
     volatile boolean alive = true;
     Path downloadDir;
+    Instant startTime;
+    Model model;
 
     public AbstractHlsDownload(HttpClient client) {
         this.client = client;
@@ -115,6 +118,16 @@ public abstract class AbstractHlsDownload implements Download {
     @Override
     public File getDirectory() {
         return downloadDir.toFile();
+    }
+
+    @Override
+    public Instant getStartTime() {
+        return startTime;
+    }
+
+    @Override
+    public Model getModel() {
+        return model;
     }
 
     public static class SegmentPlaylist {

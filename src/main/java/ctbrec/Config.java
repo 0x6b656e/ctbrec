@@ -29,9 +29,16 @@ public class Config {
     private Settings settings;
     private String filename;
     private List<Site> sites;
+    private File configDir;
 
     private Config(List<Site> sites) throws FileNotFoundException, IOException {
         this.sites = sites;
+        if(System.getProperty("ctbrec.config.dir") != null) {
+            configDir = new File(System.getProperty("ctbrec.config.dir"));
+        } else {
+            configDir = OS.getConfigDir();
+        }
+
         if(System.getProperty("ctbrec.config") != null) {
             filename = System.getProperty("ctbrec.config");
         } else {
@@ -45,7 +52,6 @@ public class Config {
                 .add(Model.class, new ModelJsonAdapter(sites))
                 .build();
         JsonAdapter<Settings> adapter = moshi.adapter(Settings.class);
-        File configDir = OS.getConfigDir();
         File configFile = new File(configDir, filename);
         LOG.debug("Loading config from {}", configFile.getAbsolutePath());
         if(configFile.exists()) {
@@ -86,7 +92,6 @@ public class Config {
                 .build();
         JsonAdapter<Settings> adapter = moshi.adapter(Settings.class).indent("  ");
         String json = adapter.toJson(settings);
-        File configDir = OS.getConfigDir();
         File configFile = new File(configDir, filename);
         LOG.debug("Saving config to {}", configFile.getAbsolutePath());
         Files.createDirectories(configDir.toPath());
@@ -95,5 +100,9 @@ public class Config {
 
     public boolean isServerMode() {
         return Objects.equals(System.getProperty("ctbrec.server.mode"), "1");
+    }
+
+    public File getConfigDir() {
+        return configDir;
     }
 }

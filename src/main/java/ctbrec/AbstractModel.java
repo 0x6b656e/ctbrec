@@ -16,6 +16,7 @@ public abstract class AbstractModel implements Model {
     private String description;
     private List<String> tags = new ArrayList<>();
     private int streamUrlIndex = -1;
+    private boolean suspended = false;
 
     @Override
     public boolean isOnline() throws IOException, ExecutionException, InterruptedException {
@@ -90,6 +91,16 @@ public abstract class AbstractModel implements Model {
     @Override
     public void writeSiteSpecificData(JsonWriter writer) throws IOException {
         // noop default implementation, can be overriden by concrete models
+    }
+
+    @Override
+    public boolean isSuspended() {
+        return suspended;
+    }
+
+    @Override
+    public void setSuspended(boolean suspended) {
+        this.suspended = suspended;
     }
 
     @Override

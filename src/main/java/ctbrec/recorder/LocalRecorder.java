@@ -10,6 +10,7 @@ import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -28,7 +29,9 @@ import com.iheartradio.m3u8.PlaylistException;
 
 import ctbrec.Config;
 import ctbrec.Model;
+import ctbrec.OS;
 import ctbrec.Recording;
+import ctbrec.io.StreamRedirectThread;
 import ctbrec.recorder.PlaylistGenerator.InvalidPlaylistException;
 import ctbrec.recorder.download.Download;
 import ctbrec.recorder.download.HlsDownload;
@@ -46,7 +49,7 @@ public class LocalRecorder implements Recorder {
     private Config config;
     private ProcessMonitor processMonitor;
     private OnlineMonitor onlineMonitor;
-    private PlaylistGeneratorTrigger playlistGenTrigger;
+    private PostProcessingTrigger postProcessingTrigger;
     private volatile boolean recording = true;
     private List<File> deleteInProgress = Collections.synchronizedList(new ArrayList<>());
     private RecorderHttpClient client = new RecorderHttpClient();
@@ -68,9 +71,9 @@ public class LocalRecorder implements Recorder {
         onlineMonitor = new OnlineMonitor();
         onlineMonitor.start();
 
-        playlistGenTrigger = new PlaylistGeneratorTrigger();
+        postProcessingTrigger = new PostProcessingTrigger();
         if(Config.getInstance().isServerMode()) {
-            playlistGenTrigger.start();
+            postProcessingTrigger.start();
         }
 
         LOG.debug("Recorder initialized");
@@ -112,7 +115,12 @@ public class LocalRecorder implements Recorder {
     }
 
     private void startRecordingProcess(Model model) throws IOException {
-        LOG.debug("Restart recording for model {}", model.getName());
+        if(model.isSuspended()) {
+            LOG.info("Recording for model {} is suspended.", model);
+            return;
+        }
+
+        LOG.debug("Starting recording for model {}", model.getName());
         if (recordingProcesses.containsKey(model)) {
             LOG.error("A recording for model {} is already running", model);
             return;
@@ -148,10 +156,51 @@ public class LocalRecorder implements Recorder {
         }.start();
     }
 
-    private void stopRecordingProcess(Model model) throws IOException {
+    private void stopRecordingProcess(Model model)  {
         Download download = recordingProcesses.get(model);
         download.stop();
         recordingProcesses.remove(model);
+        if(!Config.getInstance().isServerMode()) {
+            postprocess(download);
+        }
+    }
+
+    private void postprocess(Download download) {
+        if(!(download instanceof MergedHlsDownload)) {
+            throw new IllegalArgumentException("Download should be of type MergedHlsDownload");
+        }
+        String postProcessing = Config.getInstance().getSettings().postProcessing;
+        if (postProcessing != null && !postProcessing.isEmpty()) {
+            new Thread(() -> {
+                Runtime rt = Runtime.getRuntime();
+                try {
+                    MergedHlsDownload d = (MergedHlsDownload) download;
+                    String[] args = new String[] {
+                            postProcessing,
+                            d.getDirectory().getAbsolutePath(),
+                            d.getTargetFile().getAbsolutePath(),
+                            d.getModel().getName(),
+                            d.getModel().getSite().getName(),
+                            Long.toString(download.getStartTime().getEpochSecond())
+                    };
+                    LOG.debug("Running {}", Arrays.toString(args));
+                    Process process = rt.exec(args, OS.getEnvironment(), download.getDirectory());
+                    Thread std = new Thread(new StreamRedirectThread(process.getInputStream(), System.out));
+                    std.setName("Process stdout pipe");
+                    std.setDaemon(true);
+                    std.start();
+                    Thread err = new Thread(new StreamRedirectThread(process.getErrorStream(), System.err));
+                    err.setName("Process stderr pipe");
+                    err.setDaemon(true);
+                    err.start();
+
+                    process.waitFor();
+                    LOG.debug("Process finished.");
+                } catch (Exception e) {
+                    LOG.error("Error in process thread", e);
+                }
+            }).start();
+        }
     }
 
     @Override
@@ -159,6 +208,22 @@ public class LocalRecorder implements Recorder {
         lock.lock();
         try {
             return models.contains(model);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    public boolean isSuspended(Model model) {
+        lock.lock();
+        try {
+            int index = models.indexOf(model);
+            if(index >= 0) {
+                Model m = models.get(index);
+                return m.isSuspended();
+            } else {
+                return false;
+            }
         } finally {
             lock.unlock();
         }
@@ -181,7 +246,7 @@ public class LocalRecorder implements Recorder {
         LOG.debug("Stopping monitor threads");
         onlineMonitor.running = false;
         processMonitor.running = false;
-        playlistGenTrigger.running = false;
+        postProcessingTrigger.running = false;
         LOG.debug("Stopping all recording processes");
         stopRecordingProcesses();
         client.shutdown();
@@ -246,10 +311,14 @@ public class LocalRecorder implements Recorder {
                         LOG.debug("Recording terminated for model {}", m.getName());
                         iterator.remove();
                         restart.add(m);
-                        try {
-                            finishRecording(d.getDirectory());
-                        } catch(Exception e) {
-                            LOG.error("Error while finishing recording for model {}", m.getName(), e);
+                        if(config.isServerMode()) {
+                            try {
+                                finishRecording(d.getDirectory());
+                            } catch(Exception e) {
+                                LOG.error("Error while finishing recording for model {}", m.getName(), e);
+                            }
+                        } else {
+                            postprocess(d);
                         }
                     }
                 }
@@ -269,17 +338,17 @@ public class LocalRecorder implements Recorder {
     }
 
     private void finishRecording(File directory) {
-        Thread t = new Thread() {
-            @Override
-            public void run() {
-                if(Config.getInstance().isServerMode()) {
+        if(Config.getInstance().isServerMode()) {
+            Thread t = new Thread() {
+                @Override
+                public void run() {
                     generatePlaylist(directory);
                 }
-            }
-        };
-        t.setDaemon(true);
-        t.setName("Postprocessing" + directory.toString());
-        t.start();
+            };
+            t.setDaemon(true);
+            t.setName("Post-Processing " + directory.toString());
+            t.start();
+        }
     }
 
     private void generatePlaylist(File recDir) {
@@ -315,7 +384,7 @@ public class LocalRecorder implements Recorder {
             while (running) {
                 for (Model model : getModelsRecording()) {
                     try {
-                        if (!recordingProcesses.containsKey(model)) {
+                        if (!model.isSuspended() && !recordingProcesses.containsKey(model)) {
                             boolean isOnline = model.isOnline(IGNORE_CACHE);
                             LOG.trace("Checking online state for {}: {}", model, (isOnline ? "online" : "offline"));
                             if (isOnline) {
@@ -339,11 +408,11 @@ public class LocalRecorder implements Recorder {
         }
     }
 
-    private class PlaylistGeneratorTrigger extends Thread {
+    private class PostProcessingTrigger extends Thread {
         private volatile boolean running = false;
 
-        public PlaylistGeneratorTrigger() {
-            setName("PlaylistGeneratorTrigger");
+        public PostProcessingTrigger() {
+            setName("PostProcessingTrigger");
             setDaemon(true);
         }
 
@@ -365,7 +434,7 @@ public class LocalRecorder implements Recorder {
                             }
                             if (!recordingProcessFound) {
                                 if (deleteInProgress.contains(recDir)) {
-                                    LOG.debug("{} is being deleted. Not going to generate a playlist", recDir);
+                                    LOG.debug("{} is being deleted. Not going to start post-processing", recDir);
                                 } else {
                                     finishRecording(recDir);
                                 }
@@ -528,5 +597,46 @@ public class LocalRecorder implements Recorder {
         LOG.debug("Switching stream source to index {} for model {}", model.getStreamUrlIndex(), model.getName());
         stopRecordingProcess(model);
         tryRestartRecording(model);
+    }
+
+    @Override
+    public void suspendRecording(Model model) {
+        lock.lock();
+        try {
+            if (models.contains(model)) {
+                int index = models.indexOf(model);
+                models.get(index).setSuspended(true);
+                model.setSuspended(true);
+            } else {
+                LOG.warn("Couldn't suspend model {}. Not found in list", model.getName());
+                return;
+            }
+        } finally {
+            lock.unlock();
+        }
+
+        Download download = recordingProcesses.get(model);
+        if(download != null) {
+            stopRecordingProcess(model);
+        }
+    }
+
+    @Override
+    public void resumeRecording(Model model) throws IOException {
+        lock.lock();
+        try {
+            if (models.contains(model)) {
+                int index = models.indexOf(model);
+                Model m = models.get(index);
+                m.setSuspended(false);
+                startRecordingProcess(m);
+                model.setSuspended(false);
+            } else {
+                LOG.warn("Couldn't resume model {}. Not found in list", model.getName());
+                return;
+            }
+        } finally {
+            lock.unlock();
+        }
     }
 }

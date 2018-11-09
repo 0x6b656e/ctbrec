@@ -139,9 +139,11 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
         table.setItems(observableRecordings);
         table.addEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> {
             Recording recording = table.getSelectionModel().getSelectedItem();
-            popup = createContextMenu(recording);
-            if(!popup.getItems().isEmpty()) {
-                popup.show(table, event.getScreenX(), event.getScreenY());
+            if(recording != null) {
+                popup = createContextMenu(recording);
+                if(!popup.getItems().isEmpty()) {
+                    popup.show(table, event.getScreenX(), event.getScreenY());
+                }
             }
             event.consume();
         });

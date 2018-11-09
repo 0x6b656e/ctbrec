@@ -9,7 +9,6 @@ import com.iheartradio.m3u8.PlaylistException;
 import com.squareup.moshi.JsonReader;
 import com.squareup.moshi.JsonWriter;
 
-import ctbrec.AbstractModel;
 import ctbrec.Model;
 import ctbrec.recorder.download.StreamSource;
 import ctbrec.sites.Site;
@@ -19,15 +18,13 @@ import javafx.beans.property.SimpleBooleanProperty;
 /**
  * Just a wrapper for Model, which augments it with JavaFX value binding properties, so that UI widgets get updated proeprly
  */
-public class JavaFxModel extends AbstractModel {
+public class JavaFxModel implements Model {
     private transient BooleanProperty onlineProperty = new SimpleBooleanProperty();
+    private transient BooleanProperty pausedProperty = new SimpleBooleanProperty();
     private Model delegate;
 
     public JavaFxModel(Model delegate) {
         this.delegate = delegate;
-        try {
-            onlineProperty.set(delegate.isOnline());
-        } catch (IOException | ExecutionException | InterruptedException e) {}
     }
 
     @Override
@@ -87,6 +84,10 @@ public class JavaFxModel extends AbstractModel {
 
     public BooleanProperty getOnlineProperty() {
         return onlineProperty;
+    }
+
+    public BooleanProperty getPausedProperty() {
+        return pausedProperty;
     }
 
     Model getDelegate() {
@@ -156,5 +157,36 @@ public class JavaFxModel extends AbstractModel {
     @Override
     public void writeSiteSpecificData(JsonWriter writer) throws IOException {
         delegate.writeSiteSpecificData(writer);
+    }
+
+    @Override
+    public String getDescription() {
+        return delegate.getDescription();
+    }
+
+    @Override
+    public void setDescription(String description) {
+        delegate.setDescription(description);
+    }
+
+    @Override
+    public int getStreamUrlIndex() {
+        return delegate.getStreamUrlIndex();
+    }
+
+    @Override
+    public void setStreamUrlIndex(int streamUrlIndex) {
+        delegate.setStreamUrlIndex(streamUrlIndex);
+    }
+
+    @Override
+    public boolean isSuspended() {
+        return delegate.isSuspended();
+    }
+
+    @Override
+    public void setSuspended(boolean suspended) {
+        delegate.setSuspended(suspended);
+        pausedProperty.set(suspended);
     }
 }

@@ -14,6 +14,7 @@ import com.sun.javafx.collections.ObservableListWrapper;
 import ctbrec.Config;
 import ctbrec.Hmac;
 import ctbrec.Settings;
+import ctbrec.sites.ConfigUI;
 import ctbrec.sites.Site;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -27,6 +28,7 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
@@ -54,7 +56,9 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     public static final int CHECKBOX_MARGIN = 6;
     private TextField recordingsDirectory;
     private Button recordingsDirectoryButton;
+    private Button postProcessingDirectoryButton;
     private TextField mediaPlayer;
+    private TextField postProcessing;
     private TextField server;
     private TextField port;
     private CheckBox loadResolution;
@@ -88,7 +92,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         ColumnConstraints cc = new ColumnConstraints();
         cc.setPercentWidth(50);
         mainLayout.getColumnConstraints().setAll(cc, cc);
-        setContent(mainLayout);
+        setContent(new ScrollPane(mainLayout));
         VBox leftSide = new VBox(15);
         VBox rightSide = new VBox(15);
         GridPane.setHgrow(leftSide, Priority.ALWAYS);
@@ -119,9 +123,9 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         rightSide.getChildren().add(credentialsAccordion);
         for (int i = 0; i < sites.size(); i++) {
             Site site = sites.get(i);
-            Node siteConfig = site.getConfigurationGui();
+            ConfigUI siteConfig = site.getConfigurationGui();
             if(siteConfig != null) {
-                TitledPane pane = new TitledPane(site.getName(), siteConfig);
+                TitledPane pane = new TitledPane(site.getName(), siteConfig.createConfigPanel());
                 credentialsAccordion.getPanes().add(pane);
             }
         }
@@ -265,6 +269,17 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         layout.add(mediaPlayer, 1, 1);
         layout.add(createMpvBrowseButton(), 3, 1);
 
+        layout.add(new Label("Post-Processing"), 0, 2);
+        postProcessing = new TextField(Config.getInstance().getSettings().postProcessing);
+        postProcessing.focusedProperty().addListener(createPostProcessingFocusListener());
+        GridPane.setFillWidth(postProcessing, true);
+        GridPane.setHgrow(postProcessing, Priority.ALWAYS);
+        GridPane.setColumnSpan(postProcessing, 2);
+        GridPane.setMargin(postProcessing, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        layout.add(postProcessing, 1, 2);
+        postProcessingDirectoryButton = createPostProcessingBrowseButton();
+        layout.add(postProcessingDirectoryButton, 3, 2);
+
         TitledPane locations = new TitledPane("Locations", layout);
         locations.setCollapsible(false);
         return locations;
@@ -378,6 +393,8 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         recordingsDirectoryButton.setDisable(!local);
         splitAfter.setDisable(!local);
         maxResolution.setDisable(!local);
+        postProcessing.setDisable(!local);
+        postProcessingDirectoryButton.setDisable(!local);
     }
 
     private ChangeListener<? super Boolean> createRecordingsDirectoryFocusListener() {
@@ -412,6 +429,22 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         };
     }
 
+    private ChangeListener<? super Boolean> createPostProcessingFocusListener() {
+        return new ChangeListener<Boolean>() {
+            @Override
+            public void changed(ObservableValue<? extends Boolean> arg0, Boolean oldPropertyValue, Boolean newPropertyValue) {
+                if (newPropertyValue) {
+                    postProcessing.setBorder(Border.EMPTY);
+                    postProcessing.setTooltip(null);
+                } else {
+                    String input = postProcessing.getText();
+                    File program = new File(input);
+                    setPostProcessing(program);
+                }
+            }
+        };
+    }
+
     private void setMpv(File program) {
         String msg = validateProgram(program);
         if (msg != null) {
@@ -419,6 +452,16 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             mediaPlayer.setTooltip(new Tooltip(msg));
         } else {
             Config.getInstance().getSettings().mediaPlayer = mediaPlayer.getText();
+        }
+    }
+
+    private void setPostProcessing(File program) {
+        String msg = validateProgram(program);
+        if (msg != null) {
+            postProcessing.setBorder(new Border(new BorderStroke(Color.RED, BorderStrokeStyle.DASHED, new CornerRadii(2), new BorderWidths(2))));
+            postProcessing.setTooltip(new Tooltip(msg));
+        } else {
+            Config.getInstance().getSettings().postProcessing = postProcessing.getText();
         }
     }
 
@@ -463,6 +506,27 @@ public class SettingsTab extends Tab implements TabSelectionListener {
                     alert.showAndWait();
                 }
                 setMpv(program);
+            }
+        });
+        return button;
+    }
+
+    private Button createPostProcessingBrowseButton() {
+        Button button = new Button("Select");
+        button.setOnAction((e) -> {
+            FileChooser chooser = new FileChooser();
+            File program = chooser.showOpenDialog(null);
+            if(program != null) {
+                try {
+                    postProcessing.setText(program.getCanonicalPath());
+                } catch (IOException e1) {
+                    LOG.error("Couldn't determine path", e1);
+                    Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+                    alert.setTitle("Whoopsie");
+                    alert.setContentText("Couldn't determine path");
+                    alert.showAndWait();
+                }
+                setPostProcessing(program);
             }
         });
         return button;

@@ -25,6 +25,7 @@ import com.iheartradio.m3u8.data.PlaylistData;
 import com.iheartradio.m3u8.data.StreamInfo;
 
 import ctbrec.AbstractModel;
+import ctbrec.Config;
 import ctbrec.recorder.download.StreamSource;
 import ctbrec.sites.Site;
 import okhttp3.FormBody;
@@ -181,7 +182,7 @@ public class CamsodaModel extends AbstractModel {
                     .url(url)
                     .post(body)
                     .addHeader("Referer", Camsoda.BASE_URI + '/' + getName())
-                    .addHeader("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:62.0) Gecko/20100101 Firefox/62.0")
+                    .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
                     .addHeader("Accept", "application/json, text/plain, */*")
                     .addHeader("Accept-Language", "en")
                     .addHeader("X-CSRF-Token", csrfToken)
@@ -203,7 +204,7 @@ public class CamsodaModel extends AbstractModel {
                 .url(url)
                 .post(RequestBody.create(null, ""))
                 .addHeader("Referer", Camsoda.BASE_URI + '/' + getName())
-                .addHeader("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:62.0) Gecko/20100101 Firefox/62.0")
+                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
                 .addHeader("Accept", "application/json, text/plain, */*")
                 .addHeader("Accept-Language", "en")
                 .addHeader("X-CSRF-Token", csrfToken)
@@ -227,7 +228,7 @@ public class CamsodaModel extends AbstractModel {
                 .url(url)
                 .post(RequestBody.create(null, ""))
                 .addHeader("Referer", Camsoda.BASE_URI + '/' + getName())
-                .addHeader("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:62.0) Gecko/20100101 Firefox/62.0")
+                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
                 .addHeader("Accept", "application/json, text/plain, */*")
                 .addHeader("Accept-Language", "en")
                 .addHeader("X-CSRF-Token", csrfToken)

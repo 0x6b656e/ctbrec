@@ -64,6 +64,7 @@ public class ThumbCell extends StackPane {
     private Text resolutionTag;
     private Recorder recorder;
     private Circle recordingIndicator;
+    private PauseIndicator pausedIndicator;
     private int index = 0;
     ContextMenu popup;
     private final Color colorNormal = Color.BLACK;
@@ -81,6 +82,7 @@ public class ThumbCell extends StackPane {
         this.model = model;
         this.recorder = recorder;
         recording = recorder.isRecording(model);
+        model.setSuspended(recorder.isSuspended(model));
         this.setStyle("-fx-background-color: lightgray");
 
         iv = new ImageView();
@@ -118,7 +120,10 @@ public class ThumbCell extends StackPane {
         StackPane.setAlignment(name, Pos.BOTTOM_CENTER);
         getChildren().add(name);
 
-        topic = new Text(model.getDescription());
+        topic = new Text();
+        String txt = recording ? "    " : "";
+        txt += model.getDescription();
+        topic.setText(txt);
 
         topic.setFill(Color.WHITE);
         topic.setFont(new Font("Sansserif", 13));
@@ -141,6 +146,12 @@ public class ThumbCell extends StackPane {
         StackPane.setMargin(recordingIndicator, new Insets(3));
         StackPane.setAlignment(recordingIndicator, Pos.TOP_LEFT);
         getChildren().add(recordingIndicator);
+
+        pausedIndicator = new PauseIndicator(colorRecording, 16);
+        pausedIndicator.setVisible(false);
+        StackPane.setMargin(pausedIndicator, new Insets(3));
+        StackPane.setAlignment(pausedIndicator, Pos.TOP_LEFT);
+        getChildren().add(pausedIndicator);
 
         selectionOverlay = new Rectangle();
         selectionOverlay.setOpacity(0);
@@ -208,13 +219,15 @@ public class ThumbCell extends StackPane {
                     LOG.trace("Removing invalid resolution value for {}", model.getName());
                     model.invalidateCacheEntries();
                 }
-                
+
                 Thread.sleep(500);
             } catch (IOException | InterruptedException e1) {
                 LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e1);
             } catch(ExecutionException e) {
                 if(e.getCause() instanceof EOFException) {
                     LOG.warn("Couldn't update resolution tag for model {}. Playlist empty", model.getName());
+                } else if(e.getCause() instanceof ParseException) {
+                    LOG.warn("Couldn't update resolution tag for model {} - {}", model.getName(), e.getMessage());
                 } else {
                     LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e);
                 }
@@ -321,7 +334,14 @@ public class ThumbCell extends StackPane {
             Color c = mouseHovering ? colorHighlight : colorNormal;
             nameBackground.setFill(c);
         }
-        recordingIndicator.setVisible(recording);
+
+        if(recording) {
+            recordingIndicator.setVisible(!model.isSuspended());
+            pausedIndicator.setVisible(model.isSuspended());
+        } else {
+            recordingIndicator.setVisible(false);
+            pausedIndicator.setVisible(false);
+        }
     }
 
     void startStopAction(boolean start) {
@@ -345,6 +365,31 @@ public class ThumbCell extends StackPane {
         } else {
             _startStopAction(model, start);
         }
+    }
+
+    void pauseResumeAction(boolean pause) {
+        setCursor(Cursor.WAIT);
+        new Thread(() -> {
+            try {
+                if(pause) {
+                    recorder.suspendRecording(model);
+                } else {
+                    recorder.resumeRecording(model);
+                }
+                setRecording(recording);
+            } catch (Exception e1) {
+                LOG.error("Couldn't pause/resume recording", e1);
+                Platform.runLater(() -> {
+                    Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+                    alert.setTitle("Error");
+                    alert.setHeaderText("Couldn't pause/resume recording");
+                    alert.setContentText("I/O error while pausing/resuming the recording: " + e1.getLocalizedMessage());
+                    alert.showAndWait();
+                });
+            } finally {
+                setCursor(Cursor.DEFAULT);
+            }
+        }).start();
     }
 
     private void _startStopAction(Model model, boolean start) {
@@ -426,6 +471,7 @@ public class ThumbCell extends StackPane {
         this.model.setPreview(model.getPreview());
         this.model.setTags(model.getTags());
         this.model.setUrl(model.getUrl());
+        this.model.setSuspended(model.isSuspended());
         update();
     }
 
@@ -438,6 +484,7 @@ public class ThumbCell extends StackPane {
     }
 
     private void update() {
+        model.setSuspended(recorder.isSuspended(model));
         setRecording(recorder.isRecording(model));
         setImage(model.getPreview());
         String txt = recording ? "    " : "";

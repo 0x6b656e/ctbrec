@@ -20,6 +20,10 @@ public class ChaturbateHttpClient extends HttpClient {
     private static final transient Logger LOG = LoggerFactory.getLogger(ChaturbateHttpClient.class);
     protected  String token;
 
+    public ChaturbateHttpClient() {
+        super("chaturbate");
+    }
+
     private void extractCsrfToken(Request request) {
         try {
             Cookie csrfToken = cookieJar.getCookie(request.url(), "csrftoken");
@@ -38,6 +42,16 @@ public class ChaturbateHttpClient extends HttpClient {
 
     @Override
     public boolean login() throws IOException {
+        if(loggedIn) {
+            return true;
+        }
+
+        if(checkLogin()) {
+            loggedIn = true;
+            LOG.debug("Logged in with cookies");
+            return true;
+        }
+
         try {
             Request login = new Request.Builder()
                     .url(Chaturbate.BASE_URI + "/auth/login/")
@@ -80,6 +94,24 @@ public class ChaturbateHttpClient extends HttpClient {
             loginTries = 0;
         }
         return loggedIn;
+    }
+
+    private boolean checkLogin() throws IOException {
+        String url = "https://chaturbate.com/p/" + Config.getInstance().getSettings().username + "/";
+        Request req = new Request.Builder().url(url).build();
+        Response resp = execute(req);
+        if (resp.isSuccessful()) {
+            String profilePage = resp.body().string();
+            try {
+                HtmlParser.getText(profilePage, "span.tokencount");
+                return true;
+            } catch(Exception e) {
+                LOG.debug("Token tag not found. Login failed");
+                return false;
+            }
+        } else {
+            throw new IOException("HTTP response: " + resp.code() + " - " + resp.message());
+        }
     }
 
     @Override

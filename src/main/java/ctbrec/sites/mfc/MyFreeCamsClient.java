@@ -7,9 +7,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -23,6 +21,8 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.EvictingQueue;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
@@ -45,8 +45,8 @@ public class MyFreeCamsClient {
     private Moshi moshi;
     private volatile boolean running = false;
 
-    private Map<Integer, SessionState> sessionStates = new HashMap<>();
-    private Map<Integer, MyFreeCamsModel> models = new HashMap<>();
+    private Cache<Integer, SessionState> sessionStates = CacheBuilder.newBuilder().maximumSize(4000).build();
+    private Cache<Integer, MyFreeCamsModel> models = CacheBuilder.newBuilder().maximumSize(4000).build();
     private Lock lock = new ReentrantLock();
     private ExecutorService executor = Executors.newSingleThreadExecutor();
     private ServerConfig serverConfig;
@@ -59,7 +59,7 @@ public class MyFreeCamsClient {
     private int sessionId;
     private long heartBeat;
 
-    private EvictingQueue<String> receivedTextHistory = EvictingQueue.create(10000);
+    private EvictingQueue<String> receivedTextHistory = EvictingQueue.create(100);
 
     private MyFreeCamsClient() {
         moshi = new Moshi.Builder().build();
@@ -118,7 +118,7 @@ public class MyFreeCamsClient {
         lock.lock();
         try {
             LOG.trace("Models: {}", models.size());
-            return new ArrayList<>(this.models.values());
+            return new ArrayList<>(this.models.asMap().values());
         } finally {
             lock.unlock();
         }
@@ -208,7 +208,7 @@ public class MyFreeCamsClient {
                             JSONObject json = new JSONObject(message.getMessage());
                             String[] names = JSONObject.getNames(json);
                             Integer uid = Integer.parseInt(names[0]);
-                            SessionState sessionState = sessionStates.get(uid);
+                            SessionState sessionState = sessionStates.getIfPresent(uid);
                             if (sessionState != null) {
                                 JSONArray tags = json.getJSONArray(names[0]);
                                 for (Object obj : tags) {
@@ -358,7 +358,7 @@ public class MyFreeCamsClient {
                 if (newState.getUid() <= 0) {
                     return;
                 }
-                SessionState storedState = sessionStates.get(newState.getUid());
+                SessionState storedState = sessionStates.getIfPresent(newState.getUid());
                 if (storedState != null) {
                     storedState.merge(newState);
                     updateModel(storedState);
@@ -384,7 +384,7 @@ public class MyFreeCamsClient {
                     return;
                 }
 
-                MyFreeCamsModel model = models.get(state.getUid());
+                MyFreeCamsModel model = models.getIfPresent(state.getUid());
                 if(model == null) {
                     model = mfc.createModel(state.getNm());
                     model.setUid(state.getUid());
@@ -494,7 +494,7 @@ public class MyFreeCamsClient {
     public void update(MyFreeCamsModel model) {
         lock.lock();
         try {
-            for (SessionState state : sessionStates.values()) {
+            for (SessionState state : sessionStates.asMap().values()) {
                 if(Objects.equals(state.getNm(), model.getName()) || Objects.equals(model.getUid(), state.getUid())) {
                     model.update(state, getStreamUrl(state));
                     return;
@@ -532,7 +532,7 @@ public class MyFreeCamsClient {
     }
 
     public MyFreeCamsModel getModel(int uid) {
-        return models.get(uid);
+        return models.getIfPresent(uid);
     }
 
     public void execute(Runnable r) {
@@ -540,7 +540,7 @@ public class MyFreeCamsClient {
     }
 
     public void getSessionState(ctbrec.Model model) {
-        for (SessionState state : sessionStates.values()) {
+        for (SessionState state : sessionStates.asMap().values()) {
             if(Objects.equals(state.getNm(), model.getName())) {
                 JsonAdapter<SessionState> adapter = moshi.adapter(SessionState.class).indent("  ");
                 System.out.println(adapter.toJson(state));

@@ -213,6 +213,7 @@ public class MyFreeCamsModel extends AbstractModel {
     public void setName(String name) {
         if(getName() != null && name != null && !getName().equals(name)) {
             LOG.debug("Model name changed {} -> {}", getName(), name);
+            setUrl("https://profiles.myfreecams.com/" + name);
         }
         super.setName(name);
     }

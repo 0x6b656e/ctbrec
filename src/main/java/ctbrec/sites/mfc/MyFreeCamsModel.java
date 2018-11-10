@@ -179,7 +179,9 @@ public class MyFreeCamsModel extends AbstractModel {
                     Collections.sort(streamSources);
                     StreamSource best = streamSources.get(streamSources.size()-1);
                     resolution = new int[] {best.width, best.height};
-                } catch (ExecutionException | IOException | ParseException | PlaylistException e) {
+                } catch (ParseException | PlaylistException e) {
+                    LOG.warn("Couldn't determine stream resolution - {}", e.getMessage());
+                } catch (ExecutionException | IOException e) {
                     LOG.error("Couldn't determine stream resolution", e);
                 }
             });

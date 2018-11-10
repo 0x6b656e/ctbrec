@@ -102,7 +102,7 @@ public class MyFreeCamsModel extends AbstractModel {
         if(hlsUrl == null) {
             throw new IllegalStateException("Stream url unknown");
         }
-        LOG.debug("Loading master playlist {}", hlsUrl);
+        LOG.trace("Loading master playlist {}", hlsUrl);
         Request req = new Request.Builder().url(hlsUrl).build();
         Response response = site.getHttpClient().execute(req);
         try {

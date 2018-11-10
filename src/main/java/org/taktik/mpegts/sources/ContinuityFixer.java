@@ -85,6 +85,10 @@ public class ContinuityFixer {
      * @param tsPacket The packet to fix.
      */
     public void fixContinuity(MTSPacket tsPacket) {
+        if(tsPacket == null) {
+            return;
+        }
+
         int pid = tsPacket.getPid();
         allPackets.put(pid, tsPacket);
         if (!firstPacketsOfCurrentSource.containsKey(pid)) {

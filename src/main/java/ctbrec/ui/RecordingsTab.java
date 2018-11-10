@@ -153,10 +153,14 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
             }
         });
         table.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            if(event.getCode() == KeyCode.DELETE) {
-                JavaFxRecording recording = table.getSelectionModel().getSelectedItem();
-                if(recording != null) {
+            JavaFxRecording recording = table.getSelectionModel().getSelectedItem();
+            if (recording != null) {
+                if (event.getCode() == KeyCode.DELETE) {
                     delete(recording);
+                } else if (event.getCode() == KeyCode.ENTER) {
+                    if(recording.getStatus() == STATUS.FINISHED) {
+                        play(recording);
+                    }
                 }
             }
         });

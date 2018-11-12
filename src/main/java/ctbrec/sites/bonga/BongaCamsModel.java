@@ -43,7 +43,40 @@ public class BongaCamsModel extends AbstractModel {
 
     @Override
     public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException {
+        if(ignoreCache) {
+            String url = getStreamUrl();
+            Request req = new Request.Builder().url(url).build();
+            try(Response resp = site.getHttpClient().execute(req)) {
+                online = resp.isSuccessful();
+            }
+        }
         return online;
+    }
+
+    private JSONObject getRoomData() throws IOException {
+        String url = BongaCams.BASE_URL + "/tools/amf.php";
+        RequestBody body = new FormBody.Builder()
+                .add("method", "getRoomData")
+                .add("args[]", getName())
+                .add("args[]", "false")
+                .build();
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
+                .addHeader("Accept", "application/json, text/javascript, */*")
+                .addHeader("Accept-Language", "en")
+                .addHeader("Referer", BongaCams.BASE_URL)
+                .addHeader("X-Requested-With", "XMLHttpRequest")
+                .post(body)
+                .build();
+        try(Response response = site.getHttpClient().execute(request)) {
+            if(response.isSuccessful()) {
+                JSONObject json = new JSONObject(response.body().string());
+                return json;
+            } else {
+                throw new IOException(response.code() + " " + response.message());
+            }
+        }
     }
 
     public void setOnline(boolean online) {
@@ -95,34 +128,13 @@ public class BongaCamsModel extends AbstractModel {
     }
 
     private String getStreamUrl() throws IOException {
-        String url = BongaCams.BASE_URL + "/tools/amf.php";
-        RequestBody body = new FormBody.Builder()
-                .add("method", "getRoomData")
-                .add("args[]", getName())
-                .add("args[]", "false")
-                .build();
-        Request request = new Request.Builder()
-                .url(url)
-                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
-                .addHeader("Accept", "application/json, text/javascript, */*")
-                .addHeader("Accept-Language", "en")
-                .addHeader("Referer", BongaCams.BASE_URL)
-                .addHeader("X-Requested-With", "XMLHttpRequest")
-                .post(body)
-                .build();
-        try(Response response = site.getHttpClient().execute(request)) {
-            if(response.isSuccessful()) {
-                JSONObject json = new JSONObject(response.body().string());
-                if(json.optString("status").equals("success")) {
-                    JSONObject localData = json.getJSONObject("localData");
-                    String server = localData.getString("videoServerUrl");
-                    return "https:" + server + "/hls/stream_" + getName() + "/playlist.m3u8";
-                } else {
-                    throw new IOException("Request was not successful: " + json.toString(2));
-                }
-            } else {
-                throw new IOException(response.code() + " " + response.message());
-            }
+        JSONObject roomData = getRoomData();
+        if(roomData.optString("status").equals("success")) {
+            JSONObject localData = roomData.getJSONObject("localData");
+            String server = localData.getString("videoServerUrl");
+            return "https:" + server + "/hls/stream_" + getName() + "/playlist.m3u8";
+        } else {
+            throw new IOException("Request was not successful: " + roomData.toString(2));
         }
     }
 

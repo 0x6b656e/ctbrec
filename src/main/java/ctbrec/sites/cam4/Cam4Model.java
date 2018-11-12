@@ -59,7 +59,7 @@ public class Cam4Model extends AbstractModel {
 
     private void loadModelDetails() throws IOException, ModelDetailsEmptyException {
         String url = site.getBaseUrl() + "/getBroadcasting?usernames=" + getName();
-        LOG.debug("Loading model details {}", url);
+        LOG.trace("Loading model details {}", url);
         Request req = new Request.Builder().url(url).build();
         Response response = site.getHttpClient().execute(req);
         if(response.isSuccessful()) {

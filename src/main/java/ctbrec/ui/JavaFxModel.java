@@ -20,6 +20,7 @@ import javafx.beans.property.SimpleBooleanProperty;
  */
 public class JavaFxModel implements Model {
     private transient BooleanProperty onlineProperty = new SimpleBooleanProperty();
+    private transient BooleanProperty recordingProperty = new SimpleBooleanProperty();
     private transient BooleanProperty pausedProperty = new SimpleBooleanProperty();
     private Model delegate;
 
@@ -84,6 +85,10 @@ public class JavaFxModel implements Model {
 
     public BooleanProperty getOnlineProperty() {
         return onlineProperty;
+    }
+
+    public BooleanProperty getRecordingProperty() {
+        return recordingProperty;
     }
 
     public BooleanProperty getPausedProperty() {

@@ -85,6 +85,19 @@ public class RecorderServlet extends AbstractCtbrecServlet {
                     }
                     resp.getWriter().write("]}");
                     break;
+                case "listOnline":
+                    resp.getWriter().write("{\"status\": \"success\", \"msg\": \"List of online models\", \"models\": [");
+                    modelAdapter = new ModelJsonAdapter();
+                    models = recorder.getOnlineModels();
+                    for (Iterator<Model> iterator = models.iterator(); iterator.hasNext();) {
+                        Model model = iterator.next();
+                        resp.getWriter().write(modelAdapter.toJson(model));
+                        if(iterator.hasNext()) {
+                            resp.getWriter().write(',');
+                        }
+                    }
+                    resp.getWriter().write("]}");
+                    break;
                 case "recordings":
                     resp.getWriter().write("{\"status\": \"success\", \"msg\": \"List of recordings\", \"recordings\": [");
                     JsonAdapter<Recording> recAdapter = moshi.adapter(Recording.class);

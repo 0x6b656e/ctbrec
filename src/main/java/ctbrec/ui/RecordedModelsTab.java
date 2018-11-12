@@ -15,11 +15,13 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.Model;
+import ctbrec.Recording;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
 import javafx.application.Platform;
@@ -59,7 +61,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
     static BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     static ExecutorService threadPool = new ThreadPoolExecutor(2, 2, 10, TimeUnit.MINUTES, queue);
 
-    private ScheduledService<List<Model>> updateService;
+    private ScheduledService<List<JavaFxModel>> updateService;
     private Recorder recorder;
     private List<Site> sites;
 
@@ -103,12 +105,16 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         TableColumn<JavaFxModel, Boolean> online = new TableColumn<>("Online");
         online.setCellValueFactory((cdf) -> cdf.getValue().getOnlineProperty());
         online.setCellFactory(CheckBoxTableCell.forTableColumn(online));
-        online.setPrefWidth(60);
+        online.setPrefWidth(100);
+        TableColumn<JavaFxModel, Boolean> recording = new TableColumn<>("Recording");
+        recording.setCellValueFactory((cdf) -> cdf.getValue().getRecordingProperty());
+        recording.setCellFactory(CheckBoxTableCell.forTableColumn(recording));
+        recording.setPrefWidth(100);
         TableColumn<JavaFxModel, Boolean> paused = new TableColumn<>("Paused");
         paused.setCellValueFactory((cdf) -> cdf.getValue().getPausedProperty());
         paused.setCellFactory(CheckBoxTableCell.forTableColumn(paused));
-        paused.setPrefWidth(60);
-        table.getColumns().addAll(name, url, online, paused);
+        paused.setPrefWidth(100);
+        table.getColumns().addAll(name, url, online, recording, paused);
         table.setItems(observableModels);
         table.addEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> {
             popup = createContextMenu();
@@ -185,28 +191,24 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         updateService = createUpdateService();
         updateService.setPeriod(new Duration(TimeUnit.SECONDS.toMillis(2)));
         updateService.setOnSucceeded((event) -> {
-            List<Model> models = updateService.getValue();
+            List<JavaFxModel> models = updateService.getValue();
             if(models == null) {
                 return;
             }
-            queue.clear();
-            for (Model model : models) {
-                int index = observableModels.indexOf(model);
-                final JavaFxModel javaFxModel;
+
+            for (JavaFxModel updatedModel : models) {
+                int index = observableModels.indexOf(updatedModel);
                 if (index == -1) {
-                    javaFxModel = new JavaFxModel(model);
-                    observableModels.add(javaFxModel);
+                    observableModels.add(updatedModel);
                 } else {
                     // make sure to update the JavaFX online property, so that the table cell is updated
-                    javaFxModel = observableModels.get(index);
+                    JavaFxModel oldModel = observableModels.get(index);
+                    oldModel.setSuspended(updatedModel.isSuspended());
+                    oldModel.getOnlineProperty().set(updatedModel.getOnlineProperty().get());
+                    oldModel.getRecordingProperty().set(updatedModel.getRecordingProperty().get());
                 }
-                threadPool.submit(() -> {
-                    try {
-                        javaFxModel.getOnlineProperty().set(javaFxModel.isOnline());
-                        javaFxModel.setSuspended(model.isSuspended());
-                    } catch (IOException | ExecutionException | InterruptedException e) {}
-                });
             }
+
             for (Iterator<JavaFxModel> iterator = observableModels.iterator(); iterator.hasNext();) {
                 Model model = iterator.next();
                 if (!models.contains(model)) {
@@ -219,15 +221,37 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         });
     }
 
-    private ScheduledService<List<Model>> createUpdateService() {
-        ScheduledService<List<Model>> updateService = new ScheduledService<List<Model>>() {
+    private ScheduledService<List<JavaFxModel>> createUpdateService() {
+        ScheduledService<List<JavaFxModel>> updateService = new ScheduledService<List<JavaFxModel>>() {
             @Override
-            protected Task<List<Model>> createTask() {
-                return new Task<List<Model>>() {
+            protected Task<List<JavaFxModel>> createTask() {
+                return new Task<List<JavaFxModel>>() {
                     @Override
-                    public List<Model> call() {
+                    public List<JavaFxModel> call() throws InvalidKeyException, NoSuchAlgorithmException, IllegalStateException, IOException {
                         LOG.trace("Updating recorded models");
-                        return recorder.getModelsRecording();
+                        List<Recording> recordings = recorder.getRecordings();
+                        List<Model> onlineModels = recorder.getOnlineModels();
+                        return recorder.getModelsRecording()
+                                .stream()
+                                .map(m -> new JavaFxModel(m))
+                                .peek(fxm -> {
+                                    for (Recording recording : recordings) {
+                                        if(recording.getStatus() == Recording.STATUS.RECORDING &&
+                                                recording.getModelName().equals(fxm.getName()))
+                                        {
+                                            fxm.getRecordingProperty().set(true);
+                                            break;
+                                        }
+                                    }
+
+                                    for (Model onlineModel : onlineModels) {
+                                        if(Objects.equals(onlineModel, fxm)) {
+                                            fxm.getOnlineProperty().set(true);
+                                            break;
+                                        }
+                                    }
+                                })
+                                .collect(Collectors.toList());
                     }
                 };
             }

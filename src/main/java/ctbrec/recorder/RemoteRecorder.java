@@ -42,6 +42,7 @@ public class RemoteRecorder implements Recorder {
     private JsonAdapter<ModelRequest> modelRequestAdapter = moshi.adapter(ModelRequest.class);
 
     private List<Model> models = Collections.emptyList();
+    private List<Model> onlineModels = Collections.emptyList();
     private List<Site> sites;
 
     private Config config;
@@ -145,39 +146,76 @@ public class RemoteRecorder implements Recorder {
         public void run() {
             running = true;
             while(running) {
-                try {
-                    String msg = "{\"action\": \"list\"}";
-                    RequestBody body = RequestBody.create(JSON, msg);
-                    Request.Builder builder = new Request.Builder()
-                            .url("http://" + config.getSettings().httpServer + ":" + config.getSettings().httpPort + "/rec")
-                            .post(body);
-                    addHmacIfNeeded(msg, builder);
-                    Request request = builder.build();
-                    Response response = client.execute(request);
-                    String json = response.body().string();
-                    if(response.isSuccessful()) {
-                        ModelListResponse resp = modelListResponseAdapter.fromJson(json);
-                        if(resp.status.equals("success")) {
-                            models = resp.models;
-                            for (Model model : models) {
-                                for (Site site : sites) {
-                                    if(site.isSiteForModel(model)) {
-                                        model.setSite(site);
-                                    }
+                syncModels();
+                syncOnlineModels();
+                sleep();
+            }
+        }
+
+        private void syncModels() {
+            try {
+                String msg = "{\"action\": \"list\"}";
+                RequestBody body = RequestBody.create(JSON, msg);
+                Request.Builder builder = new Request.Builder()
+                        .url("http://" + config.getSettings().httpServer + ":" + config.getSettings().httpPort + "/rec")
+                        .post(body);
+                addHmacIfNeeded(msg, builder);
+                Request request = builder.build();
+                Response response = client.execute(request);
+                String json = response.body().string();
+                if(response.isSuccessful()) {
+                    ModelListResponse resp = modelListResponseAdapter.fromJson(json);
+                    if(resp.status.equals("success")) {
+                        models = resp.models;
+                        for (Model model : models) {
+                            for (Site site : sites) {
+                                if(site.isSiteForModel(model)) {
+                                    model.setSite(site);
                                 }
                             }
-                            lastSync = Instant.now();
-                        } else {
-                            LOG.error("Server returned error: {} - {}", resp.status, resp.msg);
+                        }
+                        lastSync = Instant.now();
+                    } else {
+                        LOG.error("Server returned error: {} - {}", resp.status, resp.msg);
+                    }
+                } else {
+                    LOG.error("Couldn't synchronize with server. HTTP status: {} - {}", response.code(), json);
+                }
+            } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e) {
+                LOG.error("Couldn't synchronize with server", e);
+            }
+        }
+
+        private void syncOnlineModels() {
+            try {
+                String msg = "{\"action\": \"listOnline\"}";
+                RequestBody body = RequestBody.create(JSON, msg);
+                Request.Builder builder = new Request.Builder()
+                        .url("http://" + config.getSettings().httpServer + ":" + config.getSettings().httpPort + "/rec")
+                        .post(body);
+                addHmacIfNeeded(msg, builder);
+                Request request = builder.build();
+                Response response = client.execute(request);
+                String json = response.body().string();
+                if(response.isSuccessful()) {
+                    ModelListResponse resp = modelListResponseAdapter.fromJson(json);
+                    if(resp.status.equals("success")) {
+                        onlineModels = resp.models;
+                        for (Model model : models) {
+                            for (Site site : sites) {
+                                if(site.isSiteForModel(model)) {
+                                    model.setSite(site);
+                                }
+                            }
                         }
                     } else {
-                        LOG.error("Couldn't synchronize with server. HTTP status: {} - {}", response.code(), json);
+                        LOG.error("Server returned error: {} - {}", resp.status, resp.msg);
                     }
-                } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e) {
-                    LOG.error("Couldn't synchronize with server", e);
+                } else {
+                    LOG.error("Couldn't synchronize with server. HTTP status: {} - {}", response.code(), json);
                 }
-
-                sleep();
+            } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e) {
+                LOG.error("Couldn't synchronize with server", e);
             }
         }
 
@@ -219,7 +257,6 @@ public class RemoteRecorder implements Recorder {
         Response response = client.execute(request);
         String json = response.body().string();
         if(response.isSuccessful()) {
-            LOG.debug(json);
             RecordingListResponse resp = recordingListResponseAdapter.fromJson(json);
             if(resp.status.equals("success")) {
                 List<Recording> recordings = resp.recordings;
@@ -310,5 +347,10 @@ public class RemoteRecorder implements Recorder {
             Model m = models.get(index);
             m.setSuspended(false);
         }
+    }
+
+    @Override
+    public List<Model> getOnlineModels() {
+        return onlineModels;
     }
 }

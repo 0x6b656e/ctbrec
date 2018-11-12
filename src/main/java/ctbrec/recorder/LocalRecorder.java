@@ -19,7 +19,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -237,6 +239,20 @@ public class LocalRecorder implements Recorder {
         } finally {
             lock.unlock();
         }
+    }
+
+    @Override
+    public List<Model> getOnlineModels() {
+        return getModelsRecording()
+                .stream()
+                .filter(m -> {
+                    try {
+                        return m.isOnline();
+                    } catch (IOException | ExecutionException | InterruptedException e) {
+                        return false;
+                    }
+                })
+                .collect(Collectors.toList());
     }
 
     @Override

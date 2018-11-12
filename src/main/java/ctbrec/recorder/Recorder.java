@@ -33,4 +33,10 @@ public interface Recorder {
     public void resumeRecording(Model model) throws IOException, InvalidKeyException, NoSuchAlgorithmException, IllegalStateException;
 
     public boolean isSuspended(Model model);
+
+    /**
+     * Returns only the models from getModelsRecording(), which are online
+     * @return
+     */
+    public List<Model> getOnlineModels();
 }

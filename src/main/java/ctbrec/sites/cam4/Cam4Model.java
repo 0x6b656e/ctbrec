@@ -48,20 +48,24 @@ public class Cam4Model extends AbstractModel {
     @Override
     public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException {
         if(ignoreCache || onlineState == null) {
-            loadModelDetails();
+            try {
+                loadModelDetails();
+            } catch (ModelDetailsEmptyException e) {
+                return false;
+            }
         }
         return Objects.equals("NORMAL", onlineState);
     }
 
-    private void loadModelDetails() throws IOException {
-        String url = "https://www.cam4.de.com/getBroadcasting?usernames=" + getName();
+    private void loadModelDetails() throws IOException, ModelDetailsEmptyException {
+        String url = site.getBaseUrl() + "/getBroadcasting?usernames=" + getName();
         LOG.debug("Loading model details {}", url);
         Request req = new Request.Builder().url(url).build();
         Response response = site.getHttpClient().execute(req);
         if(response.isSuccessful()) {
             JSONArray json = new JSONArray(response.body().string());
             if(json.length() == 0) {
-                throw new IOException("Couldn't fetch model details");
+                throw new ModelDetailsEmptyException("Model details are empty");
             }
             JSONObject details = json.getJSONObject(0);
             onlineState = details.getString("showType");
@@ -85,7 +89,11 @@ public class Cam4Model extends AbstractModel {
 
     private String getPlaylistUrl() throws IOException {
         if(playlistUrl == null) {
-            loadModelDetails();
+            try {
+                loadModelDetails();
+            } catch (ModelDetailsEmptyException e) {
+                throw new IOException(e);
+            }
         }
         return playlistUrl;
     }
@@ -144,7 +152,7 @@ public class Cam4Model extends AbstractModel {
             } else {
                 try {
                     loadModelDetails();
-                } catch (IOException e) {
+                } catch (Exception e) {
                     throw new ExecutionException(e);
                 }
             }
@@ -227,5 +235,11 @@ public class Cam4Model extends AbstractModel {
 
     public void setOnlineState(String onlineState) {
         this.onlineState = onlineState;
+    }
+
+    public class ModelDetailsEmptyException extends Exception {
+        public ModelDetailsEmptyException(String msg) {
+            super(msg);
+        }
     }
 }

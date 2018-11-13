@@ -32,12 +32,20 @@ import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
 import ctbrec.sites.mfc.MyFreeCamsClient;
 import ctbrec.sites.mfc.MyFreeCamsModel;
+import javafx.animation.FadeTransition;
+import javafx.animation.Interpolator;
+import javafx.animation.ParallelTransition;
+import javafx.animation.ScaleTransition;
+import javafx.animation.TranslateTransition;
+import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Worker.State;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
@@ -46,8 +54,10 @@ import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.ContextMenuEvent;
@@ -56,6 +66,8 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
+import javafx.scene.transform.Transform;
 import javafx.util.Duration;
 
 public class ThumbOverviewTab extends Tab implements TabSelectionListener {
@@ -82,6 +94,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     private volatile boolean updatesSuspended = false;
     ContextMenu popup;
     Site site;
+    StackPane root = new StackPane();
 
     private ComboBox<Integer> thumbWidth;
 
@@ -170,11 +183,13 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         bottomPane.setLeft(pagination);
         bottomPane.setRight(thumbSizeSelector);
 
-        BorderPane root = new BorderPane();
-        root.setPadding(new Insets(5));
-        root.setTop(search);
-        root.setCenter(scrollPane);
-        root.setBottom(bottomPane);
+        BorderPane borderPane = new BorderPane();
+        borderPane.setPadding(new Insets(5));
+        borderPane.setTop(search);
+        borderPane.setCenter(scrollPane);
+        borderPane.setBottom(bottomPane);
+
+        root.getChildren().add(borderPane);
         setContent(root);
     }
 
@@ -427,11 +442,64 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
 
     protected void follow(List<ThumbCell> selection, boolean follow) {
         for (ThumbCell thumbCell : selection) {
-            thumbCell.follow(follow);
+            thumbCell.follow(follow).thenAccept((success) -> {
+                if(follow && success) {
+                    showAddToFollowedAnimation(thumbCell);
+                }
+            });
         }
         if(!follow) {
             selectedThumbCells.clear();
         }
+    }
+
+    private void showAddToFollowedAnimation(ThumbCell thumbCell) {
+        Platform.runLater(() -> {
+            Transform tx = thumbCell.getLocalToParentTransform();
+            ImageView iv = new ImageView();
+            iv.setFitWidth(thumbCell.getWidth());
+            root.getChildren().add(iv);
+            StackPane.setAlignment(iv, Pos.TOP_LEFT);
+            iv.setImage(thumbCell.getImage());
+            double scrollPaneTopLeft = scrollPane.getVvalue() * (grid.getHeight() - scrollPane.getViewportBounds().getHeight());
+            double offsetInViewPort = tx.getTy() - scrollPaneTopLeft;
+            int duration = 500;
+            TranslateTransition translate = new TranslateTransition(Duration.millis(duration), iv);
+            translate.setFromX(0);
+            translate.setFromY(0);
+            translate.setByX(-tx.getTx() - 200);
+            translate.setByY(-offsetInViewPort + getFollowedTabYPosition());
+            StackPane.setMargin(iv, new Insets(offsetInViewPort, 0, 0, tx.getTx()));
+            translate.setInterpolator(Interpolator.EASE_BOTH);
+            FadeTransition fade = new FadeTransition(Duration.millis(duration), iv);
+            fade.setFromValue(1);
+            fade.setToValue(.3);
+            ScaleTransition scale = new ScaleTransition(Duration.millis(duration), iv);
+            scale.setToX(0.1);
+            scale.setToY(0.1);
+            ParallelTransition pt = new ParallelTransition(translate, scale);
+            pt.play();
+            pt.setOnFinished((evt) -> {
+                root.getChildren().remove(iv);
+            });
+        });
+    }
+
+    private double getFollowedTabYPosition() {
+        Tab followedTab = site.getTabProvider().getFollowedTab();
+        TabPane tabPane = getTabPane();
+        int idx = tabPane.getTabs().indexOf(followedTab);
+        for (Node node : tabPane.getChildrenUnmodifiable()) {
+            Parent p = (Parent) node;
+            for (Node child : p.getChildrenUnmodifiable()) {
+                if(child.getStyleClass().contains("headers-region")) {
+                    Parent tabContainer = (Parent) child;
+                    Node tab = tabContainer.getChildrenUnmodifiable().get(tabContainer.getChildrenUnmodifiable().size() - idx - 1);
+                    return tab.getLayoutX() - 85;
+                }
+            }
+        }
+        return 0;
     }
 
     private void startStopAction(List<ThumbCell> selection, boolean start) {

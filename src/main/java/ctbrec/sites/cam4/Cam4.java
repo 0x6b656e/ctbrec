@@ -20,6 +20,7 @@ public class Cam4 extends AbstractSite {
 
     private HttpClient httpClient;
     private Recorder recorder;
+    private Cam4TabProvider tabProvider;
 
     @Override
     public String getName() {
@@ -43,7 +44,10 @@ public class Cam4 extends AbstractSite {
 
     @Override
     public TabProvider getTabProvider() {
-        return new Cam4TabProvider(this, recorder);
+        if(tabProvider == null) {
+            tabProvider = new Cam4TabProvider(this, recorder);
+        }
+        return tabProvider;
     }
 
     @Override

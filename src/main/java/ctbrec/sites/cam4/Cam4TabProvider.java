@@ -13,6 +13,7 @@ public class Cam4TabProvider extends TabProvider {
 
     private Cam4 cam4;
     private Recorder recorder;
+    private Cam4FollowedTab followed;
 
     public Cam4TabProvider(Cam4 cam4, Recorder recorder) {
         this.cam4 = cam4;
@@ -28,11 +29,16 @@ public class Cam4TabProvider extends TabProvider {
         tabs.add(createTab("Couples",   cam4.getBaseUrl() + "/directoryResults?online=true&broadcastType=male_group&broadcastType=female_group&broadcastType=male_female_group&orderBy=MOST_VIEWERS"));
         tabs.add(createTab("HD",        cam4.getBaseUrl() + "/directoryResults?online=true&hd=true&orderBy=MOST_VIEWERS"));
 
-        Cam4FollowedTab followed = new Cam4FollowedTab(cam4);
+        followed = new Cam4FollowedTab(cam4);
         followed.setRecorder(recorder);
         tabs.add(followed);
 
         return tabs;
+    }
+
+    @Override
+    public Tab getFollowedTab() {
+        return followed;
     }
 
     private Tab createTab(String name, String url) {

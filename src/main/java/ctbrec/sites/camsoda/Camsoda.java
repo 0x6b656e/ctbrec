@@ -19,6 +19,7 @@ public class Camsoda extends AbstractSite {
     public static final String BASE_URI = "https://www.camsoda.com";
     private Recorder recorder;
     private HttpClient httpClient;
+    private CamsodaTabProvider tabProvider;
 
     @Override
     public String getName() {
@@ -47,7 +48,10 @@ public class Camsoda extends AbstractSite {
 
     @Override
     public TabProvider getTabProvider() {
-        return new CamsodaTabProvider(this, recorder);
+        if(tabProvider == null) {
+            tabProvider = new CamsodaTabProvider(this, recorder);
+        }
+        return tabProvider;
     }
 
     @Override

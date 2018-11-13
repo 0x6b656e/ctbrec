@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
@@ -282,6 +283,10 @@ public class ThumbCell extends StackPane {
         }
     }
 
+    Image getImage() {
+        return iv.getImage();
+    }
+
     private Transition changeColor(Shape shape, Color from, Color to) {
         FillTransition transition = new FillTransition(ANIMATION_DURATION, from, to);
         transition.setShape(shape);
@@ -417,13 +422,15 @@ public class ThumbCell extends StackPane {
         }).start();
     }
 
-    void follow(boolean follow) {
+    CompletableFuture<Boolean> follow(boolean follow) {
         setCursor(Cursor.WAIT);
-        new Thread(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             try {
                 if(follow) {
                     boolean followed = model.follow();
-                    if(!followed) {
+                    if(followed) {
+                        return true;
+                    } else {
                         Platform.runLater(() -> {
                             Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
                             alert.setTitle("Error");
@@ -431,11 +438,13 @@ public class ThumbCell extends StackPane {
                             alert.setContentText("");
                             alert.showAndWait();
                         });
+                        return false;
                     }
                 } else {
                     boolean unfollowed = model.unfollow();
                     if(unfollowed) {
                         Platform.runLater(() -> thumbCellList.remove(ThumbCell.this));
+                        return true;
                     } else {
                         Platform.runLater(() -> {
                             Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
@@ -444,6 +453,7 @@ public class ThumbCell extends StackPane {
                             alert.setContentText("");
                             alert.showAndWait();
                         });
+                        return false;
                     }
                 }
             } catch (Exception e1) {
@@ -455,10 +465,11 @@ public class ThumbCell extends StackPane {
                     alert.setContentText("I/O error while following/unfollowing model " + model.getName() + ": " + e1.getLocalizedMessage());
                     alert.showAndWait();
                 });
+                return false;
             } finally {
                 setCursor(Cursor.DEFAULT);
             }
-        }).start();
+        });
     }
 
     public Model getModel() {

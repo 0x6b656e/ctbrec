@@ -21,6 +21,7 @@ public class MyFreeCams extends AbstractSite {
     private Recorder recorder;
     private MyFreeCamsClient client;
     private MyFreeCamsHttpClient httpClient;
+    private MyFreeCamsTabProvider tabProvider;
 
     @Override
     public void init() throws IOException {
@@ -56,7 +57,10 @@ public class MyFreeCams extends AbstractSite {
 
     @Override
     public TabProvider getTabProvider() {
-        return new MyFreeCamsTabProvider(client, recorder, this);
+        if(tabProvider == null) {
+            tabProvider = new MyFreeCamsTabProvider(client, recorder, this);
+        }
+        return tabProvider;
     }
 
     @Override

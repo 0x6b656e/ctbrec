@@ -45,6 +45,7 @@ public class Chaturbate extends AbstractSite {
     public static final String REGISTRATION_LINK = BASE_URI + "/in/?track=default&tour=g4pe&campaign=55vTi";
     private Recorder recorder;
     private ChaturbateHttpClient httpClient;
+    private ChaturbateTabProvider tabProvider;
 
     @Override
     public void init() throws IOException {
@@ -68,7 +69,10 @@ public class Chaturbate extends AbstractSite {
 
     @Override
     public TabProvider getTabProvider() {
-        return new ChaturbateTabProvider(this, recorder);
+        if(tabProvider == null) {
+            tabProvider = new ChaturbateTabProvider(this, recorder);
+        }
+        return tabProvider;
     }
 
     @Override

@@ -15,6 +15,7 @@ import javafx.util.Duration;
 public class MyFreeCamsTabProvider extends TabProvider {
     private Recorder recorder;
     private MyFreeCams myFreeCams;
+    private MyFreeCamsFriendsTab friends;
 
     public MyFreeCamsTabProvider(MyFreeCamsClient client, Recorder recorder, MyFreeCams myFreeCams) {
         this.recorder = recorder;
@@ -31,7 +32,7 @@ public class MyFreeCamsTabProvider extends TabProvider {
         updateService.setPeriod(new Duration(TimeUnit.SECONDS.toMillis(10)));
         tabs.add(online);
 
-        ThumbOverviewTab friends = new MyFreeCamsFriendsTab(myFreeCams);
+        friends = new MyFreeCamsFriendsTab(myFreeCams);
         friends.setRecorder(recorder);
         tabs.add(friends);
 
@@ -49,5 +50,10 @@ public class MyFreeCamsTabProvider extends TabProvider {
 
 
         return tabs;
+    }
+
+    @Override
+    public Tab getFollowedTab() {
+        return friends;
     }
 }

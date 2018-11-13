@@ -14,6 +14,7 @@ public class BongaCamsTabProvider extends TabProvider {
 
     private BongaCams bongaCams;
     private Recorder recorder;
+    private Tab friendsTab;
 
     public BongaCamsTabProvider(Recorder recorder, BongaCams bongaCams) {
         this.recorder = recorder;
@@ -52,9 +53,15 @@ public class BongaCamsTabProvider extends TabProvider {
         // friends
         url = BongaCams.BASE_URL + "/tools/listing_v3.php?livetab=friends&online_only=true&offset=";
         updateService = new BongaCamsUpdateService(bongaCams, url);
-        tabs.add(createTab("Friends", updateService));
+        friendsTab = createTab("Friends", updateService);
+        tabs.add(friendsTab);
 
         return tabs;
+    }
+
+    @Override
+    public Tab getFollowedTab() {
+        return friendsTab;
     }
 
     private Tab createTab(String title, PaginatedScheduledService updateService) {

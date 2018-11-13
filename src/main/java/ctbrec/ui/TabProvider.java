@@ -8,4 +8,5 @@ import javafx.scene.control.Tab;
 public abstract class TabProvider {
 
     public abstract List<Tab> getTabs(Scene scene);
+    public abstract Tab getFollowedTab();
 }

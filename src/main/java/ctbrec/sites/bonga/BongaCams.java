@@ -21,8 +21,8 @@ public class BongaCams extends AbstractSite {
     public static final String BASE_URL = "https://bongacams.com";
 
     private BongaCamsHttpClient httpClient;
-
     private Recorder recorder;
+    private BongaCamsTabProvider tabProvider;
 
     @Override
     public String getName() {
@@ -46,7 +46,10 @@ public class BongaCams extends AbstractSite {
 
     @Override
     public TabProvider getTabProvider() {
-        return new BongaCamsTabProvider(recorder, this);
+        if(tabProvider == null) {
+            tabProvider = new BongaCamsTabProvider(recorder, this);
+        }
+        return tabProvider;
     }
 
     @Override

@@ -24,8 +24,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sun.javafx.collections.ObservableListWrapper;
-
 import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.recorder.Recorder;
@@ -38,6 +36,7 @@ import javafx.animation.ParallelTransition;
 import javafx.animation.ScaleTransition;
 import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Worker.State;
 import javafx.concurrent.WorkerStateEvent;
@@ -168,8 +167,8 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         thumbWidths.add(220);
         thumbWidths.add(270);
         thumbWidths.add(360);
-        thumbWidth = new ComboBox<>(new ObservableListWrapper<>(thumbWidths));
-        thumbWidth.getSelectionModel().select(new Integer(Config.getInstance().getSettings().thumbWidth));
+        thumbWidth = new ComboBox<>(FXCollections.observableList(thumbWidths));
+        thumbWidth.getSelectionModel().select(Integer.valueOf(Config.getInstance().getSettings().thumbWidth));
         thumbWidth.setOnAction((e) -> {
             int width = thumbWidth.getSelectionModel().getSelectedItem();
             Config.getInstance().getSettings().thumbWidth = width;
@@ -195,7 +194,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
 
     private void updateThumbSize() {
         int width = Config.getInstance().getSettings().thumbWidth;
-        thumbWidth.getSelectionModel().select(new Integer(width));;
+        thumbWidth.getSelectionModel().select(Integer.valueOf(width));
         for (Node node : grid.getChildren()) {
             if(node instanceof ThumbCell) {
                 ThumbCell cell = (ThumbCell) node;

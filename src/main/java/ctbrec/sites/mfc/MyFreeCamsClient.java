@@ -158,6 +158,7 @@ public class MyFreeCamsClient {
                 super.onFailure(webSocket, t, response);
                 int code = response.code();
                 String message = response.message();
+                response.close();
                 MyFreeCamsClient.this.ws = null;
                 LOG.error("MFC websocket failure: {} {}", code, message, t);
             }

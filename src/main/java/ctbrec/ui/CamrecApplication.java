@@ -61,6 +61,7 @@ public class CamrecApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+        logEnvironment();
         sites.add(new BongaCams());
         sites.add(new Cam4());
         sites.add(new Camsoda());
@@ -83,6 +84,12 @@ public class CamrecApplication extends Application {
         }
         createGui(primaryStage);
         checkForUpdates();
+    }
+
+    private void logEnvironment() {
+        LOG.debug("OS:\t{} {}", System.getProperty("os.name"), System.getProperty("os.version"));
+        LOG.debug("Java:\t{} {} {}", System.getProperty("java.vendor"), System.getProperty("java.vm.name"), System.getProperty("java.version"));
+        LOG.debug("JavaFX:\t{} ({})", System.getProperty("javafx.version"), System.getProperty("javafx.runtime.version"));
     }
 
     private void createGui(Stage primaryStage) throws IOException {

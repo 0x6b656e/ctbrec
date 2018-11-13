@@ -9,8 +9,6 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sun.javafx.collections.ObservableListWrapper;
-
 import ctbrec.Config;
 import ctbrec.Hmac;
 import ctbrec.Settings;
@@ -18,6 +16,7 @@ import ctbrec.sites.ConfigUI;
 import ctbrec.sites.Site;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
@@ -326,7 +325,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         resolutionOptions.add(600);
         resolutionOptions.add(480);
         resolutionOptions.add(0);
-        maxResolution = new ComboBox<>(new ObservableListWrapper<>(resolutionOptions));
+        maxResolution = new ComboBox<>(FXCollections.observableList(resolutionOptions));
         setMaxResolutionValue();
         maxResolution.setOnAction((e) -> Config.getInstance().getSettings().maximumResolution = maxResolution.getSelectionModel().getSelectedItem());
         layout.add(maxResolution, 1, row++);
@@ -342,7 +341,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         options.add(new SplitAfterOption("20 min", 20 * 60));
         options.add(new SplitAfterOption("30 min", 30 * 60));
         options.add(new SplitAfterOption("60 min", 60 * 60));
-        splitAfter = new ComboBox<>(new ObservableListWrapper<>(options));
+        splitAfter = new ComboBox<>(FXCollections.observableList(options));
         layout.add(splitAfter, 1, row++);
         setSplitAfterValue();
         splitAfter.setOnAction((e) -> Config.getInstance().getSettings().splitRecordings = splitAfter.getSelectionModel().getSelectedItem().getValue());

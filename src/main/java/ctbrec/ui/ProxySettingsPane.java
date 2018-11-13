@@ -4,10 +4,9 @@ import static ctbrec.Settings.ProxyType.*;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.sun.javafx.collections.ObservableListWrapper;
-
 import ctbrec.Config;
 import ctbrec.Settings.ProxyType;
+import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.control.ComboBox;
@@ -45,7 +44,7 @@ public class ProxySettingsPane extends TitledPane implements EventHandler<Action
         proxyTypes.add(HTTP);
         proxyTypes.add(SOCKS4);
         proxyTypes.add(SOCKS5);
-        proxyType = new ComboBox<>(new ObservableListWrapper<>(proxyTypes));
+        proxyType = new ComboBox<>(FXCollections.observableList(proxyTypes));
         proxyType.setOnAction(this);
         layout.add(proxyType, 1, 0);
 

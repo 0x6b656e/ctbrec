@@ -11,9 +11,10 @@
 			<outputDirectory>ctbrec</outputDirectory>
 		</file>
 		<file>
-			<source>${project.basedir}/server.bat</source>
+			<source>${project.basedir}/src/assembly/server-jre.bat</source>
 			<outputDirectory>ctbrec</outputDirectory>
 			<filtered>true</filtered>
+			<destName>server.bat</destName>
 		</file>
         <file>
 			<source>${project.basedir}/src/main/resources/pp.bat</source>
@@ -30,7 +31,7 @@
 	</files>
 	<fileSets>
 		<fileSet>
-			<directory>jre/jre1.8.0_192_win64</directory>
+			<directory>jre/jdk-11.0.1_win64</directory>
 			<includes>
 				<include>**/*</include>
 			</includes>

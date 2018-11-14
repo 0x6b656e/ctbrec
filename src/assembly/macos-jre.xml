@@ -7,14 +7,16 @@
 	<includeBaseDirectory>false</includeBaseDirectory>
 	<files>
 		<file>
-			<source>${project.basedir}/ctbrec-macos.sh</source>
+			<source>${project.basedir}/src/assembly/ctbrec-macos-jre.sh</source>
 			<outputDirectory>ctbrec</outputDirectory>
 			<filtered>true</filtered>
+			<destName>ctbrec.sh</destName>
 		</file>
 		<file>
-			<source>${project.basedir}/server-macos.sh</source>
+			<source>${project.basedir}/src/assembly/server-macos-jre.sh</source>
 			<outputDirectory>ctbrec</outputDirectory>
 			<filtered>true</filtered>
+			<destName>server.sh</destName>
 		</file>
 		<file>
 			<source>${project.basedir}/src/main/resources/pp.sh</source>
@@ -27,7 +29,7 @@
 	</files>
 	<fileSets>
 		<fileSet>
-			<directory>jre/jre1.8.0_192_macos</directory>
+			<directory>jre/jdk-11.0.1_macos</directory>
 			<includes>
 				<include>**/*</include>
 			</includes>

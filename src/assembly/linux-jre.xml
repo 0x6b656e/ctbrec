@@ -1,26 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <assembly>
-	<id>win32-jre</id>
+	<id>linux-jre</id>
 	<formats>
 		<format>zip</format>
 	</formats>
 	<includeBaseDirectory>false</includeBaseDirectory>
 	<files>
 		<file>
-			<source>${project.build.directory}/ctbrec.exe</source>
-			<outputDirectory>ctbrec</outputDirectory>
-		</file>
-		<file>
-			<source>${project.basedir}/server.bat</source>
+			<source>${project.basedir}/src/assembly/ctbrec-linux-jre.sh</source>
 			<outputDirectory>ctbrec</outputDirectory>
 			<filtered>true</filtered>
+			<destName>ctbrec.sh</destName>
 		</file>
-        <file>
-			<source>${project.basedir}/src/main/resources/pp.bat</source>
+		<file>
+			<source>${project.basedir}/src/assembly/server-linux-jre.sh</source>
 			<outputDirectory>ctbrec</outputDirectory>
+			<filtered>true</filtered>
+			<destName>server.sh</destName>
 		</file>
-        <file>
-			<source>${project.basedir}/src/main/resources/pp.ps1</source>
+		<file>
+			<source>${project.basedir}/src/main/resources/pp.sh</source>
 			<outputDirectory>ctbrec</outputDirectory>
 		</file>
 		<file>
@@ -30,7 +29,7 @@
 	</files>
 	<fileSets>
 		<fileSet>
-			<directory>jre/jre1.8.0_192_win32</directory>
+			<directory>jre/jdk-11.0.1_linux</directory>
 			<includes>
 				<include>**/*</include>
 			</includes>

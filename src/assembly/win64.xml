@@ -11,7 +11,7 @@
 			<outputDirectory>ctbrec</outputDirectory>
 		</file>
 		<file>
-			<source>${project.basedir}/server.bat</source>
+			<source>${project.basedir}/src/assembly/server.bat</source>
 			<outputDirectory>ctbrec</outputDirectory>
 			<filtered>true</filtered>
 		</file>

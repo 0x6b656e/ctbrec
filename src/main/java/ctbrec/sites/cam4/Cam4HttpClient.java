@@ -96,16 +96,21 @@ public class Cam4HttpClient extends HttpClient {
         HttpUrl redirectedUrl = HttpUrl.parse(loginDialog.getUrl());
         List<Cookie> cookies = new ArrayList<>();
         for (HttpCookie webViewCookie : loginDialog.getCookies()) {
-            Cookie cookie = Cookie.parse(redirectedUrl, webViewCookie.toString());
-            cookies.add(cookie);
+            if(webViewCookie.getDomain().contains("cam4")) {
+                Cookie cookie = Cookie.parse(redirectedUrl, webViewCookie.toString());
+                LOG.debug("{} {} {}", webViewCookie.getDomain(), webViewCookie.getName(), webViewCookie.getValue());
+                cookies.add(cookie);
+            }
         }
         cookieJar.saveFromResponse(redirectedUrl, cookies);
 
         HttpUrl origUrl = HttpUrl.parse(Cam4LoginDialog.URL);
         cookies = new ArrayList<>();
         for (HttpCookie webViewCookie : loginDialog.getCookies()) {
-            Cookie cookie = Cookie.parse(origUrl, webViewCookie.toString());
-            cookies.add(cookie);
+            if(webViewCookie.getDomain().contains("cam4")) {
+                Cookie cookie = Cookie.parse(origUrl, webViewCookie.toString());
+                cookies.add(cookie);
+            }
         }
         cookieJar.saveFromResponse(origUrl, cookies);
     }

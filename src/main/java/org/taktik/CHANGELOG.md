@@ -7,3 +7,4 @@ Changes made to mpegts-streamer for ctbrec
 * Add BlockingMultiMTSSource, which can be used to add sources, after the streaming has been started
 * Don't close the stream, if a packet can't be read in one go InputStreamMTSSource. Instead read from
   the stream until the packet is complete
+* Remove finalize method. It is deprecated in Java 9. 

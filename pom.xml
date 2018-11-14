@@ -9,32 +9,32 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<maven.compiler.source>1.8</maven.compiler.source>
-		<maven.compiler.target>1.8</maven.compiler.target>
+		<maven.compiler.source>10</maven.compiler.source>
+		<maven.compiler.target>10</maven.compiler.target>
 		<name.final>${project.artifactId}-${project.version}-final</name.final>
 	</properties>
 
 	<build>
 		<resources>
-	        <resource>
-	            <directory>src/main/resources</directory>
-	            <filtering>false</filtering>
-	        </resource>
-	        <resource>
-	            <directory>src/main/java</directory>
-	            <filtering>false</filtering>
-	            <includes>
-	            	<include>**/*.css</include>
-	            </includes>
-	        </resource>
-	        <resource>
-	            <directory>src/main/resources</directory>
-	            <filtering>true</filtering>
-	            <includes>
-	                <include>version</include>
-	            </includes>
-	        </resource>
-	    </resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>false</filtering>
+			</resource>
+			<resource>
+				<directory>src/main/java</directory>
+				<filtering>false</filtering>
+				<includes>
+					<include>**/*.css</include>
+				</includes>
+			</resource>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+				<includes>
+					<include>version</include>
+				</includes>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
@@ -52,72 +52,6 @@
 							<descriptorRefs>
 								<descriptorRef>jar-with-dependencies</descriptorRef>
 							</descriptorRefs>
-						</configuration>
-					</execution>
-					<execution>
-						<id>zip</id>
-						<phase>verify</phase>
-						<goals>
-							<goal>single</goal>
-						</goals>
-						<configuration>
-							<descriptors>
-								<descriptor>src/assembly/win64.xml</descriptor>
-								<descriptor>src/assembly/win64-jre.xml</descriptor>
-                                <descriptor>src/assembly/win32-jre.xml</descriptor>
-								<descriptor>src/assembly/linux.xml</descriptor>
-								<descriptor>src/assembly/macos-jre.xml</descriptor>
-							</descriptors>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>com.akathist.maven.plugins.launch4j</groupId>
-				<artifactId>launch4j-maven-plugin</artifactId>
-				<version>1.7.22</version>
-				<executions>
-					<execution>
-						<id>l4j-win</id>
-						<phase>package</phase>
-						<goals>
-							<goal>launch4j</goal>
-						</goals>
-						<configuration>
-							<headerType>gui</headerType>
-							<outfile>target/ctbrec.exe</outfile>
-							<jar>${name.final}.jar</jar>
-							<dontWrapJar>true</dontWrapJar>
-							<icon>src/main/resources/icon.ico</icon>
-							<errTitle>ctbrec</errTitle>
-							<classPath>
-								<mainClass>ctbrec.ui.Launcher</mainClass>
-								<addDependencies>false</addDependencies>
-								<preCp>anything</preCp>
-							</classPath>
-							<jre>
-								<path>jre</path>
-								<bundledJre64Bit>true</bundledJre64Bit>
-								<minVersion>1.8.0</minVersion>
-								<maxHeapSize>512</maxHeapSize>
-							</jre>
-							<versionInfo>
-								<fileVersion>${project.version}.0</fileVersion>
-								<txtFileVersion>${project.version}</txtFileVersion>
-								<fileDescription>Recorder for Charturbate streams</fileDescription>
-								<copyright>2018 0xboobface</copyright>
-								<productVersion>${project.version}.0</productVersion>
-								<txtProductVersion>${project.version}</txtProductVersion>
-								<productName>CTB Recorder</productName>
-								<internalName>ctbrec</internalName>
-								<originalFilename>ctbrec.exe</originalFilename>
-							</versionInfo>
-							<splash>
-								<file>src/main/resources/splash.bmp</file>
-								<waitForWindow>true</waitForWindow>
-								<timeout>60</timeout>
-								<timeoutErr>true</timeoutErr>
-							</splash>
 						</configuration>
 					</execution>
 				</executions>
@@ -178,16 +112,173 @@
 			<version>0.2.3</version>
 		</dependency>
 		<dependency>
-			<groupId>junit</groupId>
-    		<artifactId>junit</artifactId>
-			<version>4.12</version>
-			<scope>test</scope>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-controls</artifactId>
+			<version>11</version>
 		</dependency>
-
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-web</artifactId>
+			<version>11</version>
+		</dependency>
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 			<version>17.0</version>
 		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.12</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
+
+	<profiles>
+		<profile>
+			<id>win</id>
+			<activation>
+				<property>
+					<name>javafx.platform</name>
+					<value>win</value>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>com.akathist.maven.plugins.launch4j</groupId>
+						<artifactId>launch4j-maven-plugin</artifactId>
+						<version>1.7.22</version>
+						<executions>
+							<execution>
+								<id>l4j-win</id>
+								<phase>package</phase>
+								<goals>
+									<goal>launch4j</goal>
+								</goals>
+								<configuration>
+									<headerType>gui</headerType>
+									<outfile>target/ctbrec.exe</outfile>
+									<jar>${name.final}.jar</jar>
+									<dontWrapJar>true</dontWrapJar>
+									<icon>src/main/resources/icon.ico</icon>
+									<errTitle>ctbrec</errTitle>
+									<classPath>
+										<mainClass>ctbrec.ui.Launcher</mainClass>
+										<addDependencies>false</addDependencies>
+										<preCp>anything</preCp>
+									</classPath>
+									<jre>
+										<path>jre</path>
+										<bundledJre64Bit>true</bundledJre64Bit>
+										<minVersion>1.8.0</minVersion>
+										<maxHeapSize>512</maxHeapSize>
+									</jre>
+									<versionInfo>
+										<fileVersion>${project.version}.0</fileVersion>
+										<txtFileVersion>${project.version}</txtFileVersion>
+										<fileDescription>Recorder for Charturbate streams</fileDescription>
+										<copyright>2018 0xboobface</copyright>
+										<productVersion>${project.version}.0</productVersion>
+										<txtProductVersion>${project.version}</txtProductVersion>
+										<productName>CTB Recorder</productName>
+										<internalName>ctbrec</internalName>
+										<originalFilename>ctbrec.exe</originalFilename>
+									</versionInfo>
+									<splash>
+										<file>src/main/resources/splash.bmp</file>
+										<waitForWindow>true</waitForWindow>
+										<timeout>60</timeout>
+										<timeoutErr>true</timeoutErr>
+									</splash>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<artifactId>maven-assembly-plugin</artifactId>
+						<version>3.1.0</version>
+						<executions>
+							<execution>
+								<id>zip</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>single</goal>
+								</goals>
+								<configuration>
+									<descriptors>
+										<descriptor>src/assembly/win64.xml</descriptor>
+										<descriptor>src/assembly/win64-jre.xml</descriptor>
+										<descriptor>src/assembly/win32-jre.xml</descriptor>
+									</descriptors>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>linux</id>
+			<activation>
+				<property>
+					<name>javafx.platform</name>
+					<value>linux</value>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<artifactId>maven-assembly-plugin</artifactId>
+						<version>3.1.0</version>
+						<executions>
+							<execution>
+								<id>zip</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>single</goal>
+								</goals>
+								<configuration>
+									<descriptors>
+										<descriptor>src/assembly/linux.xml</descriptor>
+									</descriptors>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>macos</id>
+			<activation>
+				<property>
+					<name>javafx.platform</name>
+					<value>mac</value>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<artifactId>maven-assembly-plugin</artifactId>
+						<version>3.1.0</version>
+						<executions>
+							<execution>
+								<id>zip</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>single</goal>
+								</goals>
+								<configuration>
+									<descriptors>
+										<descriptor>src/assembly/macos-jre.xml</descriptor>
+									</descriptors>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>

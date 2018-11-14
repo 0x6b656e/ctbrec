@@ -26,6 +26,7 @@ import ctbrec.AbstractModel;
 import ctbrec.Config;
 import ctbrec.recorder.download.StreamSource;
 import ctbrec.sites.Site;
+import ctbrec.ui.CamrecApplication;
 import ctbrec.ui.HtmlParser;
 import okhttp3.FormBody;
 import okhttp3.Request;
@@ -177,8 +178,14 @@ public class Cam4Model extends AbstractModel {
     public boolean unfollow() throws IOException {
         // get model user id
         String url = site.getBaseUrl() + '/' + getName();
-        Request req = new Request.Builder().url(url).build();
-        Response response = site.getHttpClient().execute(req, true);
+        Request req = new Request.Builder()
+                .url(url)
+                .addHeader("X-Requested-With", "XMLHttpRequest")
+                .build();
+
+        // we have to use a client without any cam4 cookies here, otherwise
+        // this request is redirected to the login page. no idea why
+        Response response = CamrecApplication.httpClient.execute(req);
         String broadCasterId = null;
         if(response.isSuccessful()) {
             String content = response.body().string();

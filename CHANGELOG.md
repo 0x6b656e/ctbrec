@@ -1,3 +1,14 @@
+1.9.0
+========================
+* Dropped support for Windows 32 bit
+* Include JavaFX, so that ctbrec works with OpenJRE and Java >= 11
+* Updated embedded Java versions to 11.0.1
+* Added column "Recording" to recorded models tab, which indicates that
+  a recording is currently running
+* Fix: Unfollow for Cam4 didn't work
+* Fix: Post-Processing script couldn't be removed
+* A lot of smaller changes under the hood
+
 1.8.0
 ========================
 * Added BongaCams

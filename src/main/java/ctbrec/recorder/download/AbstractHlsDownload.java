@@ -30,6 +30,7 @@ import com.iheartradio.m3u8.data.TrackData;
 import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.io.HttpClient;
+import ctbrec.io.HttpException;
 import okhttp3.Request;
 import okhttp3.Response;
 
@@ -52,33 +53,34 @@ public abstract class AbstractHlsDownload implements Download {
     SegmentPlaylist getNextSegments(String segments) throws IOException, ParseException, PlaylistException {
         URL segmentsUrl = new URL(segments);
         Request request = new Request.Builder().url(segmentsUrl).addHeader("connection", "keep-alive").build();
-        Response response = client.execute(request);
-        try {
-            InputStream inputStream = response.body().byteStream();
-            PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8, ParsingMode.LENIENT);
-            Playlist playlist = parser.parse();
-            if(playlist.hasMediaPlaylist()) {
-                MediaPlaylist mediaPlaylist = playlist.getMediaPlaylist();
-                SegmentPlaylist lsp = new SegmentPlaylist();
-                lsp.seq = mediaPlaylist.getMediaSequenceNumber();
-                lsp.targetDuration = mediaPlaylist.getTargetDuration();
-                List<TrackData> tracks = mediaPlaylist.getTracks();
-                for (TrackData trackData : tracks) {
-                    String uri = trackData.getUri();
-                    if(!uri.startsWith("http")) {
-                        String _url = segmentsUrl.toString();
-                        _url = _url.substring(0, _url.lastIndexOf('/') + 1);
-                        String segmentUri = _url + uri;
-                        lsp.totalDuration += trackData.getTrackInfo().duration;
-                        lsp.lastSegDuration = trackData.getTrackInfo().duration;
-                        lsp.segments.add(segmentUri);
+        try(Response response = client.execute(request)) {
+            if(response.isSuccessful()) {
+                InputStream inputStream = response.body().byteStream();
+                PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8, ParsingMode.LENIENT);
+                Playlist playlist = parser.parse();
+                if(playlist.hasMediaPlaylist()) {
+                    MediaPlaylist mediaPlaylist = playlist.getMediaPlaylist();
+                    SegmentPlaylist lsp = new SegmentPlaylist(segments);
+                    lsp.seq = mediaPlaylist.getMediaSequenceNumber();
+                    lsp.targetDuration = mediaPlaylist.getTargetDuration();
+                    List<TrackData> tracks = mediaPlaylist.getTracks();
+                    for (TrackData trackData : tracks) {
+                        String uri = trackData.getUri();
+                        if(!uri.startsWith("http")) {
+                            String _url = segmentsUrl.toString();
+                            _url = _url.substring(0, _url.lastIndexOf('/') + 1);
+                            String segmentUri = _url + uri;
+                            lsp.totalDuration += trackData.getTrackInfo().duration;
+                            lsp.lastSegDuration = trackData.getTrackInfo().duration;
+                            lsp.segments.add(segmentUri);
+                        }
                     }
+                    return lsp;
                 }
-                return lsp;
+                return null;
+            } else {
+                throw new HttpException(response.code(), response.message());
             }
-            return null;
-        } finally {
-            response.close();
         }
     }
 
@@ -131,10 +133,15 @@ public abstract class AbstractHlsDownload implements Download {
     }
 
     public static class SegmentPlaylist {
+        public String url;
         public int seq = 0;
         public float totalDuration = 0;
         public float lastSegDuration = 0;
         public float targetDuration = 0;
         public List<String> segments = new ArrayList<>();
+
+        public SegmentPlaylist(String url) {
+            this.url = url;
+        }
     }
 }

@@ -123,8 +123,12 @@ public class Streamer {
                     }
                 }
             } catch (InterruptedException e1) {
-                log.error("Interrupted while waiting for packet");
-                continue;
+                if(!endOfSourceReached) {
+                    log.error("Interrupted while waiting for packet");
+                    continue;
+                } else {
+                    break;
+                }
             }
 
             int pid = packet.getPid();
@@ -283,6 +287,7 @@ public class Streamer {
             log.error("Error reading from source", e);
         } finally {
             endOfSourceReached = true;
+            streamingThread.interrupt();
         }
     }
 

@@ -27,6 +27,7 @@ import com.squareup.moshi.JsonReader;
 import com.squareup.moshi.JsonWriter;
 
 import ctbrec.AbstractModel;
+import ctbrec.io.HttpException;
 import ctbrec.recorder.download.StreamSource;
 import ctbrec.sites.Site;
 import ctbrec.ui.HtmlParser;
@@ -104,8 +105,7 @@ public class MyFreeCamsModel extends AbstractModel {
         }
         LOG.trace("Loading master playlist {}", hlsUrl);
         Request req = new Request.Builder().url(hlsUrl).build();
-        Response response = site.getHttpClient().execute(req);
-        try {
+        try(Response response = site.getHttpClient().execute(req)) {
             if(response.isSuccessful()) {
                 InputStream inputStream = response.body().byteStream();
                 PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
@@ -113,10 +113,8 @@ public class MyFreeCamsModel extends AbstractModel {
                 MasterPlaylist master = playlist.getMasterPlaylist();
                 return master;
             } else {
-                throw new IOException(response.code() + " " + response.message());
+                throw new HttpException(response.code(), response.message());
             }
-        } finally {
-            response.close();
         }
     }
 
@@ -130,40 +128,40 @@ public class MyFreeCamsModel extends AbstractModel {
         String tipUrl = MyFreeCams.BASE_URI + "/php/tip.php";
         String initUrl = tipUrl + "?request=tip&username="+getName()+"&broadcaster_id="+getUid();
         Request req = new Request.Builder().url(initUrl).build();
-        Response resp = site.getHttpClient().execute(req);
-        if(resp.isSuccessful()) {
-            String page = resp.body().string();
-            Element hiddenInput = HtmlParser.getTag(page, "input[name=token]");
-            String token = hiddenInput.attr("value");
-            if (!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
-                RequestBody body = new FormBody.Builder()
-                        .add("token", token)
-                        .add("broadcaster_id", Integer.toString(uid))
-                        .add("tip_value", Integer.toString(tokens))
-                        .add("submit_tip", "1")
-                        .add("anonymous", "")
-                        .add("public", "1")
-                        .add("public_comment", "1")
-                        .add("hide_amount", "0")
-                        .add("silent", "")
-                        .add("comment", "")
-                        .add("mode", "")
-                        .add("submit", " Confirm & Close Window")
-                        .build();
-                req = new Request.Builder()
-                        .url(tipUrl)
-                        .post(body)
-                        .addHeader("Referer", initUrl)
-                        .build();
-                try(Response response = site.getHttpClient().execute(req, true)) {
-                    if(!response.isSuccessful()) {
-                        throw new IOException(response.code() + " " + response.message());
+        try(Response resp = site.getHttpClient().execute(req)) {
+            if(resp.isSuccessful()) {
+                String page = resp.body().string();
+                Element hiddenInput = HtmlParser.getTag(page, "input[name=token]");
+                String token = hiddenInput.attr("value");
+                if (!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
+                    RequestBody body = new FormBody.Builder()
+                            .add("token", token)
+                            .add("broadcaster_id", Integer.toString(uid))
+                            .add("tip_value", Integer.toString(tokens))
+                            .add("submit_tip", "1")
+                            .add("anonymous", "")
+                            .add("public", "1")
+                            .add("public_comment", "1")
+                            .add("hide_amount", "0")
+                            .add("silent", "")
+                            .add("comment", "")
+                            .add("mode", "")
+                            .add("submit", " Confirm & Close Window")
+                            .build();
+                    req = new Request.Builder()
+                            .url(tipUrl)
+                            .post(body)
+                            .addHeader("Referer", initUrl)
+                            .build();
+                    try(Response response = site.getHttpClient().execute(req, true)) {
+                        if(!response.isSuccessful()) {
+                            throw new HttpException(response.code(), response.message());
+                        }
                     }
                 }
+            } else {
+                throw new HttpException(resp.code(), resp.message());
             }
-        } else {
-            resp.close();
-            throw new IOException(resp.code() + " " + resp.message());
         }
     }
 

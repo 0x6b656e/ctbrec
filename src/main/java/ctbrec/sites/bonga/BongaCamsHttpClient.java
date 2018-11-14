@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
 import ctbrec.io.HttpClient;
+import ctbrec.io.HttpException;
 import javafx.application.Platform;
 import okhttp3.Cookie;
 import okhttp3.FormBody;
@@ -144,7 +145,7 @@ public class BongaCamsHttpClient extends HttpClient {
                     throw new IOException("Request was not successful: " + json.toString(2));
                 }
             } else {
-                throw new IOException(response.code() + " " + response.message());
+                throw new HttpException(response.code(), response.message());
             }
         }
     }
@@ -174,7 +175,7 @@ public class BongaCamsHttpClient extends HttpClient {
                     throw new IOException("Request was not successful: " + content);
                 }
             } else {
-                throw new IOException(response.code() + ' ' + response.message());
+                throw new HttpException(response.code(), response.message());
             }
         }
     }
@@ -229,7 +230,7 @@ public class BongaCamsHttpClient extends HttpClient {
     //                    throw new IOException("Login not successful");
     //                }
     //            } else {
-    //                throw new IOException(response.code() + " " + response.message());
+    //                throw new HttpException(response.code(), response.message());
     //            }
     //        }
     //    }

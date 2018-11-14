@@ -282,10 +282,10 @@ public class MyFreeCamsClient {
                     String url = base + "?respkey="+respkey+"&opts="+opts+"&serv="+serv+"&type="+type;
                     Request req = new Request.Builder().url(url).build();
                     LOG.trace("Requesting EXTDATA {}", url);
-                    Response resp = mfc.getHttpClient().execute(req);
-
-                    if(resp.isSuccessful()) {
-                        parseExtDataSessionStates(resp.body().string());
+                    try(Response resp = mfc.getHttpClient().execute(req)) {
+                        if(resp.isSuccessful()) {
+                            parseExtDataSessionStates(resp.body().string());
+                        }
                     }
                 } catch(Exception e) {
                     LOG.warn("Couldn't request EXTDATA", e);

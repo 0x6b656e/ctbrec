@@ -47,36 +47,36 @@ public class FriendsUpdateService extends PaginatedScheduledService {
                             .url(url)
                             .header("Referer", myFreeCams.getBaseUrl())
                             .build();
-                    Response resp = myFreeCams.getHttpClient().execute(req, true);
-                    if(resp.isSuccessful()) {
-                        String body = resp.body().string().substring(4);
-                        try {
-                            JSONObject json = new JSONObject(body);
-                            for (String key : json.keySet()) {
-                                int uid = Integer.parseInt(key);
-                                MyFreeCamsModel model = MyFreeCamsClient.getInstance().getModel(uid);
-                                if(model == null) {
-                                    JSONObject modelObject = json.getJSONObject(key);
-                                    String name = modelObject.getString("u");
-                                    model = myFreeCams.createModel(name);
-                                    SessionState st = new SessionState();
-                                    st.setM(new ctbrec.sites.mfc.Model());
-                                    st.getM().setCamscore(0.0);
-                                    st.setU(new User());
-                                    st.setUid(uid);
-                                    st.setLv(modelObject.getInt("lv"));
-                                    st.setVs(127);
+                    try(Response resp = myFreeCams.getHttpClient().execute(req, true)) {
+                        if(resp.isSuccessful()) {
+                            String body = resp.body().string().substring(4);
+                            try {
+                                JSONObject json = new JSONObject(body);
+                                for (String key : json.keySet()) {
+                                    int uid = Integer.parseInt(key);
+                                    MyFreeCamsModel model = MyFreeCamsClient.getInstance().getModel(uid);
+                                    if(model == null) {
+                                        JSONObject modelObject = json.getJSONObject(key);
+                                        String name = modelObject.getString("u");
+                                        model = myFreeCams.createModel(name);
+                                        SessionState st = new SessionState();
+                                        st.setM(new ctbrec.sites.mfc.Model());
+                                        st.getM().setCamscore(0.0);
+                                        st.setU(new User());
+                                        st.setUid(uid);
+                                        st.setLv(modelObject.getInt("lv"));
+                                        st.setVs(127);
 
-                                    model.update(st, myFreeCams.getClient().getStreamUrl(st));
+                                        model.update(st, myFreeCams.getClient().getStreamUrl(st));
+                                    }
+                                    models.add(model);
                                 }
-                                models.add(model);
+                            } catch(Exception e) {
+                                LOG.info("Exception getting friends list. Response was: {}", body);
                             }
-                        } catch(Exception e) {
-                            LOG.info("Exception getting friends list. Response was: {}", body);
+                        } else {
+                            LOG.error("Couldn't load friends list {} {}", resp.code(), resp.message());
                         }
-                    } else {
-                        LOG.error("Couldn't load friends list {} {}", resp.code(), resp.message());
-                        resp.close();
                     }
                     boolean filterOnline = mode == Mode.ONLINE;
                     return models.stream()

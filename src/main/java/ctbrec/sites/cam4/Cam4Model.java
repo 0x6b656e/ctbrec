@@ -24,6 +24,7 @@ import com.iheartradio.m3u8.data.PlaylistData;
 
 import ctbrec.AbstractModel;
 import ctbrec.Config;
+import ctbrec.io.HttpException;
 import ctbrec.recorder.download.StreamSource;
 import ctbrec.sites.Site;
 import ctbrec.ui.CamrecApplication;
@@ -62,24 +63,23 @@ public class Cam4Model extends AbstractModel {
         String url = site.getBaseUrl() + "/getBroadcasting?usernames=" + getName();
         LOG.trace("Loading model details {}", url);
         Request req = new Request.Builder().url(url).build();
-        Response response = site.getHttpClient().execute(req);
-        if(response.isSuccessful()) {
-            JSONArray json = new JSONArray(response.body().string());
-            if(json.length() == 0) {
-                throw new ModelDetailsEmptyException("Model details are empty");
+        try(Response response = site.getHttpClient().execute(req)) {
+            if(response.isSuccessful()) {
+                JSONArray json = new JSONArray(response.body().string());
+                if(json.length() == 0) {
+                    throw new ModelDetailsEmptyException("Model details are empty");
+                }
+                JSONObject details = json.getJSONObject(0);
+                onlineState = details.getString("showType");
+                playlistUrl = details.getString("hlsPreviewUrl");
+                if(details.has("resolution")) {
+                    String res = details.getString("resolution");
+                    String[] tokens = res.split(":");
+                    resolution = new int[] {Integer.parseInt(tokens[0]), Integer.parseInt(tokens[1])};
+                }
+            } else {
+                throw new HttpException(response.code(), response.message());
             }
-            JSONObject details = json.getJSONObject(0);
-            onlineState = details.getString("showType");
-            playlistUrl = details.getString("hlsPreviewUrl");
-            if(details.has("resolution")) {
-                String res = details.getString("resolution");
-                String[] tokens = res.split(":");
-                resolution = new int[] {Integer.parseInt(tokens[0]), Integer.parseInt(tokens[1])};
-            }
-        } else {
-            IOException io = new IOException(response.code() + " " + response.message());
-            response.close();
-            throw io;
         }
     }
 
@@ -185,40 +185,40 @@ public class Cam4Model extends AbstractModel {
 
         // we have to use a client without any cam4 cookies here, otherwise
         // this request is redirected to the login page. no idea why
-        Response response = CamrecApplication.httpClient.execute(req);
-        String broadCasterId = null;
-        if(response.isSuccessful()) {
-            String content = response.body().string();
-            try {
-                Element tag = HtmlParser.getTag(content, "input[name=\"broadcasterId\"]");
-                broadCasterId = tag.attr("value");
-            } catch(Exception e) {
-                LOG.debug(content);
-                throw new IOException(e);
-            }
-
-            // send unfollow request
-            String username = Config.getInstance().getSettings().cam4Username;
-            url = site.getBaseUrl() + '/' + username + "/edit/friends_favorites";
-            RequestBody body = new FormBody.Builder()
-                    .add("deleteFavorites", broadCasterId)
-                    .add("simpleresult", "true")
-                    .build();
-            req = new Request.Builder()
-                    .url(url)
-                    .post(body)
-                    .addHeader("X-Requested-With", "XMLHttpRequest")
-                    .build();
-            response = site.getHttpClient().execute(req, true);
+        try(Response response = CamrecApplication.httpClient.execute(req)) {
+            String broadCasterId = null;
             if(response.isSuccessful()) {
-                return Objects.equals(response.body().string(), "Ok");
+                String content = response.body().string();
+                try {
+                    Element tag = HtmlParser.getTag(content, "input[name=\"broadcasterId\"]");
+                    broadCasterId = tag.attr("value");
+                } catch(Exception e) {
+                    LOG.debug(content);
+                    throw new IOException(e);
+                }
+
+                // send unfollow request
+                String username = Config.getInstance().getSettings().cam4Username;
+                url = site.getBaseUrl() + '/' + username + "/edit/friends_favorites";
+                RequestBody body = new FormBody.Builder()
+                        .add("deleteFavorites", broadCasterId)
+                        .add("simpleresult", "true")
+                        .build();
+                req = new Request.Builder()
+                        .url(url)
+                        .post(body)
+                        .addHeader("X-Requested-With", "XMLHttpRequest")
+                        .build();
+                Response resp = site.getHttpClient().execute(req, true);
+                if(resp.isSuccessful()) {
+                    return Objects.equals(resp.body().string(), "Ok");
+                } else {
+                    resp.close();
+                    return false;
+                }
             } else {
-                response.close();
                 return false;
             }
-        } else {
-            response.close();
-            return false;
         }
     }
 

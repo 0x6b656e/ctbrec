@@ -7,6 +7,7 @@ import org.json.JSONObject;
 import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.io.HttpClient;
+import ctbrec.io.HttpException;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.AbstractSite;
 import ctbrec.sites.ConfigUI;
@@ -89,7 +90,7 @@ public class BongaCams extends AbstractSite {
                     throw new IOException("Request was not successful: " + json.toString(2));
                 }
             } else {
-                throw new IOException(response.code() + " " + response.message());
+                throw new HttpException(response.code(), response.message());
             }
         }
     }

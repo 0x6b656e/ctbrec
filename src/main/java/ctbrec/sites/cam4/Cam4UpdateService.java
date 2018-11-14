@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
 import ctbrec.Model;
+import ctbrec.io.HttpException;
 import ctbrec.ui.HtmlParser;
 import ctbrec.ui.PaginatedScheduledService;
 import javafx.concurrent.Task;
@@ -58,30 +59,28 @@ public class Cam4UpdateService extends PaginatedScheduledService {
                     String url = Cam4UpdateService.this.url + "&page=" + page;
                     LOG.debug("Fetching page {}", url);
                     Request request = new Request.Builder().url(url).build();
-                    Response response = site.getHttpClient().execute(request, loginRequired);
-                    if (response.isSuccessful()) {
-                        JSONObject json = new JSONObject(response.body().string());
-                        String html = json.getString("html");
-                        Elements profilesBoxes = HtmlParser.getTags(html, "div[class~=profileDataBox]");
-                        List<Model> models = new ArrayList<>(profilesBoxes.size());
-                        for (Element profileBox : profilesBoxes) {
-                            String boxHtml = profileBox.html();
-                            Element profileLink = HtmlParser.getTag(boxHtml, "a.profile-preview");
-                            String path = profileLink.attr("href");
-                            String slug = path.substring(1);
-                            Cam4Model model = (Cam4Model) site.createModel(slug);
-                            String playlistUrl = profileLink.attr("data-hls-preview-url");
-                            model.setPlaylistUrl(playlistUrl);
-                            model.setPreview("https://snapshots.xcdnpro.com/thumbnails/"+model.getName()+"?s=" + System.currentTimeMillis());
-                            model.setDescription(parseDesription(boxHtml));
-                            models.add(model);
+                    try (Response response = site.getHttpClient().execute(request, loginRequired)) {
+                        if (response.isSuccessful()) {
+                            JSONObject json = new JSONObject(response.body().string());
+                            String html = json.getString("html");
+                            Elements profilesBoxes = HtmlParser.getTags(html, "div[class~=profileDataBox]");
+                            List<Model> models = new ArrayList<>(profilesBoxes.size());
+                            for (Element profileBox : profilesBoxes) {
+                                String boxHtml = profileBox.html();
+                                Element profileLink = HtmlParser.getTag(boxHtml, "a.profile-preview");
+                                String path = profileLink.attr("href");
+                                String slug = path.substring(1);
+                                Cam4Model model = (Cam4Model) site.createModel(slug);
+                                String playlistUrl = profileLink.attr("data-hls-preview-url");
+                                model.setPlaylistUrl(playlistUrl);
+                                model.setPreview("https://snapshots.xcdnpro.com/thumbnails/" + model.getName() + "?s=" + System.currentTimeMillis());
+                                model.setDescription(parseDesription(boxHtml));
+                                models.add(model);
+                            }
+                            return models;
+                        } else {
+                            throw new HttpException(response.code(), response.message());
                         }
-                        response.close();
-                        return models;
-                    } else {
-                        int code = response.code();
-                        response.close();
-                        throw new IOException("HTTP status " + code);
                     }
                 }
             }

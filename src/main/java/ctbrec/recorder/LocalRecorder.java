@@ -33,6 +33,7 @@ import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.OS;
 import ctbrec.Recording;
+import ctbrec.io.HttpException;
 import ctbrec.io.StreamRedirectThread;
 import ctbrec.recorder.PlaylistGenerator.InvalidPlaylistException;
 import ctbrec.recorder.download.Download;
@@ -408,6 +409,9 @@ public class LocalRecorder implements Recorder {
                                 startRecordingProcess(model);
                             }
                         }
+                    } catch (HttpException e) {
+                        LOG.error("Couldn't check if model {} is online. HTTP Response: {} - {}",
+                                model.getName(), e.getResponseCode(), e.getResponseMessage());
                     } catch (Exception e) {
                         LOG.error("Couldn't check if model {} is online", model.getName(), e);
                     }

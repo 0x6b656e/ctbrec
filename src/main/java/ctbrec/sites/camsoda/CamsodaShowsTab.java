@@ -82,30 +82,30 @@ public class CamsodaShowsTab extends Tab implements TabSelectionListener {
             protected List<ShowBox> call() throws Exception {
                 String url = camsoda.getBaseUrl() + "/api/v1/user/model_shows";
                 Request req = new Request.Builder().url(url).build();
-                Response response = camsoda.getHttpClient().execute(req);
-                if (response.isSuccessful()) {
-                    JSONObject json = new JSONObject(response.body().string());
-                    if (json.optInt("success") == 1) {
-                        List<ShowBox> boxes = new ArrayList<>();
-                        JSONArray results = json.getJSONArray("results");
-                        for (int i = 0; i < results.length(); i++) {
-                            JSONObject result = results.getJSONObject(i);
-                            String modelUrl = camsoda.getBaseUrl() + result.getString("url");
-                            String name = modelUrl.substring(modelUrl.lastIndexOf('/') + 1);
-                            Model model = camsoda.createModel(name);
-                            ZonedDateTime startTime = parseUtcTime(result.getString("start"));
-                            ZonedDateTime endTime = parseUtcTime(result.getString("end"));
-                            boxes.add(new ShowBox(model, startTime, endTime));
+                try(Response response = camsoda.getHttpClient().execute(req)) {
+                    if (response.isSuccessful()) {
+                        JSONObject json = new JSONObject(response.body().string());
+                        if (json.optInt("success") == 1) {
+                            List<ShowBox> boxes = new ArrayList<>();
+                            JSONArray results = json.getJSONArray("results");
+                            for (int i = 0; i < results.length(); i++) {
+                                JSONObject result = results.getJSONObject(i);
+                                String modelUrl = camsoda.getBaseUrl() + result.getString("url");
+                                String name = modelUrl.substring(modelUrl.lastIndexOf('/') + 1);
+                                Model model = camsoda.createModel(name);
+                                ZonedDateTime startTime = parseUtcTime(result.getString("start"));
+                                ZonedDateTime endTime = parseUtcTime(result.getString("end"));
+                                boxes.add(new ShowBox(model, startTime, endTime));
+                            }
+                            return boxes;
+                        } else {
+                            LOG.error("Couldn't load upcoming camsoda shows. Unexpected response: {}", json.toString());
+                            showErrorDialog("Oh no!", "Couldn't load upcoming CamSoda shows", "Got an unexpected response from server");
                         }
-                        return boxes;
                     } else {
-                        LOG.error("Couldn't load upcoming camsoda shows. Unexpected response: {}", json.toString());
                         showErrorDialog("Oh no!", "Couldn't load upcoming CamSoda shows", "Got an unexpected response from server");
+                        LOG.error("Couldn't load upcoming camsoda shows: {} {}", response.code(), response.message());
                     }
-                } else {
-                    response.close();
-                    showErrorDialog("Oh no!", "Couldn't load upcoming CamSoda shows", "Got an unexpected response from server");
-                    LOG.error("Couldn't load upcoming camsoda shows: {} {}", response.code(), response.message());
                 }
                 return Collections.emptyList();
             }

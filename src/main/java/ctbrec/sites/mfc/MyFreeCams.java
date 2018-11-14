@@ -6,6 +6,7 @@ import org.jsoup.select.Elements;
 
 import ctbrec.Config;
 import ctbrec.Model;
+import ctbrec.io.HttpException;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.AbstractSite;
 import ctbrec.sites.ConfigUI;
@@ -74,15 +75,15 @@ public class MyFreeCams extends AbstractSite {
     @Override
     public Integer getTokenBalance() throws IOException {
         Request req = new Request.Builder().url(BASE_URI + "/php/account.php?request=status").build();
-        Response resp = getHttpClient().execute(req, true);
-        if(resp.isSuccessful()) {
-            String content = resp.body().string();
-            Elements tags = HtmlParser.getTags(content, "div.content > p > b");
-            String tokens = tags.get(2).text();
-            return Integer.parseInt(tokens);
-        } else {
-            resp.close();
-            throw new IOException(resp.code() + " " + resp.message());
+        try(Response response = getHttpClient().execute(req, true)) {
+            if(response.isSuccessful()) {
+                String content = response.body().string();
+                Elements tags = HtmlParser.getTags(content, "div.content > p > b");
+                String tokens = tags.get(2).text();
+                return Integer.parseInt(tokens);
+            } else {
+                throw new HttpException(response.code(), response.message());
+            }
         }
     }
 

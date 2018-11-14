@@ -27,6 +27,7 @@ import com.squareup.moshi.Moshi;
 import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.io.HttpClient;
+import ctbrec.io.HttpException;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.AbstractSite;
 import ctbrec.sites.ConfigUI;
@@ -207,7 +208,7 @@ public class Chaturbate extends AbstractSite {
         return streamInfoCache.get(modelName);
     }
 
-    StreamInfo loadStreamInfo(String modelName) throws IOException, InterruptedException {
+    StreamInfo loadStreamInfo(String modelName) throws HttpException, IOException, InterruptedException {
         throttleRequests();
         RequestBody body = new FormBody.Builder()
                 .add("room_slug", modelName)
@@ -231,7 +232,7 @@ public class Chaturbate extends AbstractSite {
             } else {
                 int code = response.code();
                 String message = response.message();
-                throw new IOException("Server responded with " + code + " - " + message + " headers: [" + response.headers() + "]");
+                throw new HttpException(code, message);
             }
         } finally {
             response.close();

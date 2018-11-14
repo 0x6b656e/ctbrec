@@ -26,6 +26,7 @@ import com.iheartradio.m3u8.data.StreamInfo;
 
 import ctbrec.AbstractModel;
 import ctbrec.Config;
+import ctbrec.io.HttpException;
 import ctbrec.recorder.download.StreamSource;
 import ctbrec.sites.Site;
 import okhttp3.FormBody;
@@ -189,7 +190,7 @@ public class CamsodaModel extends AbstractModel {
                     .build();
             try(Response response = site.getHttpClient().execute(request, true)) {
                 if(!response.isSuccessful()) {
-                    throw new IOException("HTTP status " + response.code() + " " + response.message());
+                    throw new HttpException(response.code(), response.message());
                 }
             }
         }
@@ -209,13 +210,12 @@ public class CamsodaModel extends AbstractModel {
                 .addHeader("Accept-Language", "en")
                 .addHeader("X-CSRF-Token", csrfToken)
                 .build();
-        Response resp = site.getHttpClient().execute(request, true);
-        if (resp.isSuccessful()) {
-            resp.close();
-            return true;
-        } else {
-            resp.close();
-            throw new IOException("HTTP status " + resp.code() + " " + resp.message());
+        try(Response response = site.getHttpClient().execute(request, true)) {
+            if (response.isSuccessful()) {
+                return true;
+            } else {
+                throw new HttpException(response.code(), response.message());
+            }
         }
     }
 
@@ -233,13 +233,12 @@ public class CamsodaModel extends AbstractModel {
                 .addHeader("Accept-Language", "en")
                 .addHeader("X-CSRF-Token", csrfToken)
                 .build();
-        Response resp = site.getHttpClient().execute(request, true);
-        if (resp.isSuccessful()) {
-            resp.close();
-            return true;
-        } else {
-            resp.close();
-            throw new IOException("HTTP status " + resp.code() + " " + resp.message());
+        try (Response response = site.getHttpClient().execute(request, true)) {
+            if (response.isSuccessful()) {
+                return true;
+            } else {
+                throw new HttpException(response.code(), response.message());
+            }
         }
     }
 

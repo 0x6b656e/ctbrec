@@ -19,6 +19,7 @@ import ctbrec.Hmac;
 import ctbrec.Model;
 import ctbrec.Recording;
 import ctbrec.io.HttpClient;
+import ctbrec.io.HttpException;
 import ctbrec.io.InstantJsonAdapter;
 import ctbrec.io.ModelJsonAdapter;
 import ctbrec.sites.Site;
@@ -79,21 +80,22 @@ public class RemoteRecorder implements Recorder {
                 .post(body);
         addHmacIfNeeded(payload, builder);
         Request request = builder.build();
-        Response response = client.execute(request);
-        String json = response.body().string();
-        if(response.isSuccessful()) {
-            ModelListResponse resp = modelListResponseAdapter.fromJson(json);
-            if(!resp.status.equals("success")) {
-                throw new IOException("Server returned error " + resp.status + " " + resp.msg);
-            }
+        try (Response response = client.execute(request)) {
+            String json = response.body().string();
+            if (response.isSuccessful()) {
+                ModelListResponse resp = modelListResponseAdapter.fromJson(json);
+                if (!resp.status.equals("success")) {
+                    throw new IOException("Server returned error " + resp.status + " " + resp.msg);
+                }
 
-            if("start".equals(action)) {
-                models.add(model);
-            } else if("stop".equals(action)) {
-                models.remove(model);
+                if ("start".equals(action)) {
+                    models.add(model);
+                } else if ("stop".equals(action)) {
+                    models.remove(model);
+                }
+            } else {
+                throw new HttpException(response.code(), response.message());
             }
-        } else {
-            throw new IOException("Server returned error. HTTP status: " + response.code());
         }
     }
 
@@ -161,25 +163,26 @@ public class RemoteRecorder implements Recorder {
                         .post(body);
                 addHmacIfNeeded(msg, builder);
                 Request request = builder.build();
-                Response response = client.execute(request);
-                String json = response.body().string();
-                if(response.isSuccessful()) {
-                    ModelListResponse resp = modelListResponseAdapter.fromJson(json);
-                    if(resp.status.equals("success")) {
-                        models = resp.models;
-                        for (Model model : models) {
-                            for (Site site : sites) {
-                                if(site.isSiteForModel(model)) {
-                                    model.setSite(site);
+                try(Response response = client.execute(request)) {
+                    String json = response.body().string();
+                    if(response.isSuccessful()) {
+                        ModelListResponse resp = modelListResponseAdapter.fromJson(json);
+                        if(resp.status.equals("success")) {
+                            models = resp.models;
+                            for (Model model : models) {
+                                for (Site site : sites) {
+                                    if(site.isSiteForModel(model)) {
+                                        model.setSite(site);
+                                    }
                                 }
                             }
+                            lastSync = Instant.now();
+                        } else {
+                            LOG.error("Server returned error: {} - {}", resp.status, resp.msg);
                         }
-                        lastSync = Instant.now();
                     } else {
-                        LOG.error("Server returned error: {} - {}", resp.status, resp.msg);
+                        LOG.error("Couldn't synchronize with server. HTTP status: {} - {}", response.code(), json);
                     }
-                } else {
-                    LOG.error("Couldn't synchronize with server. HTTP status: {} - {}", response.code(), json);
                 }
             } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e) {
                 LOG.error("Couldn't synchronize with server", e);
@@ -195,24 +198,25 @@ public class RemoteRecorder implements Recorder {
                         .post(body);
                 addHmacIfNeeded(msg, builder);
                 Request request = builder.build();
-                Response response = client.execute(request);
-                String json = response.body().string();
-                if(response.isSuccessful()) {
-                    ModelListResponse resp = modelListResponseAdapter.fromJson(json);
-                    if(resp.status.equals("success")) {
-                        onlineModels = resp.models;
-                        for (Model model : models) {
-                            for (Site site : sites) {
-                                if(site.isSiteForModel(model)) {
-                                    model.setSite(site);
+                try (Response response = client.execute(request)) {
+                    String json = response.body().string();
+                    if (response.isSuccessful()) {
+                        ModelListResponse resp = modelListResponseAdapter.fromJson(json);
+                        if (resp.status.equals("success")) {
+                            onlineModels = resp.models;
+                            for (Model model : models) {
+                                for (Site site : sites) {
+                                    if (site.isSiteForModel(model)) {
+                                        model.setSite(site);
+                                    }
                                 }
                             }
+                        } else {
+                            LOG.error("Server returned error: {} - {}", resp.status, resp.msg);
                         }
                     } else {
-                        LOG.error("Server returned error: {} - {}", resp.status, resp.msg);
+                        LOG.error("Couldn't synchronize with server. HTTP status: {} - {}", response.code(), json);
                     }
-                } else {
-                    LOG.error("Couldn't synchronize with server. HTTP status: {} - {}", response.code(), json);
                 }
             } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e) {
                 LOG.error("Couldn't synchronize with server", e);
@@ -254,20 +258,20 @@ public class RemoteRecorder implements Recorder {
                 .post(body);
         addHmacIfNeeded(msg, builder);
         Request request = builder.build();
-        Response response = client.execute(request);
-        String json = response.body().string();
-        if(response.isSuccessful()) {
-            RecordingListResponse resp = recordingListResponseAdapter.fromJson(json);
-            if(resp.status.equals("success")) {
-                List<Recording> recordings = resp.recordings;
-                return recordings;
+        try(Response response = client.execute(request)) {
+            String json = response.body().string();
+            if(response.isSuccessful()) {
+                RecordingListResponse resp = recordingListResponseAdapter.fromJson(json);
+                if(resp.status.equals("success")) {
+                    List<Recording> recordings = resp.recordings;
+                    return recordings;
+                } else {
+                    LOG.error("Server returned error: {} - {}", resp.status, resp.msg);
+                }
             } else {
-                LOG.error("Server returned error: {} - {}", resp.status, resp.msg);
+                LOG.error("Couldn't synchronize with server. HTTP status: {} - {}", response.code(), json);
             }
-        } else {
-            LOG.error("Couldn't synchronize with server. HTTP status: {} - {}", response.code(), json);
         }
-
         return Collections.emptyList();
     }
 
@@ -280,16 +284,16 @@ public class RemoteRecorder implements Recorder {
                 .post(body);
         addHmacIfNeeded(msg, builder);
         Request request = builder.build();
-        Response response = client.execute(request);
-        String json = response.body().string();
-        RecordingListResponse resp = recordingListResponseAdapter.fromJson(json);
-        if(response.isSuccessful()) {
-            if(!resp.status.equals("success")) {
+        try(Response response = client.execute(request)) {
+            String json = response.body().string();
+            RecordingListResponse resp = recordingListResponseAdapter.fromJson(json);
+            if(response.isSuccessful()) {
+                if(!resp.status.equals("success")) {
+                    throw new IOException("Couldn't delete recording: " + resp.msg);
+                }
+            } else {
                 throw new IOException("Couldn't delete recording: " + resp.msg);
             }
-        } else {
-            throw new IOException("Couldn't delete recording: " + resp.msg);
-            //throw new IOException("Couldn't delete recording: " + response.code() + " " + json);
         }
     }
 

@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
 import ctbrec.io.HttpClient;
+import ctbrec.io.HttpException;
 import ctbrec.ui.HtmlParser;
 import okhttp3.Cookie;
 import okhttp3.CookieJar;
@@ -75,20 +76,20 @@ public class MyFreeCamsHttpClient extends HttpClient {
 
     private boolean checkLogin() throws IOException {
         Request req = new Request.Builder().url(MyFreeCams.BASE_URI + "/php/account.php?request=status").build();
-        Response resp = execute(req);
-        if(resp.isSuccessful()) {
-            String content = resp.body().string();
-            try {
-                Elements tags = HtmlParser.getTags(content, "div.content > p > b");
-                tags.get(2).text();
-                return true;
-            } catch(Exception e) {
-                LOG.debug("Token tag not found. Login failed");
-                return false;
+        try(Response response = execute(req)) {
+            if(response.isSuccessful()) {
+                String content = response.body().string();
+                try {
+                    Elements tags = HtmlParser.getTags(content, "div.content > p > b");
+                    tags.get(2).text();
+                    return true;
+                } catch(Exception e) {
+                    LOG.debug("Token tag not found. Login failed");
+                    return false;
+                }
+            } else {
+                throw new HttpException(response.code(), response.message());
             }
-        } else {
-            resp.close();
-            throw new IOException(resp.code() + " " + resp.message());
         }
     }
 

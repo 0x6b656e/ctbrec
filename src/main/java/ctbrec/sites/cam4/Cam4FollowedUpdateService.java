@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
 import ctbrec.Model;
+import ctbrec.io.HttpException;
 import ctbrec.ui.HtmlParser;
 import ctbrec.ui.PaginatedScheduledService;
 import javafx.concurrent.Task;
@@ -51,33 +52,32 @@ public class Cam4FollowedUpdateService extends PaginatedScheduledService {
                 String username = Config.getInstance().getSettings().cam4Username;
                 String url = site.getBaseUrl() + '/' + username + "/edit/friends_favorites";
                 Request req = new Request.Builder().url(url).build();
-                Response response = site.getHttpClient().execute(req, true);
-                if(response.isSuccessful()) {
-                    String content = response.body().string();
-                    Elements cells = HtmlParser.getTags(content, "div#favorites div.ff_thumb");
-                    for (Element cell : cells) {
-                        String cellHtml = cell.html();
-                        Element link = HtmlParser.getTag(cellHtml, "div.ff_img a");
-                        String path = link.attr("href");
-                        String modelName = path.substring(1);
-                        Cam4Model model = (Cam4Model) site.createModel(modelName);
-                        model.setPreview("https://snapshots.xcdnpro.com/thumbnails/"+model.getName()+"?s=" + System.currentTimeMillis());
-                        model.setOnlineState(parseOnlineState(cellHtml));
-                        models.add(model);
+                try(Response response = site.getHttpClient().execute(req, true)) {
+                    if(response.isSuccessful()) {
+                        String content = response.body().string();
+                        Elements cells = HtmlParser.getTags(content, "div#favorites div.ff_thumb");
+                        for (Element cell : cells) {
+                            String cellHtml = cell.html();
+                            Element link = HtmlParser.getTag(cellHtml, "div.ff_img a");
+                            String path = link.attr("href");
+                            String modelName = path.substring(1);
+                            Cam4Model model = (Cam4Model) site.createModel(modelName);
+                            model.setPreview("https://snapshots.xcdnpro.com/thumbnails/"+model.getName()+"?s=" + System.currentTimeMillis());
+                            model.setOnlineState(parseOnlineState(cellHtml));
+                            models.add(model);
+                        }
+                        return models.stream()
+                                .filter(m -> {
+                                    try {
+                                        return m.isOnline() == showOnline;
+                                    } catch (IOException | ExecutionException | InterruptedException e) {
+                                        LOG.error("Couldn't determine online state", e);
+                                        return false;
+                                    }
+                                }).collect(Collectors.toList());
+                    } else {
+                        throw new HttpException(response.code(), response.message());
                     }
-                    return models.stream()
-                            .filter(m -> {
-                                try {
-                                    return m.isOnline() == showOnline;
-                                } catch (IOException | ExecutionException | InterruptedException e) {
-                                    LOG.error("Couldn't determine online state", e);
-                                    return false;
-                                }
-                            }).collect(Collectors.toList());
-                } else {
-                    IOException e = new IOException(response.code() + " " + response.message());
-                    response.close();
-                    throw e;
                 }
             }
 

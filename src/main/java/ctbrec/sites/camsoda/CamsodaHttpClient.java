@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
 import ctbrec.io.HttpClient;
+import ctbrec.io.HttpException;
 import ctbrec.sites.cam4.Cam4LoginDialog;
 import ctbrec.ui.HtmlParser;
 import javafx.application.Platform;
@@ -55,22 +56,23 @@ public class CamsodaHttpClient extends HttpClient {
                 .url(url)
                 .post(body)
                 .build();
-        Response response = execute(request);
-        if(response.isSuccessful()) {
-            JSONObject resp = new JSONObject(response.body().string());
-            if(resp.has("error")) {
-                String error = resp.getString("error");
-                if (Objects.equals(error, "Please confirm that you are not a robot.")) {
-                    //return loginWithDialog();
-                    throw new IOException("CamSoda requested to solve a captcha. Please try again in a while (maybe 15 min).");
+        try (Response response = execute(request)) {
+            if (response.isSuccessful()) {
+                JSONObject resp = new JSONObject(response.body().string());
+                if (resp.has("error")) {
+                    String error = resp.getString("error");
+                    if (Objects.equals(error, "Please confirm that you are not a robot.")) {
+                        // return loginWithDialog();
+                        throw new IOException("CamSoda requested to solve a captcha. Please try again in a while (maybe 15 min).");
+                    } else {
+                        throw new IOException(resp.getString("error"));
+                    }
                 } else {
-                    throw new IOException(resp.getString("error"));
+                    return true;
                 }
             } else {
-                return true;
+                throw new HttpException(response.code(), response.message());
             }
-        } else {
-            throw new IOException(response.code() + " " + response.message());
         }
     }
 
@@ -147,14 +149,13 @@ public class CamsodaHttpClient extends HttpClient {
         if(csrfToken == null) {
             String url = Camsoda.BASE_URI;
             Request request = new Request.Builder().url(url).build();
-            Response resp = execute(request, true);
-            if(resp.isSuccessful()) {
-                Element meta = HtmlParser.getTag(resp.body().string(), "meta[name=\"_token\"]");
-                csrfToken = meta.attr("content");
-            } else {
-                IOException e = new IOException(resp.code() + " " + resp.message());
-                resp.close();
-                throw e;
+            try(Response response = execute(request, true)) {
+                if(response.isSuccessful()) {
+                    Element meta = HtmlParser.getTag(response.body().string(), "meta[name=\"_token\"]");
+                    csrfToken = meta.attr("content");
+                } else {
+                    throw new HttpException(response.code(), response.message());
+                }
             }
         }
         return csrfToken;

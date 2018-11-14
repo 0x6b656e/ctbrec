@@ -299,15 +299,16 @@ public class Chaturbate extends AbstractSite {
     public MasterPlaylist getMasterPlaylist(StreamInfo streamInfo) throws IOException, ParseException, PlaylistException {
         LOG.trace("Loading master playlist {}", streamInfo.url);
         Request req = new Request.Builder().url(streamInfo.url).build();
-        Response response = getHttpClient().execute(req);
-        try {
-            InputStream inputStream = response.body().byteStream();
-            PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
-            Playlist playlist = parser.parse();
-            MasterPlaylist master = playlist.getMasterPlaylist();
-            return master;
-        } finally {
-            response.close();
+        try (Response response = getHttpClient().execute(req)) {
+            if(response.isSuccessful()) {
+                InputStream inputStream = response.body().byteStream();
+                PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
+                Playlist playlist = parser.parse();
+                MasterPlaylist master = playlist.getMasterPlaylist();
+                return master;
+            } else {
+                throw new HttpException(response.code(), response.message());
+            }
         }
     }
 

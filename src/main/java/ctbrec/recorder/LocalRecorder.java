@@ -611,7 +611,10 @@ public class LocalRecorder implements Recorder {
     @Override
     public void switchStreamSource(Model model) throws IOException, InvalidKeyException, NoSuchAlgorithmException, IllegalStateException {
         LOG.debug("Switching stream source to index {} for model {}", model.getStreamUrlIndex(), model.getName());
-        stopRecordingProcess(model);
+        Download download = recordingProcesses.get(model);
+        if(download != null) {
+            stopRecordingProcess(model);
+        }
         tryRestartRecording(model);
     }
 

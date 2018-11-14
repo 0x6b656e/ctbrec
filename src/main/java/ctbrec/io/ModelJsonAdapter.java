@@ -1,6 +1,7 @@
 package ctbrec.io;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,7 +53,7 @@ public class ModelJsonAdapter extends JsonAdapter<Model> {
                     } else if(key.equals("type")) {
                         type = reader.nextString();
                         Class<?> modelClass = Class.forName(Optional.ofNullable(type).orElse(ChaturbateModel.class.getName()));
-                        model = (Model) modelClass.newInstance();
+                        model = (Model) modelClass.getDeclaredConstructor().newInstance();
                     } else if(key.equals("streamUrlIndex")) {
                         streamUrlIndex = reader.nextInt();
                         model.setStreamUrlIndex(streamUrlIndex);
@@ -67,7 +68,7 @@ public class ModelJsonAdapter extends JsonAdapter<Model> {
                 } else {
                     reader.skipValue();
                 }
-            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
                 throw new IOException("Couldn't instantiate model class [" + type + "]", e);
             }
         }

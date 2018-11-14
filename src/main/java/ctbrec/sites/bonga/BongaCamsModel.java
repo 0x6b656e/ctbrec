@@ -23,6 +23,7 @@ import com.iheartradio.m3u8.data.StreamInfo;
 
 import ctbrec.AbstractModel;
 import ctbrec.Config;
+import ctbrec.io.HttpException;
 import ctbrec.recorder.download.StreamSource;
 import ctbrec.sites.Site;
 import okhttp3.FormBody;
@@ -99,30 +100,30 @@ public class BongaCamsModel extends AbstractModel {
             return Collections.emptyList();
         }
         Request req = new Request.Builder().url(streamUrl).build();
-        Response response = site.getHttpClient().execute(req);
-        try {
-            InputStream inputStream = response.body().byteStream();
-            PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
-            Playlist playlist = parser.parse();
-            MasterPlaylist master = playlist.getMasterPlaylist();
-            for (PlaylistData playlistData : master.getPlaylists()) {
-
-                StreamSource streamsource = new StreamSource();
-                streamsource.mediaPlaylistUrl = streamUrl.replace("playlist.m3u8", playlistData.getUri());
-                if (playlistData.hasStreamInfo()) {
-                    StreamInfo info = playlistData.getStreamInfo();
-                    streamsource.bandwidth = info.getBandwidth();
-                    streamsource.width = info.hasResolution() ? info.getResolution().width : 0;
-                    streamsource.height = info.hasResolution() ? info.getResolution().height : 0;
-                } else {
-                    streamsource.bandwidth = 0;
-                    streamsource.width = 0;
-                    streamsource.height = 0;
+        try(Response response = site.getHttpClient().execute(req)) {
+            if(response.isSuccessful()) {
+                InputStream inputStream = response.body().byteStream();
+                PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
+                Playlist playlist = parser.parse();
+                MasterPlaylist master = playlist.getMasterPlaylist();
+                for (PlaylistData playlistData : master.getPlaylists()) {
+                    StreamSource streamsource = new StreamSource();
+                    streamsource.mediaPlaylistUrl = streamUrl.replace("playlist.m3u8", playlistData.getUri());
+                    if (playlistData.hasStreamInfo()) {
+                        StreamInfo info = playlistData.getStreamInfo();
+                        streamsource.bandwidth = info.getBandwidth();
+                        streamsource.width = info.hasResolution() ? info.getResolution().width : 0;
+                        streamsource.height = info.hasResolution() ? info.getResolution().height : 0;
+                    } else {
+                        streamsource.bandwidth = 0;
+                        streamsource.width = 0;
+                        streamsource.height = 0;
+                    }
+                    streamSources.add(streamsource);
                 }
-                streamSources.add(streamsource);
+            } else {
+                throw new HttpException(response.code(), response.message());
             }
-        } finally {
-            response.close();
         }
         return streamSources;
     }

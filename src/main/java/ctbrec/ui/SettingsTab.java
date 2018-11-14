@@ -437,8 +437,12 @@ public class SettingsTab extends Tab implements TabSelectionListener {
                     postProcessing.setTooltip(null);
                 } else {
                     String input = postProcessing.getText();
-                    File program = new File(input);
-                    setPostProcessing(program);
+                    if(!input.trim().isEmpty()) {
+                        File program = new File(input);
+                        setPostProcessing(program);
+                    } else {
+                        Config.getInstance().getSettings().postProcessing = "";
+                    }
                 }
             }
         };

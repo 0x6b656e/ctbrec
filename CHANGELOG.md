@@ -5,6 +5,7 @@
 * Updated embedded Java versions to 11.0.1
 * Added column "Recording" to recorded models tab, which indicates that
   a recording is currently running
+* Fix: BongaCams recordings didn't start
 * Fix: Unfollow for Cam4 didn't work
 * Fix: Post-Processing script couldn't be removed
 * A lot of smaller changes under the hood

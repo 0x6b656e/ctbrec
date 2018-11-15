@@ -59,13 +59,13 @@ public class Config {
                 BufferedSource source =  buffer.readFrom(fin);
                 settings = adapter.fromJson(source);
                 settings.httpTimeout = Math.max(settings.httpTimeout, 10_000);
-                for (Site site : sites) {
-                    site.setEnabled(!settings.disabledSites.contains(site.getName()));
-                }
             }
         } else {
             LOG.error("Config file does not exist. Falling back to default values.");
             settings = OS.getDefaultSettings();
+        }
+        for (Site site : sites) {
+            site.setEnabled(!settings.disabledSites.contains(site.getName()));
         }
     }
 

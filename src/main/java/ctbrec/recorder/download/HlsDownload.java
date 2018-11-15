@@ -25,6 +25,7 @@ import com.iheartradio.m3u8.PlaylistException;
 import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.io.HttpClient;
+import ctbrec.io.HttpException;
 import okhttp3.Request;
 import okhttp3.Response;
 
@@ -114,6 +115,12 @@ public class HlsDownload extends AbstractHlsDownload {
         } catch(EOFException e) {
             // end of playlist reached
             LOG.debug("Reached end of playlist for model {}", model);
+        } catch(HttpException e) {
+            if(e.getResponseCode() == 404) {
+                LOG.debug("Playlist not found (404). Model {} probably went offline", model);
+            } else {
+                throw e;
+            }
         } catch(Exception e) {
             throw new IOException("Couldn't download segment", e);
         } finally {

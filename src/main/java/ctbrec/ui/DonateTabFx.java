@@ -45,7 +45,7 @@ public class DonateTabFx extends Tab {
 
         ImageView tokenImage = new ImageView(getClass().getResource("/html/token.png").toString());
         Button tokenButton = new Button("Buy tokens");
-        tokenButton.setOnAction((e) -> { DesktopIntergation.open(Chaturbate.AFFILIATE_LINK); });
+        tokenButton.setOnAction((e) -> { DesktopIntegration.open(Chaturbate.AFFILIATE_LINK); });
         VBox tokenBox = new VBox(5);
         tokenBox.setAlignment(Pos.TOP_CENTER);
         Label tokenDesc = new Label("If you buy tokens by using this button,\n"
@@ -56,7 +56,7 @@ public class DonateTabFx extends Tab {
 
         ImageView coffeeImage = new ImageView(getClass().getResource("/html/buymeacoffee-fancy.png").toString());
         Button coffeeButton = new Button("Buy me a coffee");
-        coffeeButton.setOnMouseClicked((e) -> { DesktopIntergation.open("https://www.buymeacoffee.com/0xboobface"); });
+        coffeeButton.setOnMouseClicked((e) -> { DesktopIntegration.open("https://www.buymeacoffee.com/0xboobface"); });
         VBox buyCoffeeBox = new VBox(5);
         buyCoffeeBox.setAlignment(Pos.TOP_CENTER);
         buyCoffeeBox.getChildren().addAll(coffeeImage, coffeeButton);

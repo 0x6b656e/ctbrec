@@ -27,7 +27,7 @@ public class UpdateTab extends Tab {
         vbox.getChildren().add(l);
         VBox.setMargin(l, new Insets(20, 0, 0, 0));
         Button button = new Button("Download");
-        button.setOnAction((e) -> DesktopIntergation.open(latest.getHtmlUrl()));
+        button.setOnAction((e) -> DesktopIntegration.open(latest.getHtmlUrl()));
         vbox.getChildren().add(button);
         VBox.setMargin(button, new Insets(0, 0, 10, 0));
         vbox.setAlignment(Pos.CENTER);

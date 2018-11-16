@@ -2,7 +2,7 @@ package ctbrec.sites.cam4;
 
 import ctbrec.Config;
 import ctbrec.sites.ConfigUI;
-import ctbrec.ui.DesktopIntergation;
+import ctbrec.ui.DesktopIntegration;
 import ctbrec.ui.SettingsTab;
 import javafx.geometry.Insets;
 import javafx.scene.Parent;
@@ -36,7 +36,7 @@ public class Cam4ConfigUI implements ConfigUI {
         layout.add(password, 1, 1);
 
         Button createAccount = new Button("Create new Account");
-        createAccount.setOnAction((e) -> DesktopIntergation.open(Cam4.AFFILIATE_LINK));
+        createAccount.setOnAction((e) -> DesktopIntegration.open(Cam4.AFFILIATE_LINK));
         layout.add(createAccount, 1, 2);
         GridPane.setColumnSpan(createAccount, 2);
         GridPane.setMargin(username, new Insets(0, 0, 0, SettingsTab.CHECKBOX_MARGIN));

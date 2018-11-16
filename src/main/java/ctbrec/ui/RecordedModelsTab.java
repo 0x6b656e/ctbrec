@@ -306,7 +306,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         MenuItem resumeRecording = new MenuItem("Resume Recording");
         resumeRecording.setOnAction((e) -> resumeRecording());
         MenuItem openInBrowser = new MenuItem("Open in Browser");
-        openInBrowser.setOnAction((e) -> DesktopIntergation.open(selectedModel.getUrl()));
+        openInBrowser.setOnAction((e) -> DesktopIntegration.open(selectedModel.getUrl()));
         MenuItem openInPlayer = new MenuItem("Open in Player");
         openInPlayer.setOnAction((e) -> Player.play(selectedModel.getUrl()));
         MenuItem switchStreamSource = new MenuItem("Switch resolution");

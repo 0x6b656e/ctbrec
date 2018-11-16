@@ -55,7 +55,7 @@ public class TipDialog extends TextInputDialog {
                             buyTokens.showAndWait();
                             TipDialog.this.close();
                             if(buyTokens.getResult() == ButtonType.YES) {
-                                DesktopIntergation.open(Chaturbate.AFFILIATE_LINK);
+                                DesktopIntegration.open(Chaturbate.AFFILIATE_LINK);
                             }
                         } else {
                             getEditor().setDisable(false);

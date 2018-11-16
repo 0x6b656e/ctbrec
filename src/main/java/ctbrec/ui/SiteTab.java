@@ -25,7 +25,7 @@ public class SiteTab extends Tab implements TabSelectionListener {
 
         if (site.supportsTips() && site.credentialsAvailable()) {
             Button buyTokens = new Button("Buy Tokens");
-            buyTokens.setOnAction((e) -> DesktopIntergation.open(site.getBuyTokensLink()));
+            buyTokens.setOnAction((e) -> DesktopIntegration.open(site.getBuyTokensLink()));
             TokenLabel tokenBalance = new TokenLabel(site);
             tokenPanel = new HBox(5, tokenBalance, buyTokens);
             tokenPanel.setAlignment(Pos.BASELINE_RIGHT);

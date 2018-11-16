@@ -13,9 +13,9 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 
-public class DesktopIntergation {
+public class DesktopIntegration {
 
-    private static final transient Logger LOG = LoggerFactory.getLogger(DesktopIntergation.class);
+    private static final transient Logger LOG = LoggerFactory.getLogger(DesktopIntegration.class);
 
     public static void open(String uri) {
         try {

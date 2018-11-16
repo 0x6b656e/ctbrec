@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
 import ctbrec.Model;
 import ctbrec.recorder.Recorder;
 import ctbrec.ui.AutosizeAlert;
-import ctbrec.ui.DesktopIntergation;
+import ctbrec.ui.DesktopIntegration;
 import ctbrec.ui.TabSelectionListener;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
@@ -189,7 +189,7 @@ public class CamsodaShowsTab extends Tab implements TabSelectionListener {
             GridPane.setMargin(follow, new Insets(10));
             Button openInBrowser = new Button("Open in Browser");
             openInBrowser.setTooltip(new Tooltip(openInBrowser.getText()));
-            openInBrowser.setOnAction((evt) -> DesktopIntergation.open(model.getUrl()));
+            openInBrowser.setOnAction((evt) -> DesktopIntegration.open(model.getUrl()));
             grid.add(openInBrowser, 1, 4);
             GridPane.setMargin(openInBrowser, new Insets(10));
             root.setCenter(grid);

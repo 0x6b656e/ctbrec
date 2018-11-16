@@ -106,6 +106,7 @@ public class BongaCamsModel extends AbstractModel {
                 PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
                 Playlist playlist = parser.parse();
                 MasterPlaylist master = playlist.getMasterPlaylist();
+                streamSources.clear();
                 for (PlaylistData playlistData : master.getPlaylists()) {
                     StreamSource streamsource = new StreamSource();
                     streamsource.mediaPlaylistUrl = streamUrl.replace("playlist.m3u8", playlistData.getUri());

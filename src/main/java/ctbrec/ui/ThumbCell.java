@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.iheartradio.m3u8.ParseException;
-import com.iheartradio.m3u8.PlaylistException;
 
 import ctbrec.Config;
 import ctbrec.Model;
@@ -317,7 +316,7 @@ public class ThumbCell extends StackPane {
                         alert.showAndWait();
                     });
                 }
-            } catch (IOException | ExecutionException | ParseException | PlaylistException | InterruptedException e1) {
+            } catch (Exception e1) {
                 LOG.error("Couldn't get stream information for model {}", model, e1);
                 Platform.runLater(() -> {
                     Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);

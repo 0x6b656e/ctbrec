@@ -36,23 +36,22 @@ public class HlsServlet extends AbstractCtbrecServlet {
         File recordingsDir = new File(config.getSettings().recordingsDir);
         File requestedFile = new File(recordingsDir, request);
 
-        try {
-            boolean isRequestAuthenticated = checkAuthentication(req, req.getRequestURI());
-            if (!isRequestAuthenticated) {
-                resp.setStatus(SC_UNAUTHORIZED);
-                String response = "{\"status\": \"error\", \"msg\": \"HMAC does not match\"}";
-                resp.getWriter().write(response);
-                return;
-            }
-        } catch (InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e1) {
-            resp.setStatus(SC_UNAUTHORIZED);
-            String response = "{\"status\": \"error\", \"msg\": \"Authentication failed\"}";
-            resp.getWriter().write(response);
-            return;
-        }
-
         if (requestedFile.getCanonicalPath().startsWith(config.getSettings().recordingsDir)) {
             if (requestedFile.getName().equals("playlist.m3u8")) {
+                try {
+                    boolean isRequestAuthenticated = checkAuthentication(req, req.getRequestURI());
+                    if (!isRequestAuthenticated) {
+                        resp.setStatus(SC_UNAUTHORIZED);
+                        String response = "{\"status\": \"error\", \"msg\": \"HMAC does not match\"}";
+                        resp.getWriter().write(response);
+                        return;
+                    }
+                } catch (InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e1) {
+                    resp.setStatus(SC_UNAUTHORIZED);
+                    String response = "{\"status\": \"error\", \"msg\": \"Authentication failed\"}";
+                    resp.getWriter().write(response);
+                    return;
+                }
 
                 try {
                     servePlaylist(req, resp, requestedFile);

@@ -19,6 +19,8 @@ public abstract class AbstractCtbrecServlet extends HttpServlet {
             String reqParamHmac = req.getParameter("hmac");
             String httpHeaderHmac = req.getHeader("CTBREC-HMAC");
             String hmac = null;
+            String url = req.getRequestURI();
+
             if(reqParamHmac != null) {
                 hmac = reqParamHmac;
             }
@@ -27,7 +29,8 @@ public abstract class AbstractCtbrecServlet extends HttpServlet {
             }
 
             byte[] key = Config.getInstance().getSettings().key;
-            authenticated = Hmac.validate(body, key, hmac);
+            String msg = reqParamHmac != null ? url : body;
+            authenticated = Hmac.validate(msg, key, hmac);
         } else {
             authenticated = true;
         }

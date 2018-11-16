@@ -9,6 +9,7 @@ import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -496,7 +497,9 @@ public class MyFreeCamsClient {
         lock.lock();
         try {
             for (SessionState state : sessionStates.asMap().values()) {
-                if(Objects.equals(state.getNm(), model.getName()) || Objects.equals(model.getUid(), state.getUid())) {
+                String nm = Optional.ofNullable(state.getNm()).orElse("");
+                String name = Optional.ofNullable(model.getName()).orElse("");
+                if(Objects.equals(nm.toLowerCase(), name.toLowerCase()) || Objects.equals(model.getUid(), state.getUid())) {
                     model.update(state, getStreamUrl(state));
                     return;
                 }

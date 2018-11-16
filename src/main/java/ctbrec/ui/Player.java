@@ -1,11 +1,13 @@
 package ctbrec.ui;
 
 import java.io.File;
+import java.net.URL;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
+import ctbrec.Hmac;
 import ctbrec.OS;
 import ctbrec.Recording;
 import ctbrec.io.DevNull;
@@ -81,6 +83,14 @@ public class Player {
                     }
                     playerProcess = rt.exec(Config.getInstance().getSettings().mediaPlayer + " " + file, OS.getEnvironment(), dir);
                 } else {
+                    if(Config.getInstance().getSettings().requireAuthentication) {
+                        URL u = new URL(url);
+                        String path = u.getPath();
+                        byte[] key = Config.getInstance().getSettings().key;
+                        String hmac = Hmac.calculate(path, key);
+                        url = url + "?hmac=" + hmac;
+                    }
+                    LOG.debug("Playing {}", url);
                     playerProcess = rt.exec(Config.getInstance().getSettings().mediaPlayer + " " + url);
                 }
 

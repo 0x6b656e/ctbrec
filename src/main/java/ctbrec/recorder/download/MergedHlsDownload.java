@@ -14,6 +14,8 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -34,6 +36,7 @@ import com.iheartradio.m3u8.ParseException;
 import com.iheartradio.m3u8.PlaylistException;
 
 import ctbrec.Config;
+import ctbrec.Hmac;
 import ctbrec.Model;
 import ctbrec.Recording;
 import ctbrec.io.HttpClient;
@@ -71,6 +74,13 @@ public class MergedHlsDownload extends AbstractHlsDownload {
             mergeThread = createMergeThread(targetFile, progressListener, false);
             LOG.debug("Merge thread started");
             mergeThread.start();
+            if(Config.getInstance().getSettings().requireAuthentication) {
+                URL u = new URL(segmentPlaylistUri);
+                String path = u.getPath();
+                byte[] key = Config.getInstance().getSettings().key;
+                String hmac = Hmac.calculate(path, key);
+                segmentPlaylistUri = segmentPlaylistUri + "?hmac=" + hmac;
+            }
             LOG.debug("Downloading segments");
             downloadSegments(segmentPlaylistUri, false);
             LOG.debug("Waiting for merge thread to finish");
@@ -82,6 +92,8 @@ public class MergedHlsDownload extends AbstractHlsDownload {
             throw new IOException("Couldn't parse HLS playlist", e);
         } catch (InterruptedException e) {
             throw new IOException("Couldn't wait for write thread to finish. Recording might be cut off", e);
+        } catch (InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e) {
+            throw new IOException("Couldn't add HMAC to playlist url", e);
         } finally {
             alive = false;
             streamer.stop();

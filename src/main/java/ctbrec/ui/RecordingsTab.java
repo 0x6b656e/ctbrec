@@ -291,6 +291,19 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
             contextMenu.getItems().add(deleteRecording);
         }
 
+        MenuItem openDir = new MenuItem("Open directory");
+        openDir.setOnAction((e) -> {
+            String recordingsDir = Config.getInstance().getSettings().recordingsDir;
+            String path = recording.getPath();
+            File recdir = new File(recordingsDir, path);
+            new Thread(() -> {
+                DesktopIntegration.open(recdir);
+            }).start();
+        });
+        if(Config.getInstance().getSettings().localRecording) {
+            contextMenu.getItems().add(openDir);
+        }
+
         MenuItem downloadRecording = new MenuItem("Download");
         downloadRecording.setOnAction((e) -> {
             try {

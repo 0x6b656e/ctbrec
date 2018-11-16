@@ -24,6 +24,7 @@ import ctbrec.Model;
 import ctbrec.Recording;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
+import ctbrec.ui.autofilltextbox.AutoFillTextField;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -41,7 +42,7 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.Clipboard;
@@ -72,7 +73,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
     ContextMenu popup;
 
     Label modelLabel = new Label("Model");
-    TextField model = new TextField();
+    AutoFillTextField model;
     Button addModelButton = new Button("Record");
 
     public RecordedModelsTab(String title, Recorder recorder, List<Site> sites) {
@@ -136,12 +137,18 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         scrollPane.setContent(table);
 
         HBox addModelBox = new HBox(5);
-        addModelBox.getChildren().addAll(modelLabel, model, addModelButton);
         modelLabel.setPadding(new Insets(5, 0, 0, 0));
+        ObservableList<String> suggestions = FXCollections.observableArrayList();
+        sites.forEach(site -> suggestions.add(site.getName()));
+        model = new AutoFillTextField(suggestions);
         model.setPrefWidth(300);
         model.setPromptText("e.g. MyFreeCams:ModelName");
+        model.onActionHandler(e -> addModel(e));
+        model.setTooltip(new Tooltip("To add a model enter SiteName:ModelName\n" +
+                "press ENTER to confirm a suggested site name"));
         BorderPane.setMargin(addModelBox, new Insets(5));
         addModelButton.setOnAction((e) -> addModel(e));
+        addModelBox.getChildren().addAll(modelLabel, model, addModelButton);
 
         BorderPane root = new BorderPane();
         root.setPadding(new Insets(5));

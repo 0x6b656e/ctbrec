@@ -315,14 +315,22 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         MenuItem openInBrowser = new MenuItem("Open in Browser");
         openInBrowser.setOnAction((e) -> DesktopIntegration.open(selectedModel.getUrl()));
         MenuItem openInPlayer = new MenuItem("Open in Player");
-        openInPlayer.setOnAction((e) -> Player.play(selectedModel.getUrl()));
+        openInPlayer.setOnAction((e) -> openInPlayer(selectedModel));
         MenuItem switchStreamSource = new MenuItem("Switch resolution");
         switchStreamSource.setOnAction((e) -> switchStreamSource(selectedModel));
 
         ContextMenu menu = new ContextMenu(stop);
         menu.getItems().add(selectedModel.isSuspended() ? resumeRecording : pauseRecording);
-        menu.getItems().addAll(copyUrl, openInBrowser, switchStreamSource);
+        menu.getItems().addAll(copyUrl, openInPlayer, openInBrowser, switchStreamSource);
         return menu;
+    }
+
+    private void openInPlayer(JavaFxModel selectedModel) {
+        table.setCursor(Cursor.WAIT);
+        new Thread(() -> {
+            Player.play(selectedModel);
+            Platform.runLater(() -> table.setCursor(Cursor.DEFAULT));
+        }).start();
     }
 
     private void switchStreamSource(JavaFxModel fxModel) {

@@ -2,8 +2,6 @@ package ctbrec.ui;
 
 import java.io.EOFException;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -17,7 +15,6 @@ import com.iheartradio.m3u8.ParseException;
 import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.recorder.Recorder;
-import ctbrec.recorder.download.StreamSource;
 import javafx.animation.FadeTransition;
 import javafx.animation.FillTransition;
 import javafx.animation.ParallelTransition;
@@ -300,32 +297,10 @@ public class ThumbCell extends StackPane {
     }
 
     void startPlayer() {
+        setCursor(Cursor.WAIT);
         new Thread(() -> {
-            try {
-                if(model.isOnline(true)) {
-                    List<StreamSource> sources = model.getStreamSources();
-                    Collections.sort(sources);
-                    StreamSource best = sources.get(sources.size()-1);
-                    LOG.debug("Playing {}", best.getMediaPlaylistUrl());
-                    Player.play(best.getMediaPlaylistUrl());
-                } else {
-                    Platform.runLater(() -> {
-                        Alert alert = new AutosizeAlert(Alert.AlertType.INFORMATION);
-                        alert.setTitle("Room not public");
-                        alert.setHeaderText("Room is currently not public");
-                        alert.showAndWait();
-                    });
-                }
-            } catch (Exception e1) {
-                LOG.error("Couldn't get stream information for model {}", model, e1);
-                Platform.runLater(() -> {
-                    Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
-                    alert.setTitle("Error");
-                    alert.setHeaderText("Couldn't determine stream URL");
-                    alert.setContentText(e1.getLocalizedMessage());
-                    alert.showAndWait();
-                });
-            }
+            Player.play(model);
+            Platform.runLater(() -> setCursor(Cursor.DEFAULT));
         }).start();
     }
 

@@ -2,16 +2,22 @@ package ctbrec.ui;
 
 import java.io.File;
 import java.net.URL;
+import java.util.Collections;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
 import ctbrec.Hmac;
+import ctbrec.Model;
 import ctbrec.OS;
 import ctbrec.Recording;
 import ctbrec.io.DevNull;
 import ctbrec.io.StreamRedirectThread;
+import ctbrec.recorder.download.StreamSource;
+import javafx.application.Platform;
+import javafx.scene.control.Alert;
 
 public class Player {
     private static final transient Logger LOG = LoggerFactory.getLogger(Player.class);
@@ -42,6 +48,39 @@ public class Player {
             LOG.error("Couldn't start player", e1);
         }
     }
+
+    public static void play(Model model) {
+        try {
+            if(model.isOnline(true)) {
+                boolean singlePlayer = Config.getInstance().getSettings().singlePlayer;
+                if (singlePlayer && playerThread != null && playerThread.isRunning()) {
+                    playerThread.stopThread();
+                }
+                List<StreamSource> sources = model.getStreamSources();
+                Collections.sort(sources);
+                StreamSource best = sources.get(sources.size()-1);
+                LOG.debug("Playing {}", best.getMediaPlaylistUrl());
+                Player.play(best.getMediaPlaylistUrl());
+            } else {
+                Platform.runLater(() -> {
+                    Alert alert = new AutosizeAlert(Alert.AlertType.INFORMATION);
+                    alert.setTitle("Room not public");
+                    alert.setHeaderText("Room is currently not public");
+                    alert.showAndWait();
+                });
+            }
+        } catch (Exception e1) {
+            LOG.error("Couldn't get stream information for model {}", model, e1);
+            Platform.runLater(() -> {
+                Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+                alert.setTitle("Error");
+                alert.setHeaderText("Couldn't determine stream URL");
+                alert.setContentText(e1.getLocalizedMessage());
+                alert.showAndWait();
+            });
+        }
+    }
+
 
     public static void stop() {
         if (playerThread != null) {

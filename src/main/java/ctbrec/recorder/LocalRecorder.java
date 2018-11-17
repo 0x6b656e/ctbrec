@@ -187,7 +187,7 @@ public class LocalRecorder implements Recorder {
                             Long.toString(download.getStartTime().getEpochSecond())
                     };
                     LOG.debug("Running {}", Arrays.toString(args));
-                    Process process = rt.exec(args, OS.getEnvironment(), download.getDirectory());
+                    Process process = rt.exec(args, OS.getEnvironment());
                     Thread std = new Thread(new StreamRedirectThread(process.getInputStream(), System.out));
                     std.setName("Process stdout pipe");
                     std.setDaemon(true);

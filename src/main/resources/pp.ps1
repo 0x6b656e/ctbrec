@@ -14,4 +14,6 @@ $date = $epoch.AddSeconds($time)
 # print out a theoretical new file name, you could use "rename" here, to rename the file
 # or move it somewhere or ...
 $newname = "$($model)_$($site)_$($date.toString("yyyyMMdd-HHmm")).ts"
-ren $file $newname
+Rename-Item -Path $file -NewName $newname
+Move-Item -Path "$($dir)\$($newname)" -Destination "c:\Users\username\Desktop\$($newname)"
+Remove-Item -Path $dir

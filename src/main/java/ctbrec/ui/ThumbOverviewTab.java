@@ -112,7 +112,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         grid.setVgap(5);
 
         TextField search = new TextField();
-        search.setPromptText("Filter");
+        search.setPromptText("Filter models on this page");
         search.textProperty().addListener( (observableValue, oldValue, newValue) -> {
             filter = search.getText();
             gridLock.lock();

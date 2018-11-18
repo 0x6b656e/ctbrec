@@ -1,3 +1,14 @@
+1.9.1
+========================
+* Fix: HMAC authentication didn't work for playing and downloading of a
+  recording
+* Fix: MyFreeCams model names were case sensitive
+* Text input on "Recording"-tab now does auto completion for the site name
+* Added menu entry to open the directory of a recording
+* Post-processing script is now run outside ot the recordings directory
+  Make sure, you use absolute paths
+* Added setting to configure the directory structure for recordings
+
 1.9.0
 ========================
 * Dropped support for Windows 32 bit

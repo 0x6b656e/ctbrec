@@ -626,16 +626,19 @@ public class LocalRecorder implements Recorder {
 
         if(path.isFile()) {
             Files.delete(path.toPath());
-            deleteEmptyParents(path);
+            deleteEmptyParents(path.getParentFile());
         } else {
             deleteDirectory(path);
             deleteEmptyParents(path);
         }
     }
 
-    private void deleteEmptyParents(File path) throws IOException {
-        File parent = path.getParentFile();
+    private void deleteEmptyParents(File parent) throws IOException {
+        File recDir = new File(Config.getInstance().getSettings().recordingsDir);
         while(parent != null && parent.list() != null && parent.list().length == 0) {
+            if(parent.equals(recDir)) {
+                return;
+            }
             LOG.debug("Deleting empty directory {}", parent.getAbsolutePath());
             Files.delete(parent.toPath());
             parent = parent.getParentFile();
@@ -661,21 +664,7 @@ public class LocalRecorder implements Recorder {
                 }
             }
 
-            if (deletedAllFiles) {
-                LOG.debug("All files deleted");
-                if (directory.list().length == 0) {
-                    LOG.debug("Deleting directory {}", directory);
-                    boolean deleted = directory.delete();
-                    if (deleted) {
-                        if (directory.getParentFile().list().length == 0) {
-                            LOG.debug("Deleting parent directory {}", directory.getParentFile());
-                            directory.getParentFile().delete();
-                        }
-                    } else {
-                        throw new IOException("Couldn't delete " + directory);
-                    }
-                }
-            } else {
+            if (!deletedAllFiles) {
                 throw new IOException("Couldn't delete all files in " + directory);
             }
         } finally {

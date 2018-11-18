@@ -4,7 +4,7 @@
 
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>ctbrec</groupId>
-	<artifactId>ctbrec</artifactId>
+	<artifactId>server</artifactId>
 	<version>1.9.0</version>
 
 	<properties>

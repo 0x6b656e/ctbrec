@@ -58,6 +58,7 @@ public class TokenLabel extends Label {
             @Override
             protected Integer call() throws Exception {
                 if (!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
+                    SiteUiFactory.getUi(site).login();
                     return site.getTokenBalance();
                 } else {
                     return 1_000_000;

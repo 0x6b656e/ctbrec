@@ -14,7 +14,8 @@ public class SiteTabPane extends TabPane {
         setSide(Side.LEFT);
 
         // add all tabs
-        for (Tab tab : site.getTabProvider().getTabs(scene)) {
+        TabProvider tabProvider = SiteUiFactory.getUi(site).getTabProvider();
+        for (Tab tab : tabProvider.getTabs(scene)) {
             getTabs().add(tab);
         }
 

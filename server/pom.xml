@@ -3,14 +3,18 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>ctbrec</groupId>
 	<artifactId>server</artifactId>
-	<version>1.9.0</version>
+
+	<parent>
+		<groupId>ctbrec</groupId>
+		<artifactId>master</artifactId>
+		<version>1.9.0</version>
+		<relativePath>../master</relativePath>
+	</parent>
 
 	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<maven.compiler.source>10</maven.compiler.source>
-		<maven.compiler.target>10</maven.compiler.target>
+		<maven.compiler.source>1.8</maven.compiler.source>
+		<maven.compiler.target>1.8</maven.compiler.target>
 		<name.final>${project.artifactId}-${project.version}-final</name.final>
 	</properties>
 
@@ -19,13 +23,6 @@
 			<resource>
 				<directory>src/main/resources</directory>
 				<filtering>false</filtering>
-			</resource>
-			<resource>
-				<directory>src/main/java</directory>
-				<filtering>false</filtering>
-				<includes>
-					<include>**/*.css</include>
-				</includes>
 			</resource>
 			<resource>
 				<directory>src/main/resources</directory>
@@ -61,34 +58,12 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>org.jsoup</groupId>
-			<artifactId>jsoup</artifactId>
-			<version>1.10.3</version>
-		</dependency>
-		<dependency>
-			<groupId>com.squareup.okhttp3</groupId>
-			<artifactId>okhttp</artifactId>
-			<version>3.10.0</version>
-		</dependency>
-		<dependency>
-			<groupId>com.squareup.moshi</groupId>
-			<artifactId>moshi</artifactId>
-			<version>1.5.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>20180130</version>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
-			<version>1.7.25</version>
+			<groupId>ctbrec</groupId>
+			<artifactId>common</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
-			<version>1.2.3</version>
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>
@@ -102,184 +77,9 @@
 			<version>[9.3.24.v20180605,)</version>
 		</dependency>
 		<dependency>
-			<groupId>com.iheartradio.m3u8</groupId>
-			<artifactId>open-m3u8</artifactId>
-			<version>0.2.4</version>
-		</dependency>
-		<dependency>
-			<groupId>org.jcodec</groupId>
-			<artifactId>jcodec</artifactId>
-			<version>0.2.3</version>
-		</dependency>
-		<dependency>
-			<groupId>org.openjfx</groupId>
-			<artifactId>javafx-controls</artifactId>
-			<version>11</version>
-		</dependency>
-		<dependency>
-			<groupId>org.openjfx</groupId>
-			<artifactId>javafx-web</artifactId>
-			<version>11</version>
-		</dependency>
-		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava</artifactId>
-			<version>17.0</version>
-		</dependency>
-		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>4.12</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-
-	<profiles>
-		<profile>
-			<id>win</id>
-			<activation>
-				<property>
-					<name>javafx.platform</name>
-					<value>win</value>
-				</property>
-			</activation>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>com.akathist.maven.plugins.launch4j</groupId>
-						<artifactId>launch4j-maven-plugin</artifactId>
-						<version>1.7.22</version>
-						<executions>
-							<execution>
-								<id>l4j-win</id>
-								<phase>package</phase>
-								<goals>
-									<goal>launch4j</goal>
-								</goals>
-								<configuration>
-									<headerType>gui</headerType>
-									<outfile>target/ctbrec.exe</outfile>
-									<jar>${name.final}.jar</jar>
-									<dontWrapJar>true</dontWrapJar>
-									<icon>src/main/resources/icon.ico</icon>
-									<errTitle>ctbrec</errTitle>
-									<classPath>
-										<mainClass>ctbrec.ui.Launcher</mainClass>
-										<addDependencies>false</addDependencies>
-										<preCp>anything</preCp>
-									</classPath>
-									<jre>
-										<path>jre</path>
-										<bundledJre64Bit>true</bundledJre64Bit>
-										<minVersion>1.8.0</minVersion>
-										<maxHeapSize>512</maxHeapSize>
-									</jre>
-									<versionInfo>
-										<fileVersion>${project.version}.0</fileVersion>
-										<txtFileVersion>${project.version}</txtFileVersion>
-										<fileDescription>Recorder for Charturbate streams</fileDescription>
-										<copyright>2018 0xboobface</copyright>
-										<productVersion>${project.version}.0</productVersion>
-										<txtProductVersion>${project.version}</txtProductVersion>
-										<productName>CTB Recorder</productName>
-										<internalName>ctbrec</internalName>
-										<originalFilename>ctbrec.exe</originalFilename>
-									</versionInfo>
-									<splash>
-										<file>src/main/resources/splash.bmp</file>
-										<waitForWindow>true</waitForWindow>
-										<timeout>60</timeout>
-										<timeoutErr>true</timeoutErr>
-									</splash>
-								</configuration>
-							</execution>
-						</executions>
-					</plugin>
-					<plugin>
-						<artifactId>maven-assembly-plugin</artifactId>
-						<version>3.1.0</version>
-						<executions>
-							<execution>
-								<id>zip</id>
-								<phase>verify</phase>
-								<goals>
-									<goal>single</goal>
-								</goals>
-								<configuration>
-									<descriptors>
-										<descriptor>src/assembly/win64.xml</descriptor>
-										<descriptor>src/assembly/win64-jre.xml</descriptor>
-									</descriptors>
-								</configuration>
-							</execution>
-						</executions>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-		<profile>
-			<id>linux</id>
-			<activation>
-				<property>
-					<name>javafx.platform</name>
-					<value>linux</value>
-				</property>
-			</activation>
-			<build>
-				<plugins>
-					<plugin>
-						<artifactId>maven-assembly-plugin</artifactId>
-						<version>3.1.0</version>
-						<executions>
-							<execution>
-								<id>zip</id>
-								<phase>verify</phase>
-								<goals>
-									<goal>single</goal>
-								</goals>
-								<configuration>
-									<descriptors>
-										<descriptor>src/assembly/linux.xml</descriptor>
-										<descriptor>src/assembly/linux-jre.xml</descriptor>
-									</descriptors>
-								</configuration>
-							</execution>
-						</executions>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-		<profile>
-			<id>macos</id>
-			<activation>
-				<property>
-					<name>javafx.platform</name>
-					<value>mac</value>
-				</property>
-			</activation>
-			<build>
-				<plugins>
-					<plugin>
-						<artifactId>maven-assembly-plugin</artifactId>
-						<version>3.1.0</version>
-						<executions>
-							<execution>
-								<id>zip</id>
-								<phase>verify</phase>
-								<goals>
-									<goal>single</goal>
-								</goals>
-								<configuration>
-									<descriptors>
-										<descriptor>src/assembly/macos.xml</descriptor>
-										<descriptor>src/assembly/macos-jre.xml</descriptor>
-									</descriptors>
-								</configuration>
-							</execution>
-						</executions>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-	</profiles>
 </project>

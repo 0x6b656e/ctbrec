@@ -126,7 +126,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         rightSide.getChildren().add(credentialsAccordion);
         for (int i = 0; i < sites.size(); i++) {
             Site site = sites.get(i);
-            ConfigUI siteConfig = site.getConfigurationGui();
+            ConfigUI siteConfig = SiteUiFactory.getUi(site).getConfigUI();
             if(siteConfig != null) {
                 TitledPane pane = new TitledPane(site.getName(), siteConfig.createConfigPanel());
                 credentialsAccordion.getPanes().add(pane);

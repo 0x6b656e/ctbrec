@@ -366,6 +366,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                 if(tipText.matches("[1-9]\\d*")) {
                     int tokens = Integer.parseInt(tipText);
                     try {
+                        SiteUiFactory.getUi(site).login();
                         cell.getModel().receiveTip(tokens);
                         Map<String, Object> event = new HashMap<>();
                         event.put("event", "tokens.sent");
@@ -485,7 +486,8 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     }
 
     private double getFollowedTabYPosition() {
-        Tab followedTab = site.getTabProvider().getFollowedTab();
+        TabProvider tabProvider = SiteUiFactory.getUi(site).getTabProvider();
+        Tab followedTab = tabProvider.getFollowedTab();
         TabPane tabPane = getTabPane();
         int idx = tabPane.getTabs().indexOf(followedTab);
         for (Node node : tabPane.getChildrenUnmodifiable()) {

@@ -126,6 +126,7 @@ public class JavaFxModel implements Model {
 
     @Override
     public void receiveTip(int tokens) throws IOException {
+        SiteUiFactory.getUi(getSite()).login();
         delegate.receiveTip(tokens);
     }
 
@@ -136,11 +137,13 @@ public class JavaFxModel implements Model {
 
     @Override
     public boolean follow() throws IOException {
+        SiteUiFactory.getUi(getSite()).login();
         return delegate.follow();
     }
 
     @Override
     public boolean unfollow() throws IOException {
+        SiteUiFactory.getUi(getSite()).login();
         return delegate.unfollow();
     }
 

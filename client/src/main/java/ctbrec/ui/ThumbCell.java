@@ -401,6 +401,7 @@ public class ThumbCell extends StackPane {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 if(follow) {
+                    SiteUiFactory.getUi(model.getSite()).login();
                     boolean followed = model.follow();
                     if(followed) {
                         return true;
@@ -415,6 +416,7 @@ public class ThumbCell extends StackPane {
                         return false;
                     }
                 } else {
+                    SiteUiFactory.getUi(model.getSite()).login();
                     boolean unfollowed = model.unfollow();
                     if(unfollowed) {
                         Platform.runLater(() -> thumbCellList.remove(ThumbCell.this));

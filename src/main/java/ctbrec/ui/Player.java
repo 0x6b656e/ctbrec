@@ -113,14 +113,8 @@ public class Player {
             Runtime rt = Runtime.getRuntime();
             try {
                 if (Config.getInstance().getSettings().localRecording && rec != null) {
-                    File dir = new File(Config.getInstance().getSettings().recordingsDir, rec.getPath());
-                    File file = null;
-                    if(Recording.isMergedRecording(rec)) {
-                        file = Recording.mergedFileFromDirectory(dir);
-                    } else {
-                        file = new File(dir, "playlist.m3u8");
-                    }
-                    playerProcess = rt.exec(Config.getInstance().getSettings().mediaPlayer + " " + file, OS.getEnvironment(), dir);
+                    File file = new File(Config.getInstance().getSettings().recordingsDir, rec.getPath());
+                    playerProcess = rt.exec(Config.getInstance().getSettings().mediaPlayer + " " + file, OS.getEnvironment(), file.getParentFile());
                 } else {
                     if(Config.getInstance().getSettings().requireAuthentication) {
                         URL u = new URL(url);

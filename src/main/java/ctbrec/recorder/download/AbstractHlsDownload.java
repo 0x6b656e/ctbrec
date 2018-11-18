@@ -1,10 +1,8 @@
 package ctbrec.recorder.download;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,7 +40,6 @@ public abstract class AbstractHlsDownload implements Download {
     HttpClient client;
     volatile boolean running = false;
     volatile boolean alive = true;
-    Path downloadDir;
     Instant startTime;
     Model model;
 
@@ -115,11 +112,6 @@ public abstract class AbstractHlsDownload implements Download {
     @Override
     public boolean isAlive() {
         return alive;
-    }
-
-    @Override
-    public File getDirectory() {
-        return downloadDir.toFile();
     }
 
     @Override

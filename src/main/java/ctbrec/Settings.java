@@ -13,6 +13,22 @@ public class Settings {
         SOCKS5
     }
 
+    public enum DirectoryStructure {
+        FLAT("all recordings in one directory"),
+        ONE_PER_MODEL("one directory for each model"),
+        ONE_PER_RECORDING("one directory for each recording");
+
+        private String description;
+        DirectoryStructure(String description) {
+            this.description = description;
+        }
+
+        @Override
+        public String toString() {
+            return description;
+        }
+    }
+
     public boolean singlePlayer = true;
     public boolean localRecording = true;
     public int httpPort = 8080;
@@ -20,6 +36,7 @@ public class Settings {
     public String httpUserAgent = "Mozilla/5.0 Gecko/20100101 Firefox/62.0";
     public String httpServer = "localhost";
     public String recordingsDir = System.getProperty("user.home") + File.separator + "ctbrec";
+    public DirectoryStructure recordingsDirStructure = DirectoryStructure.FLAT;
     public String mediaPlayer = "/usr/bin/mpv";
     public String postProcessing = "";
     public String username = ""; // chaturbate username TODO maybe rename this onetime

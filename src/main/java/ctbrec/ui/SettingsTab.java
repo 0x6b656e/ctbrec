@@ -1,5 +1,7 @@
 package ctbrec.ui;
 
+import static ctbrec.Settings.DirectoryStructure.*;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -12,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import ctbrec.Config;
 import ctbrec.Hmac;
 import ctbrec.Settings;
+import ctbrec.Settings.DirectoryStructure;
 import ctbrec.sites.ConfigUI;
 import ctbrec.sites.Site;
 import javafx.beans.value.ChangeListener;
@@ -70,6 +73,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private ProxySettingsPane proxySettingsPane;
     private ComboBox<Integer> maxResolution;
     private ComboBox<SplitAfterOption> splitAfter;
+    private ComboBox<DirectoryStructure> directoryStructure;
     private List<Site> sites;
     private Label restartLabel;
     private Accordion credentialsAccordion = new Accordion();
@@ -245,8 +249,9 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     }
 
     private Node createLocationsPanel() {
+        int row = 0;
         GridPane layout = createGridLayout();
-        layout.add(new Label("Recordings Directory"), 0, 0);
+        layout.add(new Label("Recordings Directory"), 0, row);
         recordingsDirectory = new TextField(Config.getInstance().getSettings().recordingsDir);
         recordingsDirectory.focusedProperty().addListener(createRecordingsDirectoryFocusListener());
         recordingsDirectory.setPrefWidth(400);
@@ -254,30 +259,42 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         GridPane.setHgrow(recordingsDirectory, Priority.ALWAYS);
         GridPane.setColumnSpan(recordingsDirectory, 2);
         GridPane.setMargin(recordingsDirectory, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        layout.add(recordingsDirectory, 1, 0);
+        layout.add(recordingsDirectory, 1, row);
         recordingsDirectoryButton = createRecordingsBrowseButton();
-        layout.add(recordingsDirectoryButton, 3, 0);
+        layout.add(recordingsDirectoryButton, 3, row++);
 
-        layout.add(new Label("Player"), 0, 1);
-        mediaPlayer = new TextField(Config.getInstance().getSettings().mediaPlayer);
-        mediaPlayer.focusedProperty().addListener(createMpvFocusListener());
-        GridPane.setFillWidth(mediaPlayer, true);
-        GridPane.setHgrow(mediaPlayer, Priority.ALWAYS);
-        GridPane.setColumnSpan(mediaPlayer, 2);
-        GridPane.setMargin(mediaPlayer, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        layout.add(mediaPlayer, 1, 1);
-        layout.add(createMpvBrowseButton(), 3, 1);
+        layout.add(new Label("Directory Structure"), 0, row);
+        List<DirectoryStructure> options = new ArrayList<>();
+        options.add(FLAT);
+        options.add(ONE_PER_MODEL);
+        options.add(ONE_PER_RECORDING);
+        directoryStructure = new ComboBox<>(FXCollections.observableList(options));
+        directoryStructure.setValue(Config.getInstance().getSettings().recordingsDirStructure);
+        directoryStructure.setOnAction((evt) -> Config.getInstance().getSettings().recordingsDirStructure = directoryStructure.getValue());
+        GridPane.setColumnSpan(directoryStructure, 2);
+        GridPane.setMargin(directoryStructure, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        layout.add(directoryStructure, 1, row++);
 
-        layout.add(new Label("Post-Processing"), 0, 2);
+        layout.add(new Label("Post-Processing"), 0, row);
         postProcessing = new TextField(Config.getInstance().getSettings().postProcessing);
         postProcessing.focusedProperty().addListener(createPostProcessingFocusListener());
         GridPane.setFillWidth(postProcessing, true);
         GridPane.setHgrow(postProcessing, Priority.ALWAYS);
         GridPane.setColumnSpan(postProcessing, 2);
         GridPane.setMargin(postProcessing, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        layout.add(postProcessing, 1, 2);
+        layout.add(postProcessing, 1, row);
         postProcessingDirectoryButton = createPostProcessingBrowseButton();
-        layout.add(postProcessingDirectoryButton, 3, 2);
+        layout.add(postProcessingDirectoryButton, 3, row++);
+
+        layout.add(new Label("Player"), 0, row);
+        mediaPlayer = new TextField(Config.getInstance().getSettings().mediaPlayer);
+        mediaPlayer.focusedProperty().addListener(createMpvFocusListener());
+        GridPane.setFillWidth(mediaPlayer, true);
+        GridPane.setHgrow(mediaPlayer, Priority.ALWAYS);
+        GridPane.setColumnSpan(mediaPlayer, 2);
+        GridPane.setMargin(mediaPlayer, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        layout.add(mediaPlayer, 1, row);
+        layout.add(createMpvBrowseButton(), 3, row++);
 
         TitledPane locations = new TitledPane("Locations", layout);
         locations.setCollapsible(false);
@@ -394,6 +411,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         maxResolution.setDisable(!local);
         postProcessing.setDisable(!local);
         postProcessingDirectoryButton.setDisable(!local);
+        directoryStructure.setDisable(!local);
     }
 
     private ChangeListener<? super Boolean> createRecordingsDirectoryFocusListener() {

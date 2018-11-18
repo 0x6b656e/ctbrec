@@ -11,7 +11,7 @@ public interface Download {
     public void start(Model model, Config config) throws IOException;
     public void stop();
     public boolean isAlive();
-    public File getDirectory();
+    public File getTarget();
     public Model getModel();
     public Instant getStartTime();
 }

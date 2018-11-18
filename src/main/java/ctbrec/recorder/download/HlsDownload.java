@@ -33,6 +33,8 @@ public class HlsDownload extends AbstractHlsDownload {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(HlsDownload.class);
 
+    protected Path downloadDir;
+
     public HlsDownload(HttpClient client) {
         super(client);
     }
@@ -179,5 +181,10 @@ public class HlsDownload extends AbstractHlsDownload {
             }
             return false;
         }
+    }
+
+    @Override
+    public File getTarget() {
+        return downloadDir.toFile();
     }
 }

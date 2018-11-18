@@ -10,18 +10,15 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.channels.FileChannel;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZonedDateTime;
-import java.util.Date;
 import java.util.concurrent.Callable;
 
 import org.slf4j.Logger;
@@ -38,7 +35,6 @@ import com.iheartradio.m3u8.PlaylistException;
 import ctbrec.Config;
 import ctbrec.Hmac;
 import ctbrec.Model;
-import ctbrec.Recording;
 import ctbrec.io.HttpClient;
 import ctbrec.io.HttpException;
 import ctbrec.recorder.ProgressListener;
@@ -62,7 +58,8 @@ public class MergedHlsDownload extends AbstractHlsDownload {
         super(client);
     }
 
-    public File getTargetFile() {
+    @Override
+    public File getTarget() {
         return targetFile;
     }
 
@@ -70,7 +67,6 @@ public class MergedHlsDownload extends AbstractHlsDownload {
         try {
             running = true;
             super.startTime = Instant.now();
-            downloadDir = targetFile.getParentFile().toPath();
             mergeThread = createMergeThread(targetFile, progressListener, false);
             LOG.debug("Merge thread started");
             mergeThread.start();
@@ -105,28 +101,16 @@ public class MergedHlsDownload extends AbstractHlsDownload {
     public void start(Model model, Config config) throws IOException {
         this.config = config;
         try {
-            running = true;
-            super.startTime = Instant.now();
-            super.model = model;
-            startTime = ZonedDateTime.now();
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm");
-            String startTime = sdf.format(new Date());
-            Path modelDir = FileSystems.getDefault().getPath(config.getSettings().recordingsDir, model.getName());
-            downloadDir = FileSystems.getDefault().getPath(modelDir.toString(), startTime);
-
             if(!model.isOnline(IGNORE_CACHE)) {
                 throw new IOException(model.getName() +"'s room is not public");
             }
 
-            targetFile = Recording.mergedFileFromDirectory(downloadDir.toFile());
-            File target = targetFile;
-            if(config.getSettings().splitRecordings > 0) {
-                LOG.debug("Splitting recordings every {} seconds", config.getSettings().splitRecordings);
-                target = new File(targetFile.getAbsolutePath().replaceAll("\\.ts", "-00000.ts"));
-            }
-
+            running = true;
+            super.startTime = Instant.now();
+            super.model = model;
+            targetFile = Config.getInstance().getFileForRecording(model);
             String segments = getSegmentPlaylistUrl(model);
-            mergeThread = createMergeThread(target, null, true);
+            mergeThread = createMergeThread(targetFile, null, true);
             mergeThread.start();
             if(segments != null) {
                 downloadSegments(segments, true);
@@ -285,6 +269,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
 
             FileChannel channel = null;
             try {
+                Path downloadDir = targetFile.getParentFile().toPath();
                 if (!Files.exists(downloadDir, LinkOption.NOFOLLOW_LINKS)) {
                     Files.createDirectories(downloadDir);
                 }

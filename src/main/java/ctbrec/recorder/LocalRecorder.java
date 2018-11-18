@@ -3,6 +3,7 @@ package ctbrec.recorder;
 import static ctbrec.Recording.STATUS.*;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.security.InvalidKeyException;
@@ -15,6 +16,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -33,6 +35,7 @@ import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.OS;
 import ctbrec.Recording;
+import ctbrec.Recording.STATUS;
 import ctbrec.io.HttpException;
 import ctbrec.io.StreamRedirectThread;
 import ctbrec.recorder.PlaylistGenerator.InvalidPlaylistException;
@@ -44,8 +47,9 @@ import ctbrec.recorder.server.RecorderHttpClient;
 public class LocalRecorder implements Recorder {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(LocalRecorder.class);
-
     private static final boolean IGNORE_CACHE = true;
+    private static final String DATE_FORMAT = "yyyy-MM-dd_HH-mm";
+
     private List<Model> models = Collections.synchronizedList(new ArrayList<>());
     private Map<Model, Download> recordingProcesses = Collections.synchronizedMap(new HashMap<>());
     private Map<File, PlaylistGenerator> playlistGenerators = new HashMap<>();
@@ -180,8 +184,8 @@ public class LocalRecorder implements Recorder {
                     MergedHlsDownload d = (MergedHlsDownload) download;
                     String[] args = new String[] {
                             postProcessing,
-                            d.getDirectory().getAbsolutePath(),
-                            d.getTargetFile().getAbsolutePath(),
+                            d.getTarget().getParentFile().getAbsolutePath(),
+                            d.getTarget().getAbsolutePath(),
                             d.getModel().getName(),
                             d.getModel().getSite().getName(),
                             Long.toString(download.getStartTime().getEpochSecond())
@@ -330,7 +334,7 @@ public class LocalRecorder implements Recorder {
                         restart.add(m);
                         if(config.isServerMode()) {
                             try {
-                                finishRecording(d.getDirectory());
+                                finishRecording(d.getTarget());
                             } catch(Exception e) {
                                 LOG.error("Error while finishing recording for model {}", m.getName(), e);
                             }
@@ -448,7 +452,7 @@ public class LocalRecorder implements Recorder {
                             File recordingsDir = new File(config.getSettings().recordingsDir);
                             File recDir = new File(recordingsDir, rec.getPath());
                             for (Entry<Model, Download> download : recordingProcesses.entrySet()) {
-                                if (download.getValue().getDirectory().equals(recDir)) {
+                                if (download.getValue().getTarget().equals(recDir)) {
                                     recordingProcessFound = true;
                                 }
                             }
@@ -476,6 +480,74 @@ public class LocalRecorder implements Recorder {
 
     @Override
     public List<Recording> getRecordings() {
+        if(Config.getInstance().isServerMode()) {
+            return listSegmentedRecordings();
+        } else {
+            return listMergedRecordings();
+        }
+    }
+
+    private List<Recording> listMergedRecordings() {
+        File recordingsDir = new File(config.getSettings().recordingsDir);
+        List<File> possibleRecordings = new LinkedList<>();
+        listRecursively(recordingsDir, possibleRecordings, (dir, name) -> name.matches(".*?_\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}\\.ts"));
+        SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
+        List<Recording> recordings = new ArrayList<>();
+        for (File ts: possibleRecordings) {
+            try {
+                String filename = ts.getName();
+                String dateString = filename.substring(filename.length() - 3 - DATE_FORMAT.length(), filename.length() - 3);
+                Date startDate = sdf.parse(dateString);
+                Recording recording = new Recording();
+                recording.setModelName(filename.substring(0, filename.length() - 4 - DATE_FORMAT.length()));
+                recording.setStartDate(Instant.ofEpochMilli(startDate.getTime()));
+                String path = ts.getAbsolutePath().replace(config.getSettings().recordingsDir, "");
+                if(!path.startsWith("/")) {
+                    path = '/' + path;
+                }
+                recording.setPath(path);
+                recording.setSizeInByte(ts.length());
+                recording.setStatus(getStatus(recording));
+                recordings.add(recording);
+            } catch(Exception e) {
+                LOG.error("Ignoring {} - {}", ts.getAbsolutePath(), e.getMessage());
+            }
+        }
+        return recordings;
+    }
+
+    private STATUS getStatus(Recording recording) {
+        File absolutePath = new File(Config.getInstance().getSettings().recordingsDir, recording.getPath());
+
+        PlaylistGenerator playlistGenerator = playlistGenerators.get(absolutePath);
+        if (playlistGenerator != null) {
+            recording.setProgress(playlistGenerator.getProgress());
+            return GENERATING_PLAYLIST;
+        }
+
+        if (config.isServerMode()) {
+            if (recording.hasPlaylist()) {
+                return FINISHED;
+            } else {
+                return RECORDING;
+            }
+        } else {
+            boolean dirUsedByRecordingProcess = false;
+            for (Download download : recordingProcesses.values()) {
+                if(absolutePath.equals(download.getTarget())) {
+                    dirUsedByRecordingProcess = true;
+                    break;
+                }
+            }
+            if(dirUsedByRecordingProcess) {
+                return RECORDING;
+            } else {
+                return FINISHED;
+            }
+        }
+    }
+
+    private List<Recording> listSegmentedRecordings() {
         List<Recording> recordings = new ArrayList<>();
         File recordingsDir = new File(config.getSettings().recordingsDir);
         File[] subdirs = recordingsDir.listFiles();
@@ -484,25 +556,19 @@ public class LocalRecorder implements Recorder {
         }
 
         for (File subdir : subdirs) {
-            // only consider directories
-            if (!subdir.isDirectory()) {
-                continue;
-            }
-
             // ignore empty directories
             File[] recordingsDirs = subdir.listFiles();
-            if(recordingsDirs.length == 0) {
+            if(recordingsDirs == null || recordingsDirs.length == 0) {
                 continue;
             }
 
             // start going over valid directories
             for (File rec : recordingsDirs) {
-                String pattern = "yyyy-MM-dd_HH-mm";
-                SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+                SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
                 if (rec.isDirectory()) {
                     try {
                         // ignore directories, which are probably not created by ctbrec
-                        if (rec.getName().length() != pattern.length()) {
+                        if (rec.getName().length() != DATE_FORMAT.length()) {
                             continue;
                         }
                         // ignore empty directories
@@ -518,33 +584,7 @@ public class LocalRecorder implements Recorder {
                         recording.setSizeInByte(getSize(rec));
                         File playlist = new File(rec, "playlist.m3u8");
                         recording.setHasPlaylist(playlist.exists());
-
-                        PlaylistGenerator playlistGenerator = playlistGenerators.get(rec);
-                        if (playlistGenerator != null) {
-                            recording.setStatus(GENERATING_PLAYLIST);
-                            recording.setProgress(playlistGenerator.getProgress());
-                        } else {
-                            if (config.isServerMode()) {
-                                if (recording.hasPlaylist()) {
-                                    recording.setStatus(FINISHED);
-                                } else {
-                                    recording.setStatus(RECORDING);
-                                }
-                            } else {
-                                boolean dirUsedByRecordingProcess = false;
-                                for (Download download : recordingProcesses.values()) {
-                                    if(rec.equals(download.getDirectory())) {
-                                        dirUsedByRecordingProcess = true;
-                                        break;
-                                    }
-                                }
-                                if(dirUsedByRecordingProcess) {
-                                    recording.setStatus(RECORDING);
-                                } else {
-                                    recording.setStatus(FINISHED);
-                                }
-                            }
-                        }
+                        recording.setStatus(getStatus(recording));
                         recordings.add(recording);
                     } catch (Exception e) {
                         LOG.debug("Ignoring {} - {}", rec.getAbsolutePath(), e.getMessage());
@@ -553,6 +593,20 @@ public class LocalRecorder implements Recorder {
             }
         }
         return recordings;
+    }
+
+    private void listRecursively(File dir, List<File> result, FilenameFilter filenameFilter) {
+        File[] files = dir.listFiles();
+        if(files != null) {
+            for (File file : files) {
+                if(file.isDirectory()) {
+                    listRecursively(file, result, filenameFilter);
+                }
+                if(filenameFilter.accept(dir, file.getName())) {
+                    result.add(file);
+                }
+            }
+        }
     }
 
     private long getSize(File rec) {
@@ -567,11 +621,28 @@ public class LocalRecorder implements Recorder {
     @Override
     public void delete(Recording recording) throws IOException {
         File recordingsDir = new File(config.getSettings().recordingsDir);
-        File directory = new File(recordingsDir, recording.getPath());
-        delete(directory);
+        File path = new File(recordingsDir, recording.getPath());
+        LOG.debug("Deleting {}", path);
+
+        if(path.isFile()) {
+            Files.delete(path.toPath());
+            deleteEmptyParents(path);
+        } else {
+            deleteDirectory(path);
+            deleteEmptyParents(path);
+        }
     }
 
-    private void delete(File directory) throws IOException {
+    private void deleteEmptyParents(File path) throws IOException {
+        File parent = path.getParentFile();
+        while(parent != null && parent.list() != null && parent.list().length == 0) {
+            LOG.debug("Deleting empty directory {}", parent.getAbsolutePath());
+            Files.delete(parent.toPath());
+            parent = parent.getParentFile();
+        }
+    }
+
+    private void deleteDirectory(File directory) throws IOException {
         if (!directory.exists()) {
             throw new IOException("Recording does not exist");
         }

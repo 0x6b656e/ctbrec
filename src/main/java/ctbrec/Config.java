@@ -7,6 +7,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -104,5 +106,32 @@ public class Config {
 
     public File getConfigDir() {
         return configDir;
+    }
+
+    public File getFileForRecording(Model model) {
+        File dirForRecording = getDirForRecording(model);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm");
+        String startTime = sdf.format(new Date());
+        File targetFile = new File(dirForRecording, model.getName() + '_' + startTime + ".ts");
+        if(getSettings().splitRecordings > 0) {
+            LOG.debug("Splitting recordings every {} seconds", getSettings().splitRecordings);
+            targetFile = new File(targetFile.getAbsolutePath().replaceAll("\\.ts", "-00000.ts"));
+        }
+        return targetFile;
+    }
+
+    private File getDirForRecording(Model model) {
+        switch(getSettings().recordingsDirStructure) {
+        case ONE_PER_MODEL:
+            return new File(getSettings().recordingsDir, model.getName());
+        case ONE_PER_RECORDING:
+            File modelDir = new File(getSettings().recordingsDir, model.getName());
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm");
+            String startTime = sdf.format(new Date());
+            return new File(modelDir, startTime);
+        case FLAT:
+        default:
+            return new File(getSettings().recordingsDir);
+        }
     }
 }

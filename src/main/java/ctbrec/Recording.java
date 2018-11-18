@@ -1,6 +1,5 @@
 package ctbrec;
 
-import java.io.File;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -94,6 +93,7 @@ public class Recording {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((modelName == null) ? 0 : modelName.hashCode());
+        result = prime * result + ((path == null) ? 0 : path.hashCode());
         result = prime * result + ((startDate == null) ? 0 : startDate.hashCode());
         return result;
     }
@@ -105,35 +105,21 @@ public class Recording {
         if (obj == null)
             return false;
         Recording other = (Recording) obj;
-        if (getModelName() == null) {
+        if (modelName == null) {
             if (other.getModelName() != null)
                 return false;
-        } else if (!getModelName().equals(other.getModelName()))
+        } else if (!modelName.equals(other.getModelName()))
             return false;
-        if (getStartDate() == null) {
+        if (path == null) {
+            if (other.getPath() != null)
+                return false;
+        } else if (!path.equals(other.getPath()))
+            return false;
+        if (startDate == null) {
             if (other.getStartDate() != null)
                 return false;
-        } else if (!getStartDate().equals(other.getStartDate()))
+        } else if (!startDate.equals(other.getStartDate()))
             return false;
         return true;
-    }
-
-    public static File mergedFileFromDirectory(File recDir) {
-        String date = recDir.getName();
-        String model = recDir.getParentFile().getName();
-        String filename = model + "-" + date + ".ts";
-        File mergedFile = new File(recDir, filename);
-        return mergedFile;
-    }
-
-    public static boolean isMergedRecording(File recDir) {
-        File mergedFile = mergedFileFromDirectory(recDir);
-        return mergedFile.exists();
-    }
-
-    public static boolean isMergedRecording(Recording recording) {
-        String recordingsDir = Config.getInstance().getSettings().recordingsDir;
-        File recDir = new File(recordingsDir, recording.getPath());
-        return isMergedRecording(recDir);
     }
 }

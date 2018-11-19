@@ -10,5 +10,8 @@ CTB Recorder allows you to record any public show on different cam sites. It is 
 
 For more visit the [homepage](https://0xboobface.github.io/ctbrec)
 
+## Installation
+[Download](https://github.com/0xboobface/ctbrec/releases) the bundle ending in -jre for your platform and follow the instructions in the README.md contained in the zip.
+
 ## License
 CTB Recorder is licensed under the GPLv3. See [LICENSE.txt](https://raw.githubusercontent.com/0xboobface/ctbrec/master/LICENSE.txt).

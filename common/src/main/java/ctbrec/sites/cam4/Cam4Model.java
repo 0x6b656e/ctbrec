@@ -27,7 +27,6 @@ import ctbrec.Config;
 import ctbrec.io.HtmlParser;
 import ctbrec.io.HttpException;
 import ctbrec.recorder.download.StreamSource;
-import ctbrec.sites.Site;
 import okhttp3.FormBody;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -36,7 +35,6 @@ import okhttp3.Response;
 public class Cam4Model extends AbstractModel {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(Cam4Model.class);
-    private Cam4 site;
     private String playlistUrl;
     private String onlineState = "offline";
     private int[] resolution = null;
@@ -219,20 +217,6 @@ public class Cam4Model extends AbstractModel {
                 return false;
             }
         }
-    }
-
-    @Override
-    public void setSite(Site site) {
-        if(site instanceof Cam4) {
-            this.site = (Cam4) site;
-        } else {
-            throw new IllegalArgumentException("Site has to be an instance of Cam4");
-        }
-    }
-
-    @Override
-    public Site getSite() {
-        return site;
     }
 
     public void setPlaylistUrl(String playlistUrl) {

@@ -19,7 +19,6 @@ import com.iheartradio.m3u8.data.PlaylistData;
 import ctbrec.AbstractModel;
 import ctbrec.Config;
 import ctbrec.recorder.download.StreamSource;
-import ctbrec.sites.Site;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
@@ -27,7 +26,7 @@ import okhttp3.Response;
 public class ChaturbateModel extends AbstractModel {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(ChaturbateModel.class);
-    private Chaturbate site;
+    private Chaturbate chaturbate;
 
     /**
      * This constructor exists only for deserialization. Please don't call it directly
@@ -37,30 +36,31 @@ public class ChaturbateModel extends AbstractModel {
 
     ChaturbateModel(Chaturbate site) {
         this.site = site;
+        this.chaturbate = site;
     }
 
     @Override
     public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException {
         StreamInfo info;
         if(ignoreCache) {
-            info = site.loadStreamInfo(getName());
+            info = chaturbate.loadStreamInfo(getName());
             LOG.trace("Model {} room status: {}", getName(), info.room_status);
         } else {
-            info = site.getStreamInfo(getName());
+            info = chaturbate.getStreamInfo(getName());
         }
         return Objects.equals("public", info.room_status);
     }
 
     @Override
     public int[] getStreamResolution(boolean failFast) throws ExecutionException {
-        int[] resolution = site.streamResolutionCache.getIfPresent(getName());
+        int[] resolution = chaturbate.streamResolutionCache.getIfPresent(getName());
         if(resolution != null) {
-            return site.getResolution(getName());
+            return chaturbate.getResolution(getName());
         } else {
             if(failFast) {
                 return new int[2];
             } else {
-                return site.getResolution(getName());
+                return chaturbate.getResolution(getName());
             }
         }
     }
@@ -71,8 +71,8 @@ public class ChaturbateModel extends AbstractModel {
      */
     @Override
     public void invalidateCacheEntries() {
-        site.streamInfoCache.invalidate(getName());
-        site.streamResolutionCache.invalidate(getName());
+        chaturbate.streamInfoCache.invalidate(getName());
+        chaturbate.streamResolutionCache.invalidate(getName());
     }
 
     public String getOnlineState() throws IOException, ExecutionException {
@@ -81,20 +81,20 @@ public class ChaturbateModel extends AbstractModel {
 
     @Override
     public String getOnlineState(boolean failFast) throws IOException, ExecutionException {
-        StreamInfo info = site.streamInfoCache.getIfPresent(getName());
+        StreamInfo info = chaturbate.streamInfoCache.getIfPresent(getName());
         return info != null ? info.room_status : "n/a";
     }
 
     public StreamInfo getStreamInfo() throws IOException, ExecutionException {
-        return site.getStreamInfo(getName());
+        return chaturbate.getStreamInfo(getName());
     }
     public MasterPlaylist getMasterPlaylist() throws IOException, ParseException, PlaylistException, ExecutionException {
-        return site.getMasterPlaylist(getName());
+        return chaturbate.getMasterPlaylist(getName());
     }
 
     @Override
     public void receiveTip(int tokens) throws IOException {
-        site.sendTip(getName(), tokens);
+        chaturbate.sendTip(getName(), tokens);
     }
 
     @Override
@@ -166,19 +166,5 @@ public class ChaturbateModel extends AbstractModel {
             resp.close();
             throw new IOException("HTTP status " + resp.code() + " " + resp.message());
         }
-    }
-
-    @Override
-    public void setSite(Site site) {
-        if(site instanceof Chaturbate) {
-            this.site = (Chaturbate) site;
-        } else {
-            throw new IllegalArgumentException("Site has to be an instance of Chaturbate");
-        }
-    }
-
-    @Override
-    public Site getSite() {
-        return site;
     }
 }

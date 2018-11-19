@@ -25,7 +25,6 @@ import ctbrec.AbstractModel;
 import ctbrec.Config;
 import ctbrec.io.HttpException;
 import ctbrec.recorder.download.StreamSource;
-import ctbrec.sites.Site;
 import okhttp3.FormBody;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -35,7 +34,6 @@ public class BongaCamsModel extends AbstractModel {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(BongaCamsModel.class);
 
-    private BongaCams site;
     private int userId;
     private String onlineState = "n/a";
     private boolean online = false;
@@ -209,20 +207,6 @@ public class BongaCamsModel extends AbstractModel {
     @Override
     public boolean unfollow() throws IOException {
         return false;
-    }
-
-    @Override
-    public void setSite(Site site) {
-        if(site instanceof BongaCams) {
-            this.site = (BongaCams) site;
-        } else {
-            throw new IllegalArgumentException("Site has to be an instance of BongaCams");
-        }
-    }
-
-    @Override
-    public Site getSite() {
-        return site;
     }
 
     public int getUserId() {

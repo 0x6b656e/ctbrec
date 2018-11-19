@@ -8,6 +8,8 @@ import java.util.concurrent.ExecutionException;
 import com.squareup.moshi.JsonReader;
 import com.squareup.moshi.JsonWriter;
 
+import ctbrec.sites.Site;
+
 public abstract class AbstractModel implements Model {
 
     private String url;
@@ -17,6 +19,7 @@ public abstract class AbstractModel implements Model {
     private List<String> tags = new ArrayList<>();
     private int streamUrlIndex = -1;
     private boolean suspended = false;
+    protected Site site;
 
     @Override
     public boolean isOnline() throws IOException, ExecutionException, InterruptedException {
@@ -139,4 +142,13 @@ public abstract class AbstractModel implements Model {
         return getName();
     }
 
+    @Override
+    public void setSite(Site site) {
+        this.site = site;
+    }
+
+    @Override
+    public Site getSite() {
+        return site;
+    }
 }

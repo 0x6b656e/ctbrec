@@ -30,7 +30,6 @@ import ctbrec.AbstractModel;
 import ctbrec.io.HtmlParser;
 import ctbrec.io.HttpException;
 import ctbrec.recorder.download.StreamSource;
-import ctbrec.sites.Site;
 import okhttp3.FormBody;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -46,7 +45,6 @@ public class MyFreeCamsModel extends AbstractModel {
     private int viewerCount;
     private State state;
     private int resolution[];
-    private MyFreeCams site;
 
     /**
      * This constructor exists only for deserialization. Please don't call it directly
@@ -262,7 +260,7 @@ public class MyFreeCamsModel extends AbstractModel {
         int userChannel = 100000000 + state.getUid();
         int camserv = state.getU().getCamserv();
         String server = Integer.toString(camserv);
-        ServerConfig sc = site.getClient().getServerConfig();
+        ServerConfig sc = ((MyFreeCams)site).getClient().getServerConfig();
         if(sc.isOnNgServer(state)) {
             server = sc.ngVideoServers.get(Integer.toString(camserv));
             camserv = Integer.parseInt(server.replaceAll("[^0-9]+", ""));
@@ -284,12 +282,12 @@ public class MyFreeCamsModel extends AbstractModel {
 
     @Override
     public boolean follow() {
-        return site.getClient().follow(getUid());
+        return ((MyFreeCams)site).getClient().follow(getUid());
     }
 
     @Override
     public boolean unfollow() {
-        return site.getClient().unfollow(getUid());
+        return ((MyFreeCams)site).getClient().unfollow(getUid());
     }
 
     public int getUid() {
@@ -306,20 +304,6 @@ public class MyFreeCamsModel extends AbstractModel {
 
     public void setViewerCount(int viewerCount) {
         this.viewerCount = viewerCount;
-    }
-
-    @Override
-    public void setSite(Site site) {
-        if(site instanceof MyFreeCams) {
-            this.site = (MyFreeCams) site;
-        } else {
-            throw new IllegalArgumentException("Site has to be an instance of MyFreeCams");
-        }
-    }
-
-    @Override
-    public Site getSite() {
-        return site;
     }
 
     @Override

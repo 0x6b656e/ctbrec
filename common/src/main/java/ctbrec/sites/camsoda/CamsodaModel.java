@@ -28,7 +28,6 @@ import ctbrec.AbstractModel;
 import ctbrec.Config;
 import ctbrec.io.HttpException;
 import ctbrec.recorder.download.StreamSource;
-import ctbrec.sites.Site;
 import okhttp3.FormBody;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -38,7 +37,6 @@ public class CamsodaModel extends AbstractModel {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(CamsodaModel.class);
     private String streamUrl;
-    private Site site;
     private List<StreamSource> streamSources = null;
     private String status = "n/a";
     private float sortOrder = 0;
@@ -240,20 +238,6 @@ public class CamsodaModel extends AbstractModel {
                 throw new HttpException(response.code(), response.message());
             }
         }
-    }
-
-    @Override
-    public void setSite(Site site) {
-        if(site instanceof Camsoda) {
-            this.site = site;
-        } else {
-            throw new IllegalArgumentException("Site has to be an instance of Camsoda");
-        }
-    }
-
-    @Override
-    public Site getSite() {
-        return site;
     }
 
     public void setStreamUrl(String streamUrl) {

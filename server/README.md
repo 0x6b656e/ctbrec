@@ -27,6 +27,9 @@ This is the server part, which is only needed, if you want to run ctbrec in clie
   after the `{`. Insert a comma `,` at the end of the line.
 * Start the server again. You should now see a line like ``12:58:37.540 [main] INFO  ctbrec.recorder.server.HttpServer - HMAC authentication is enabled``
   in the server log.
+  
+## Docker
+There is a docker image, created by Github user [1461748123](https://github.com/1461748123), which you can find on [Docker Hub](https://hub.docker.com/r/1461748123/ctbrec/) 
 
 ## License
 CTB Recorder is licensed under the GPLv3. See [LICENSE.txt](https://raw.githubusercontent.com/0xboobface/ctbrec/master/LICENSE.txt).

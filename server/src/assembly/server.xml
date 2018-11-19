@@ -1,25 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <assembly>
-	<id>linux</id>
+	<id>unified</id>
 	<formats>
 		<format>zip</format>
 	</formats>
 	<includeBaseDirectory>false</includeBaseDirectory>
 	<files>
 		<file>
-			<source>${project.basedir}/src/assembly/ctbrec-linux.sh</source>
-			<outputDirectory>ctbrec</outputDirectory>
-			<filtered>true</filtered>
-			<destName>ctbrec.sh</destName>
-		</file>
-		<file>
 			<source>${project.basedir}/src/assembly/server-linux.sh</source>
 			<outputDirectory>ctbrec</outputDirectory>
 			<filtered>true</filtered>
-			<destName>server.sh</destName>
 		</file>
 		<file>
-			<source>${project.basedir}/src/main/resources/pp.sh</source>
+			<source>${project.basedir}/src/assembly/server-macos.sh</source>
+			<outputDirectory>ctbrec</outputDirectory>
+			<filtered>true</filtered>
+		</file>
+		<file>
+			<source>${project.basedir}/src/assembly/server.bat</source>
+			<outputDirectory>ctbrec</outputDirectory>
+			<filtered>true</filtered>
+		</file>
+		<file>
+			<source>${project.basedir}/LICENSE.txt</source>
+			<outputDirectory>ctbrec</outputDirectory>
+		</file>
+		<file>
+			<source>${project.basedir}/README.md</source>
 			<outputDirectory>ctbrec</outputDirectory>
 		</file>
 		<file>

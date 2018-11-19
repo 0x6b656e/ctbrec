@@ -1,0 +1,1 @@
+java -Xmx192m -cp ${name.final}.jar -Dctbrec.config=server.json ctbrec.recorder.server.HttpServer

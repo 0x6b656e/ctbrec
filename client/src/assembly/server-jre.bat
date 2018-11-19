@@ -1,1 +1,0 @@
-jre\bin\java -cp ${name.final}.jar -Dctbrec.config=server.json ctbrec.recorder.server.HttpServer

@@ -1,1 +1,8 @@
+/bin/
 /target/
+*~
+*.bak
+/ctbrec.log
+/ctbrec-tunnel.sh
+/jre/
+/server-local.sh

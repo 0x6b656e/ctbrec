@@ -8,7 +8,6 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
-import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
@@ -61,49 +60,32 @@ public class DonateTabFx extends Tab {
         buyCoffeeBox.setAlignment(Pos.TOP_CENTER);
         buyCoffeeBox.getChildren().addAll(coffeeImage, coffeeButton);
 
-        int prefWidth = 360;
-        TextField bitcoinAddress = new TextField("15sLWZon8diPqAX4UdPQU1DcaPuvZs2GgA");
-        bitcoinAddress.setEditable(false);
-        bitcoinAddress.setPrefWidth(prefWidth);
-        ImageView bitcoinQrCode = new ImageView(getClass().getResource("/html/bitcoin-address.png").toString());
-        Label bitcoinLabel = new Label("Bitcoin");
-        bitcoinLabel.setGraphic(new ImageView(getClass().getResource("/html/bitcoin.png").toString()));
-        VBox bitcoinBox = new VBox(5);
-        bitcoinBox.setAlignment(Pos.TOP_CENTER);
-        bitcoinBox.getChildren().addAll(bitcoinLabel, bitcoinAddress, bitcoinQrCode);
+        ImageView paypalImage = new ImageView(getClass().getResource("/html/pp196.png").toString());
+        Button paypalButton = new Button("PayPal");
+        paypalButton.setOnMouseClicked((e) -> { DesktopIntegration.open("https://www.paypal.me/0xb00bface"); });
+        VBox paypalBox = new VBox(5);
+        paypalBox.setAlignment(Pos.TOP_CENTER);
+        paypalBox.getChildren().addAll(paypalImage, paypalButton);
 
-        TextField ethereumAddress = new TextField("0x996041638eEAE7E31f39Ef6e82068d69bA7C090e");
-        ethereumAddress.setEditable(false);
-        ethereumAddress.setPrefWidth(prefWidth);
-        ImageView ethereumQrCode = new ImageView(getClass().getResource("/html/ethereum-address.png").toString());
-        Label ethereumLabel = new Label("Ethereum");
-        ethereumLabel.setGraphic(new ImageView(getClass().getResource("/html/ethereum.png").toString()));
-        VBox ethereumBox = new VBox(5);
-        ethereumBox.setAlignment(Pos.TOP_CENTER);
-        ethereumBox.getChildren().addAll(ethereumLabel, ethereumAddress, ethereumQrCode);
-
-        TextField moneroAddress = new TextField("448ZQZpzvT4iRNAVBr7CMQBfEbN3H8uAF2BWabtqVRckgTY3GQJkUgydjotEPaGvpzJboUpe39J8rPBkWZaUbrQa31FoSMj");
-        moneroAddress.setEditable(false);
-        moneroAddress.setPrefWidth(prefWidth);
-        ImageView moneroQrCode = new ImageView(getClass().getResource("/html/monero-address.png").toString());
-        Label moneroLabel = new Label("Monero");
-        moneroLabel.setGraphic(new ImageView(getClass().getResource("/html/monero.png").toString()));
-        VBox moneroBox = new VBox(5);
-        moneroBox.setAlignment(Pos.TOP_CENTER);
-        moneroBox.getChildren().addAll(moneroLabel, moneroAddress, moneroQrCode);
+        ImageView patreonImage = new ImageView(getClass().getResource("/html/patreon-logo.png").toString());
+        Button patreonButton = new Button("Become a Patron");
+        patreonButton.setOnMouseClicked((e) -> { DesktopIntegration.open("https://www.patreon.com/0xb00bface"); });
+        VBox patreonBox = new VBox(5);
+        patreonBox.setAlignment(Pos.TOP_CENTER);
+        patreonBox.getChildren().addAll(patreonImage, patreonButton);
 
         HBox topBox = new HBox(5);
         topBox.setAlignment(Pos.CENTER);
         topBox.setSpacing(50);
-        topBox.getChildren().addAll(tokenBox, buyCoffeeBox);
+        topBox.getChildren().addAll(tokenBox);
 
-        HBox coinBox = new HBox(5);
-        coinBox.setAlignment(Pos.CENTER);
-        coinBox.setSpacing(50);
-        coinBox.getChildren().addAll(bitcoinBox, ethereumBox, moneroBox);
+        HBox bottomBox = new HBox(5);
+        bottomBox.setAlignment(Pos.CENTER);
+        bottomBox.setSpacing(50);
+        bottomBox.getChildren().addAll(buyCoffeeBox, paypalBox, patreonBox);
 
         VBox centerBox = new VBox(50);
-        centerBox.getChildren().addAll(topBox, coinBox);
+        centerBox.getChildren().addAll(topBox, bottomBox);
         container.setCenter(centerBox);
     }
 }

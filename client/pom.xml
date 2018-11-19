@@ -156,6 +156,7 @@
 									<goal>single</goal>
 								</goals>
 								<configuration>
+									<finalName>ctbrec-${project.version}</finalName>
 									<descriptors>
 										<descriptor>src/assembly/win64.xml</descriptor>
 										<descriptor>src/assembly/win64-jre.xml</descriptor>
@@ -188,6 +189,7 @@
 									<goal>single</goal>
 								</goals>
 								<configuration>
+									<finalName>ctbrec-${project.version}</finalName>
 									<descriptors>
 										<descriptor>src/assembly/linux.xml</descriptor>
 										<descriptor>src/assembly/linux-jre.xml</descriptor>
@@ -220,6 +222,7 @@
 									<goal>single</goal>
 								</goals>
 								<configuration>
+									<finalName>ctbrec-${project.version}</finalName>
 									<descriptors>
 										<descriptor>src/assembly/macos.xml</descriptor>
 										<descriptor>src/assembly/macos-jre.xml</descriptor>

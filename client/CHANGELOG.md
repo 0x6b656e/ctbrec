@@ -1,4 +1,4 @@
-1.9.1
+1.10.0
 ========================
 * Fix: HMAC authentication didn't work for playing and downloading of a
   recording
@@ -8,6 +8,8 @@
 * Post-processing script is now run outside ot the recordings directory
   Make sure, you use absolute paths
 * Added setting to configure the directory structure for recordings
+* Split up client and server into separat packages. The server package
+  only depends on Java 1.8 and can be run with the 32-bit JRE, too.
 
 1.9.0
 ========================

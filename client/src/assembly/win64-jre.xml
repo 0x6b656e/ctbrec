@@ -10,12 +10,6 @@
 			<source>${project.build.directory}/ctbrec.exe</source>
 			<outputDirectory>ctbrec</outputDirectory>
 		</file>
-		<file>
-			<source>${project.basedir}/src/assembly/server-jre.bat</source>
-			<outputDirectory>ctbrec</outputDirectory>
-			<filtered>true</filtered>
-			<destName>server.bat</destName>
-		</file>
         <file>
 			<source>${project.basedir}/src/main/resources/pp.bat</source>
 			<outputDirectory>ctbrec</outputDirectory>
@@ -26,6 +20,18 @@
 		</file>
 		<file>
 			<source>${project.build.directory}/${name.final}.jar</source>
+			<outputDirectory>ctbrec</outputDirectory>
+		</file>
+		<file>
+			<source>${project.basedir}/CHANGELOG.md</source>
+			<outputDirectory>ctbrec</outputDirectory>
+		</file>
+		<file>
+			<source>${project.basedir}/LICENSE.txt</source>
+			<outputDirectory>ctbrec</outputDirectory>
+		</file>
+		<file>
+			<source>${project.basedir}/README.md</source>
 			<outputDirectory>ctbrec</outputDirectory>
 		</file>
 	</files>

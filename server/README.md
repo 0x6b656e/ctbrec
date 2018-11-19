@@ -15,7 +15,7 @@ This is the server part, which is only needed, if you want to run ctbrec in clie
 * Run the server once with script for your platform (server-linux.sh, server-macos.sh, server.bat). This will create the settings file,
   which you can use to configure the server. You can find it here:
   
-  Windows: Press <kbd>Windows + r<kbd>, type ``%appdata%\ctbrec``, press OK
+  Windows: Press <kbd>Windows + r</kbd>, type ``%appdata%\ctbrec``, press OK
   
   Linux: ``~/.config/ctbrec``
   

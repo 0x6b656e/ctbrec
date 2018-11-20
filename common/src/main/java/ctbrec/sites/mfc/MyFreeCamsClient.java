@@ -157,11 +157,15 @@ public class MyFreeCamsClient {
             @Override
             public void onFailure(WebSocket webSocket, Throwable t, Response response) {
                 super.onFailure(webSocket, t, response);
-                int code = response.code();
-                String message = response.message();
-                response.close();
+                if(response != null) {
+                    int code = response.code();
+                    String message = response.message();
+                    LOG.error("MFC websocket failure: {} {}", code, message, t);
+                    response.close();
+                } else {
+                    LOG.error("MFC websocket failure", t);
+                }
                 MyFreeCamsClient.this.ws = null;
-                LOG.error("MFC websocket failure: {} {}", code, message, t);
             }
 
             private StringBuilder msgBuffer = new StringBuilder();

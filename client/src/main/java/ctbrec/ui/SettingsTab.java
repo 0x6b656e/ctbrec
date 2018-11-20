@@ -67,6 +67,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private CheckBox secureCommunication = new CheckBox();
     private CheckBox chooseStreamQuality = new CheckBox();
     private CheckBox multiplePlayers = new CheckBox();
+    private CheckBox updateThumbnails = new CheckBox();
     private RadioButton recordLocal;
     private RadioButton recordRemote;
     private ToggleGroup recordLocation;
@@ -333,6 +334,14 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
         GridPane.setMargin(chooseStreamQuality, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(chooseStreamQuality, 1, row++);
+
+        l = new Label("Update thumbnails");
+        layout.add(l, 0, row);
+        updateThumbnails.setSelected(Config.getInstance().getSettings().updateThumbnails);
+        updateThumbnails.setOnAction((e) -> Config.getInstance().getSettings().updateThumbnails = updateThumbnails.isSelected());
+        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+        GridPane.setMargin(updateThumbnails, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
+        layout.add(updateThumbnails, 1, row++);
 
         l = new Label("Maximum resolution (0 = unlimited)");
         layout.add(l, 0, row);

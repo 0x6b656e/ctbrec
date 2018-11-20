@@ -262,20 +262,23 @@ public class ThumbCell extends StackPane {
 
     private void setImage(String url) {
         if(!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
-            Image img = new Image(url, true);
+            boolean updateThumbs = Config.getInstance().getSettings().updateThumbnails;
+            if(updateThumbs || iv.getImage() == null) {
+                Image img = new Image(url, true);
 
-            // wait for the image to load, otherwise the ImageView replaces the current image with an "empty" image,
-            // which causes to show the grey background until the image is loaded
-            img.progressProperty().addListener(new ChangeListener<Number>() {
-                @Override
-                public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
-                    if(newValue.doubleValue() == 1.0) {
-                        //imgAspectRatio = img.getHeight() / img.getWidth();
-                        iv.setImage(img);
-                        setThumbWidth(Config.getInstance().getSettings().thumbWidth);
+                // wait for the image to load, otherwise the ImageView replaces the current image with an "empty" image,
+                // which causes to show the grey background until the image is loaded
+                img.progressProperty().addListener(new ChangeListener<Number>() {
+                    @Override
+                    public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
+                        if(newValue.doubleValue() == 1.0) {
+                            //imgAspectRatio = img.getHeight() / img.getWidth();
+                            iv.setImage(img);
+                            setThumbWidth(Config.getInstance().getSettings().thumbWidth);
+                        }
                     }
-                }
-            });
+                });
+            }
         }
     }
 

@@ -63,6 +63,7 @@ public class Settings {
     public String proxyUser;
     public String proxyPassword;
     public int thumbWidth = 180;
+    public boolean updateThumbnails = true;
     public int windowWidth = 1340;
     public int windowHeight = 800;
     public boolean windowMaximized = false;

@@ -54,6 +54,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
@@ -150,6 +151,14 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
         table.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
             if(popup != null) {
                 popup.hide();
+            }
+        });
+        table.addEventFilter(MouseEvent.MOUSE_CLICKED, event -> {
+            if(event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
+                Recording recording = table.getSelectionModel().getSelectedItem();
+                if(recording != null) {
+                    play(recording);
+                }
             }
         });
         table.addEventFilter(KeyEvent.KEY_PRESSED, event -> {

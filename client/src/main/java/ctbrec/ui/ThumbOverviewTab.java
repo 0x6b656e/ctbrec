@@ -34,6 +34,7 @@ import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
 import javafx.animation.ParallelTransition;
 import javafx.animation.ScaleTransition;
+import javafx.animation.Transition;
 import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -66,6 +67,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
 import javafx.scene.transform.Transform;
 import javafx.util.Duration;
 
@@ -468,7 +470,9 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
             translate.setFromX(0);
             translate.setFromY(0);
             translate.setByX(-tx.getTx() - 200);
-            translate.setByY(-offsetInViewPort + getFollowedTabYPosition());
+            TabProvider tabProvider = SiteUiFactory.getUi(site).getTabProvider();
+            Tab followedTab = tabProvider.getFollowedTab();
+            translate.setByY(-offsetInViewPort + getFollowedTabYPosition(followedTab));
             StackPane.setMargin(iv, new Insets(offsetInViewPort, 0, 0, tx.getTx()));
             translate.setInterpolator(Interpolator.EASE_BOTH);
             FadeTransition fade = new FadeTransition(Duration.millis(duration), iv);
@@ -482,12 +486,40 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
             pt.setOnFinished((evt) -> {
                 root.getChildren().remove(iv);
             });
+
+            String normalStyle = followedTab.getStyle();
+            Color normal = Color.web("#f4f4f4");
+            Color highlight = Color.web("#2b8513");
+            Transition blink = new Transition() {
+                {
+                    setCycleDuration(Duration.millis(500));
+                }
+                @Override
+                protected void interpolate(double frac) {
+                    double rh = highlight.getRed();
+                    double rn = normal.getRed();
+                    double diff = rh - rn;
+                    double r = (rn + diff * frac) * 255;
+                    double gh = highlight.getGreen();
+                    double gn = normal.getGreen();
+                    diff = gh - gn;
+                    double g = (gn + diff * frac) * 255;
+                    double bh = highlight.getBlue();
+                    double bn = normal.getBlue();
+                    diff = bh - bn;
+                    double b = (bn + diff * frac) * 255;
+                    String style = "-fx-background-color: rgb(" + r + "," + g + "," + b + ")";
+                    followedTab.setStyle(style);
+                }
+            };
+            blink.setCycleCount(6);
+            blink.setAutoReverse(true);
+            blink.setOnFinished((evt) -> followedTab.setStyle(normalStyle));
+            blink.play();
         });
     }
 
-    private double getFollowedTabYPosition() {
-        TabProvider tabProvider = SiteUiFactory.getUi(site).getTabProvider();
-        Tab followedTab = tabProvider.getFollowedTab();
+    private double getFollowedTabYPosition(Tab followedTab) {
         TabPane tabPane = getTabPane();
         int idx = tabPane.getTabs().indexOf(followedTab);
         for (Node node : tabPane.getChildrenUnmodifiable()) {

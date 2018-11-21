@@ -59,6 +59,7 @@ public class MyFreeCamsClient {
     private String chatToken;
     private int sessionId;
     private long heartBeat;
+    private volatile boolean connecting = false;
 
     private EvictingQueue<String> receivedTextHistory = EvictingQueue.create(100);
 
@@ -86,7 +87,7 @@ public class MyFreeCamsClient {
 
         Thread watchDog = new Thread(() -> {
             while(running) {
-                if (ws == null) {
+                if (ws == null && !connecting) {
                     LOG.info("Websocket is null. Starting a new connection");
                     Request req = new Request.Builder()
                             .url(wsUrl)
@@ -126,11 +127,15 @@ public class MyFreeCamsClient {
     }
 
     private WebSocket createWebSocket(Request req) {
+        connecting = true;
         WebSocket ws = mfc.getHttpClient().newWebSocket(req, new WebSocketListener() {
             @Override
             public void onOpen(WebSocket webSocket, Response response) {
                 super.onOpen(webSocket, response);
                 try {
+                    connecting = false;
+                    sessionStates.invalidateAll();
+                    models.invalidateAll();
                     LOG.trace("open: [{}]", response.body().string());
                     webSocket.send("hello fcserver\n");
                     webSocket.send("fcsws_20180422\n");
@@ -147,6 +152,7 @@ public class MyFreeCamsClient {
             @Override
             public void onClosed(WebSocket webSocket, int code, String reason) {
                 super.onClosed(webSocket, code, reason);
+                connecting = false;
                 LOG.info("MFC websocket closed: {} {}", code, reason);
                 MyFreeCamsClient.this.ws = null;
                 if(!running) {
@@ -157,6 +163,7 @@ public class MyFreeCamsClient {
             @Override
             public void onFailure(WebSocket webSocket, Throwable t, Response response) {
                 super.onFailure(webSocket, t, response);
+                connecting = false;
                 if(response != null) {
                     int code = response.code();
                     String message = response.message();

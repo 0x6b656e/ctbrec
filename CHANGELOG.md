@@ -1,3 +1,8 @@
+1.10.1
+========================
+* Double-click starts playback of recordings
+* Refresh of thumbnails can be disabled
+
 1.10.0
 ========================
 * Fix: HMAC authentication didn't work for playing and downloading of a

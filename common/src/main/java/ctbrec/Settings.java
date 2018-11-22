@@ -62,6 +62,7 @@ public class Settings {
     public String proxyPort;
     public String proxyUser;
     public String proxyPassword;
+    public String startTab = "Settings";
     public int thumbWidth = 180;
     public boolean updateThumbnails = true;
     public int windowWidth = 1340;

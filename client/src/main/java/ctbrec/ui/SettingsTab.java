@@ -15,6 +15,7 @@ import ctbrec.Config;
 import ctbrec.Hmac;
 import ctbrec.Settings;
 import ctbrec.Settings.DirectoryStructure;
+import ctbrec.StringUtil;
 import ctbrec.sites.ConfigUI;
 import ctbrec.sites.Site;
 import javafx.beans.value.ChangeListener;
@@ -75,6 +76,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private ComboBox<Integer> maxResolution;
     private ComboBox<SplitAfterOption> splitAfter;
     private ComboBox<DirectoryStructure> directoryStructure;
+    private ComboBox<String> startTab;
     private List<Site> sites;
     private Label restartLabel;
     private Accordion credentialsAccordion = new Accordion();
@@ -373,7 +375,17 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         splitAfter.setOnAction((e) -> Config.getInstance().getSettings().splitRecordings = splitAfter.getSelectionModel().getSelectedItem().getValue());
         GridPane.setMargin(l, new Insets(0, 0, 0, 0));
         GridPane.setMargin(splitAfter, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        maxResolution.prefWidthProperty().bind(splitAfter.widthProperty());
+
+        l = new Label("Start Tab");
+        layout.add(l, 0, row);
+        startTab = new ComboBox<>();
+        layout.add(startTab, 1, row++);
+        startTab.setOnAction((e) -> Config.getInstance().getSettings().startTab = startTab.getSelectionModel().getSelectedItem());
+        GridPane.setMargin(l, new Insets(0, 0, 0, 0));
+        GridPane.setMargin(startTab, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+
+        splitAfter.prefWidthProperty().bind(startTab.widthProperty());
+        maxResolution.prefWidthProperty().bind(startTab.widthProperty());
 
         TitledPane general = new TitledPane("General", layout);
         general.setCollapsible(false);
@@ -589,6 +601,14 @@ public class SettingsTab extends Tab implements TabSelectionListener {
 
     @Override
     public void selected() {
+        startTab.getItems().clear();
+        for(Tab tab : getTabPane().getTabs()) {
+            startTab.getItems().add(tab.getText());
+        }
+        String startTabName = Config.getInstance().getSettings().startTab;
+        if(StringUtil.isNotBlank(startTabName)) {
+            startTab.getSelectionModel().select(startTabName);
+        }
     }
 
     @Override

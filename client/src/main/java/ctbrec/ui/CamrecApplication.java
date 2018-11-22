@@ -21,6 +21,7 @@ import com.squareup.moshi.Moshi;
 import com.squareup.moshi.Types;
 
 import ctbrec.Config;
+import ctbrec.StringUtil;
 import ctbrec.Version;
 import ctbrec.io.HttpClient;
 import ctbrec.recorder.LocalRecorder;
@@ -110,9 +111,6 @@ public class CamrecApplication extends Application {
                 rootPane.getTabs().add(siteTab);
             }
         }
-        try {
-            ((SiteTab)rootPane.getTabs().get(0)).selected();
-        } catch(ClassCastException | IndexOutOfBoundsException e) {}
 
         RecordedModelsTab modelsTab = new RecordedModelsTab("Recording", recorder, sites);
         rootPane.getTabs().add(modelsTab);
@@ -121,6 +119,8 @@ public class CamrecApplication extends Application {
         settingsTab = new SettingsTab(sites);
         rootPane.getTabs().add(settingsTab);
         rootPane.getTabs().add(new DonateTabFx());
+
+        switchToStartTab();
 
         primaryStage.getScene().getStylesheets().add("/ctbrec/ui/ThumbCell.css");
         primaryStage.getScene().widthProperty().addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowWidth = newVal.intValue());
@@ -182,6 +182,21 @@ public class CamrecApplication extends Application {
                 }
             }
         });
+    }
+
+    private void switchToStartTab() {
+        String startTab = Config.getInstance().getSettings().startTab;
+        if(StringUtil.isNotBlank(startTab)) {
+            for (Tab tab : rootPane.getTabs()) {
+                if(Objects.equals(startTab, tab.getText())) {
+                    rootPane.getSelectionModel().select(tab);
+                    break;
+                }
+            }
+        }
+        if(rootPane.getSelectionModel().getSelectedItem() instanceof TabSelectionListener) {
+            ((TabSelectionListener)rootPane.getSelectionModel().getSelectedItem()).selected();
+        }
     }
 
     private void createRecorder() {

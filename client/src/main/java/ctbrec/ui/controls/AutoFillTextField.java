@@ -1,4 +1,4 @@
-package ctbrec.ui.autofilltextbox;
+package ctbrec.ui.controls;
 
 
 import javafx.collections.ObservableList;

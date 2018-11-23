@@ -3,6 +3,10 @@ package ctbrec.sites.chaturbate;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URLEncoder;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -68,6 +72,7 @@ public class Chaturbate extends AbstractSite {
         ChaturbateModel m = new ChaturbateModel(this);
         m.setName(name);
         m.setUrl(getBaseUrl() + '/' + name + '/');
+        m.setPreview("https://roomimg.stream.highwebmedia.com/ri/" + name + ".jpg?" + Instant.now().getEpochSecond());
         return m;
     }
 
@@ -122,6 +127,44 @@ public class Chaturbate extends AbstractSite {
     @Override
     public boolean supportsTips() {
         return true;
+    }
+
+    @Override
+    public boolean supportsSearch() {
+        return true;
+    }
+
+    @Override
+    public List<Model> search(String q) throws IOException, InterruptedException {
+        String url = BASE_URI + "?keywords=" + URLEncoder.encode(q, "utf-8");
+        List<Model> result = new ArrayList<>();
+
+        // search online models
+        Request req = new Request.Builder()
+                .url(url)
+                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
+                .build();
+        try(Response resp = getHttpClient().execute(req)) {
+            if(resp.isSuccessful()) {
+                result.addAll(ChaturbateModelParser.parseModels(this, resp.body().string()));
+            }
+        }
+
+        // since chaturbate does not return offline models, we at least try, if the profile page
+        // exists for the search string
+        url = BASE_URI + '/' + q;
+        req = new Request.Builder()
+                .url(url)
+                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
+                .build();
+        try(Response resp = getHttpClient().execute(req)) {
+            if(resp.isSuccessful()) {
+                Model model = createModel(q);
+                result.add(model);
+            }
+        }
+
+        return result;
     }
 
     @Override

@@ -24,7 +24,7 @@ import ctbrec.Model;
 import ctbrec.Recording;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
-import ctbrec.ui.autofilltextbox.AutoFillTextField;
+import ctbrec.ui.controls.AutoFillTextField;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;

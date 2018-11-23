@@ -7,7 +7,9 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -15,6 +17,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -60,6 +63,8 @@ public class MyFreeCamsClient {
     private int sessionId;
     private long heartBeat;
     private volatile boolean connecting = false;
+    private static int messageId = 31415; // starting with 31415 just for fun
+    private Map<Integer, Consumer<Message>> responseHandlers = new HashMap<>();
 
     private EvictingQueue<String> receivedTextHistory = EvictingQueue.create(100);
 
@@ -193,6 +198,7 @@ public class MyFreeCamsClient {
                         case LOGIN:
                             LOG.debug("LOGIN: {}", message);
                             sessionId = message.getReceiver();
+                            LOG.debug("Session ID {}", sessionId);
                             break;
                         case DETAILS:
                         case ROOMHELPER:
@@ -201,7 +207,6 @@ public class MyFreeCamsClient {
                         case CMESG:
                         case PMESG:
                         case TXPROFILE:
-                        case USERNAMELOOKUP:
                         case MYCAMSTATE:
                         case MYWEBCAM:
                         case JOINCHAN:
@@ -215,6 +220,18 @@ public class MyFreeCamsClient {
                                 } catch (IOException e) {
                                     LOG.error("Couldn't parse session state message {}", message, e);
                                 }
+                            }
+                            break;
+                        case USERNAMELOOKUP:
+                            //                            LOG.debug("{}", message.getType());
+                            //                            LOG.debug("{}", message.getSender());
+                            //                            LOG.debug("{}", message.getReceiver());
+                            //                            LOG.debug("{}", message.getArg1());
+                            //                            LOG.debug("{}", message.getArg2());
+                            //                            LOG.debug("{}", message.getMessage());
+                            Consumer<Message> responseHandler = responseHandlers.remove(message.getArg1());
+                            if(responseHandler != null) {
+                                responseHandler.accept(message);
                             }
                             break;
                         case TAGS:
@@ -570,5 +587,35 @@ public class MyFreeCamsClient {
 
     public ServerConfig getServerConfig() {
         return serverConfig;
+    }
+
+    public List<ctbrec.Model> search(String q) throws InterruptedException {
+        LOG.debug("Sending USERNAMELOOKUP for {}", q);
+        int msgId = messageId++;
+        Object monitor = new Object();
+        List<ctbrec.Model> result = new ArrayList<>();
+        responseHandlers.put(msgId, msg -> {
+            LOG.debug("Search result: " + msg);
+            if(StringUtil.isNotBlank(msg.getMessage()) && !Objects.equals(msg.getMessage(), q)) {
+                JSONObject json = new JSONObject(msg.getMessage());
+                String name = json.getString("nm");
+                MyFreeCamsModel model = mfc.createModel(name);
+                model.setUid(json.getInt("uid"));
+                model.setState(State.of(json.getInt("vs")));
+                String uid = Integer.toString(model.getUid());
+                String uidStart = uid.substring(0, 3);
+                String previewUrl = "https://img.mfcimg.com/photos2/"+uidStart+'/'+uid+"/avatar.90x90.jpg";
+                model.setPreview(previewUrl);
+                result.add(model);
+            }
+            synchronized (monitor) {
+                monitor.notify();
+            }
+        });
+        ws.send("10 " + sessionId + " 0 " + msgId + " 0 " + q + "\n");
+        synchronized (monitor) {
+            monitor.wait();
+        }
+        return result;
     }
 }

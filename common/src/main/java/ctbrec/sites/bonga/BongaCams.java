@@ -1,8 +1,15 @@
 package ctbrec.sites.bonga;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
 import ctbrec.Model;
@@ -15,6 +22,8 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class BongaCams extends AbstractSite {
+
+    private static final transient Logger LOG = LoggerFactory.getLogger(BongaCams.class);
 
     public static final String BASE_URL = "https://bongacams.com";
 
@@ -114,6 +123,54 @@ public class BongaCams extends AbstractSite {
     @Override
     public boolean supportsFollow() {
         return false;
+    }
+
+    @Override
+    public boolean supportsSearch() {
+        return true;
+    }
+
+    @Override
+    public boolean searchRequiresLogin() {
+        return true;
+    }
+
+    @Override
+    public List<Model> search(String q) throws IOException, InterruptedException {
+        String url = BASE_URL + "/tools/listing_v3.php?offset=0&model_search[display_name][text]=" + URLEncoder.encode(q, "utf-8");
+        Request req = new Request.Builder()
+                .url(url)
+                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
+                .addHeader("Accept", "application/json, text/javascript, */*")
+                .addHeader("Accept-Language", "en")
+                .addHeader("Referer", BongaCams.BASE_URL)
+                .addHeader("X-Requested-With", "XMLHttpRequest")
+                .build();
+        try(Response response = getHttpClient().execute(req)) {
+            if(response.isSuccessful()) {
+                String body = response.body().string();
+                JSONObject json = new JSONObject(body);
+                if(json.optString("status").equals("success")) {
+                    List<Model> models = new ArrayList<>();
+                    JSONArray results = json.getJSONArray("models");
+                    for (int i = 0; i < results.length(); i++) {
+                        JSONObject result = results.getJSONObject(i);
+                        Model model = createModel(result.getString("username"));
+                        String thumb = result.getString("thumb_image");
+                        if(thumb != null) {
+                            model.setPreview("https:" + thumb);
+                        }
+                        models.add(model);
+                    }
+                    return models;
+                } else {
+                    LOG.warn("Search result: " + json.toString(2));
+                    return Collections.emptyList();
+                }
+            } else {
+                throw new HttpException(response.code(), response.message());
+            }
+        }
     }
 
     @Override

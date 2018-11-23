@@ -181,6 +181,8 @@ public class ThumbCell extends StackPane {
         if(Config.getInstance().getSettings().determineResolution) {
             determineResolution();
         }
+
+        update();
     }
 
     public void setSelected(boolean selected) {
@@ -478,7 +480,7 @@ public class ThumbCell extends StackPane {
         setRecording(recorder.isRecording(model));
         setImage(model.getPreview());
         String txt = recording ? "    " : "";
-        txt += model.getDescription();
+        txt += model.getDescription() != null ? model.getDescription() : "";
         topic.setText(txt);
 
         if(Config.getInstance().getSettings().determineResolution) {

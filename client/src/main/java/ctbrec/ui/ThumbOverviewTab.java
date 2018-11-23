@@ -30,6 +30,9 @@ import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
 import ctbrec.sites.mfc.MyFreeCamsClient;
 import ctbrec.sites.mfc.MyFreeCamsModel;
+import ctbrec.ui.controls.SearchBox;
+import ctbrec.ui.controls.SearchPopover;
+import ctbrec.ui.controls.SearchPopoverTreeList;
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
 import javafx.animation.ParallelTransition;
@@ -37,8 +40,10 @@ import javafx.animation.ScaleTransition;
 import javafx.animation.Transition;
 import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.concurrent.Worker.State;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.event.EventHandler;
@@ -61,11 +66,14 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.ContextMenuEvent;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.transform.Transform;
@@ -96,6 +104,9 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     ContextMenu popup;
     Site site;
     StackPane root = new StackPane();
+    Task<List<Model>> searchTask;
+    SearchPopover popover;
+    SearchPopoverTreeList popoverTreelist = new SearchPopoverTreeList();
 
     private ComboBox<Integer> thumbWidth;
 
@@ -113,10 +124,10 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         grid.setHgap(5);
         grid.setVgap(5);
 
-        TextField search = new TextField();
-        search.setPromptText("Filter models on this page");
-        search.textProperty().addListener( (observableValue, oldValue, newValue) -> {
-            filter = search.getText();
+        SearchBox filterInput = new SearchBox(false);
+        filterInput.setPromptText("Filter models on this page");
+        filterInput.textProperty().addListener( (observableValue, oldValue, newValue) -> {
+            filter = filterInput.getText();
             gridLock.lock();
             try {
                 filter();
@@ -125,12 +136,41 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                 gridLock.unlock();
             }
         });
-        Tooltip searchTooltip = new Tooltip("Filter the models by their name, stream description or #hashtags.\n\n"
+        Tooltip filterTooltip = new Tooltip("Filter the models by their name, stream description or #hashtags.\n\n"
                 + "If the display of stream resolution is enabled, you can even filter for public rooms or by resolution.\n\n"
                 + "Try \"1080\" or \">720\" or \"public\"");
-        search.setTooltip(searchTooltip);
+        filterInput.setTooltip(filterTooltip);
+        filterInput.getStyleClass().remove("search-box-icon");
+        BorderPane.setMargin(filterInput, new Insets(5));
 
-        BorderPane.setMargin(search, new Insets(5));
+        SearchBox searchInput = new SearchBox();
+        searchInput.setPromptText("Search Model");
+        searchInput.prefWidth(200);
+        searchInput.textProperty().addListener(search());
+        searchInput.addEventHandler(KeyEvent.KEY_PRESSED, evt -> {
+            if(evt.getCode() == KeyCode.ESCAPE) {
+                popover.hide();
+            }
+        });
+        BorderPane.setMargin(searchInput, new Insets(5));
+
+        popover = new SearchPopover();
+        popover.maxWidthProperty().bind(popover.minWidthProperty());
+        popover.prefWidthProperty().bind(popover.minWidthProperty());
+        popover.setMinWidth(400);
+        popover.maxHeightProperty().bind(popover.minHeightProperty());
+        popover.prefHeightProperty().bind(popover.minHeightProperty());
+        popover.setMinHeight(400);
+        popover.pushPage(popoverTreelist);
+        StackPane.setAlignment(popover, Pos.TOP_RIGHT);
+        StackPane.setMargin(popover, new Insets(50, 50, 0, 0));
+
+        HBox topBar = new HBox(5);
+        HBox.setHgrow(filterInput, Priority.ALWAYS);
+        topBar.getChildren().add(filterInput);
+        if(site.supportsSearch()) {
+            topBar.getChildren().add(searchInput);
+        }
 
         scrollPane.setContent(grid);
         scrollPane.setFitToHeight(true);
@@ -186,12 +226,67 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
 
         BorderPane borderPane = new BorderPane();
         borderPane.setPadding(new Insets(5));
-        borderPane.setTop(search);
+        borderPane.setTop(topBar);
         borderPane.setCenter(scrollPane);
         borderPane.setBottom(bottomPane);
 
         root.getChildren().add(borderPane);
+        root.getChildren().add(popover);
         setContent(root);
+    }
+
+    private ChangeListener<? super String> search() {
+        return (observableValue, oldValue, newValue) -> {
+            if(searchTask != null) {
+                searchTask.cancel(true);
+            }
+
+            if(newValue.length() < 2) {
+                return;
+            }
+
+
+            searchTask = new Task<List<Model>>() {
+                @Override
+                protected List<Model> call() throws Exception {
+                    if(site.searchRequiresLogin()) {
+                        boolean loggedin = false;
+                        try {
+                            loggedin = SiteUiFactory.getUi(site).login();
+                        } catch (IOException e) {
+                            loggedin = false;
+                        }
+                        if(!loggedin) {
+                            showError("Login failed", "Search won't work correctly without login", null);
+                        }
+                    }
+                    return site.search(newValue);
+                }
+
+                @Override
+                protected void failed() {
+                    LOG.error("Search failed", getException());
+                }
+
+                @Override
+                protected void succeeded() {
+                    Platform.runLater(() -> {
+                        List<Model> models = getValue();
+                        LOG.debug("Search result {} {}", isCancelled(), models);
+                        if(models.isEmpty()) {
+                            popover.hide();
+                        } else {
+                            popoverTreelist.getItems().clear();
+                            for (Model model : getValue()) {
+                                popoverTreelist.getItems().add(model);
+                            }
+                            popover.show();
+                        }
+                    });
+                }
+            };
+            new Thread(searchTask).start();
+        };
     }
 
     private void updateThumbSize() {
@@ -375,18 +470,10 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                         event.put("amount", tokens);
                         CamrecApplication.bus.post(event);
                     } catch (Exception e1) {
-                        Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
-                        alert.setTitle("Error");
-                        alert.setHeaderText("Couldn't send tip");
-                        alert.setContentText("An error occured while sending tip: " + e1.getLocalizedMessage());
-                        alert.showAndWait();
+                        showError("Couldn't send tip", "An error occured while sending tip:", e1);
                     }
                 } else {
-                    Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
-                    alert.setTitle("Error");
-                    alert.setHeaderText("Couldn't send tip");
-                    alert.setContentText("You entered an invalid amount of tokens");
-                    alert.showAndWait();
+                    showError("Couldn't send tip", "You entered an invalid amount of tokens", null);
                 }
             }
         });
@@ -700,6 +787,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
 
     public void setRecorder(Recorder recorder) {
         this.recorder = recorder;
+        popoverTreelist.setRecorder(recorder);
     }
 
     @Override
@@ -729,6 +817,26 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     private void removeSelection() {
         while(selectedThumbCells.size() > 0) {
             selectedThumbCells.get(0).setSelected(false);
+        }
+    }
+
+    private void showError(String header, String text, Exception e) {
+        Runnable r = () -> {
+            Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText(header);
+            String content = text;
+            if(e != null) {
+                content += " " + e.getLocalizedMessage();
+            }
+            alert.setContentText(content);
+            alert.showAndWait();
+        };
+
+        if(Platform.isFxApplicationThread()) {
+            r.run();
+        } else {
+            Platform.runLater(r);
         }
     }
 }

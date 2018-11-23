@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
@@ -423,7 +424,7 @@ public class LocalRecorder implements Recorder {
 
                 try {
                     if (running)
-                        Thread.sleep(10000);
+                        Thread.sleep(TimeUnit.SECONDS.toMillis(60));
                 } catch (InterruptedException e) {
                     LOG.trace("Sleep interrupted");
                 }

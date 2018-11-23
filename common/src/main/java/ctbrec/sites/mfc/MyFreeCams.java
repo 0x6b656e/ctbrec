@@ -1,6 +1,7 @@
 package ctbrec.sites.mfc;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.jsoup.select.Elements;
 
@@ -95,6 +96,16 @@ public class MyFreeCams extends AbstractSite {
     @Override
     public boolean supportsTips() {
         return true;
+    }
+
+    @Override
+    public boolean supportsSearch() {
+        return true;
+    }
+
+    @Override
+    public List<Model> search(String q) throws IOException, InterruptedException {
+        return client.search(q);
     }
 
     @Override

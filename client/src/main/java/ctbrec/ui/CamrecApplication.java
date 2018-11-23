@@ -123,6 +123,8 @@ public class CamrecApplication extends Application {
         switchToStartTab();
 
         primaryStage.getScene().getStylesheets().add("/ctbrec/ui/ThumbCell.css");
+        primaryStage.getScene().getStylesheets().add("/ctbrec/ui/controls/SearchBox.css");
+        primaryStage.getScene().getStylesheets().add("/ctbrec/ui/controls/Popover.css");
         primaryStage.getScene().widthProperty().addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowWidth = newVal.intValue());
         primaryStage.getScene().heightProperty()
         .addListener((observable, oldVal, newVal) -> Config.getInstance().getSettings().windowHeight = newVal.intValue());

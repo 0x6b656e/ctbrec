@@ -15,6 +15,7 @@ import com.iheartradio.m3u8.ParseException;
 import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.recorder.Recorder;
+import ctbrec.ui.controls.Toast;
 import javafx.animation.FadeTransition;
 import javafx.animation.FillTransition;
 import javafx.animation.ParallelTransition;
@@ -302,8 +303,13 @@ public class ThumbCell extends StackPane {
     void startPlayer() {
         setCursor(Cursor.WAIT);
         new Thread(() -> {
-            Player.play(model);
-            Platform.runLater(() -> setCursor(Cursor.DEFAULT));
+            boolean started = Player.play(model);
+            Platform.runLater(() -> {
+                setCursor(Cursor.DEFAULT);
+                if (started) {
+                    Toast.makeText(getScene(), "Starting Player", 2000, 500, 500);
+                }
+            });
         }).start();
     }
 

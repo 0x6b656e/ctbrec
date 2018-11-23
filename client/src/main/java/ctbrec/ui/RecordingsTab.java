@@ -33,6 +33,7 @@ import ctbrec.Recording.STATUS;
 import ctbrec.recorder.Recorder;
 import ctbrec.recorder.download.MergedHlsDownload;
 import ctbrec.sites.Site;
+import ctbrec.ui.controls.Toast;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
@@ -483,7 +484,10 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
             new Thread() {
                 @Override
                 public void run() {
-                    Player.play(recording);
+                    boolean started = Player.play(recording);
+                    if(started) {
+                        Platform.runLater(() -> Toast.makeText(getTabPane().getScene(), "Starting Player", 2000, 500, 500));
+                    }
                 }
             }.start();
         } else {
@@ -492,7 +496,10 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
             new Thread() {
                 @Override
                 public void run() {
-                    Player.play(url);
+                    boolean started = Player.play(url);
+                    if(started) {
+                        Platform.runLater(() -> Toast.makeText(getTabPane().getScene(), "Starting Player", 2000, 500, 500));
+                    }
                 }
             }.start();
         }

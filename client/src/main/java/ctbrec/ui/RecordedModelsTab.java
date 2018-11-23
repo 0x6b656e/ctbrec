@@ -25,6 +25,7 @@ import ctbrec.Recording;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
 import ctbrec.ui.autofilltextbox.AutoFillTextField;
+import ctbrec.ui.controls.Toast;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -328,8 +329,13 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
     private void openInPlayer(JavaFxModel selectedModel) {
         table.setCursor(Cursor.WAIT);
         new Thread(() -> {
-            Player.play(selectedModel);
-            Platform.runLater(() -> table.setCursor(Cursor.DEFAULT));
+            boolean started = Player.play(selectedModel);
+            Platform.runLater(() -> {
+                if(started) {
+                    Toast.makeText(getTabPane().getScene(), "Starting Player", 2000, 500, 500);
+                }
+                table.setCursor(Cursor.DEFAULT);
+            });
         }).start();
     }
 

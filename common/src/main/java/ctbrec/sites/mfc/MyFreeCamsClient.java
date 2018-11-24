@@ -538,8 +538,8 @@ public class MyFreeCamsClient {
     }
 
     public String getStreamUrl(SessionState state) {
-        Integer camserv = state.getU().getCamserv();
-        if(camserv != null) {
+        Integer camserv = Optional.ofNullable(state.getU()).map(u -> u.getCamserv()).orElse(-1);
+        if(camserv != null && camserv != -1) {
             int userChannel = 100000000 + state.getUid();
             String streamUrl = "";
             String phase = state.getU().getPhase() != null ? state.getU().getPhase() : "z";

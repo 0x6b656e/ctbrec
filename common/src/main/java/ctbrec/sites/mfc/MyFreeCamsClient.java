@@ -527,7 +527,7 @@ public class MyFreeCamsClient {
             for (SessionState state : sessionStates.asMap().values()) {
                 String nm = Optional.ofNullable(state.getNm()).orElse("");
                 String name = Optional.ofNullable(model.getName()).orElse("");
-                if(Objects.equals(nm.toLowerCase(), name.toLowerCase()) || Objects.equals(model.getUid(), state.getUid())) {
+                if(Objects.equals(nm.toLowerCase(), name.toLowerCase()) || Objects.equals(model.getUid(), state.getUid()) && state.getUid() > 0) {
                     model.update(state, getStreamUrl(state));
                     return;
                 }

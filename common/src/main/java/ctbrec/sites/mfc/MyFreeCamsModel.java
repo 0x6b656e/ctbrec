@@ -219,9 +219,10 @@ public class MyFreeCamsModel extends AbstractModel {
     public void update(SessionState state, String streamUrl) {
         uid = Integer.parseInt(state.getUid().toString());
         setName(state.getNm());
-        setCamScore(state.getM().getCamscore());
         setState(State.of(state.getVs()));
         setStreamUrl(streamUrl);
+        Optional<Double> camScore = Optional.of(state.getM()).map(m -> m.getCamscore());
+        setCamScore(camScore.orElse(0.0));
 
         // preview
         String uid = state.getUid().toString();

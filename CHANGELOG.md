@@ -1,5 +1,9 @@
-1.10.1
+1.11.0
 ========================
+* Added model search function
+* Added color settings to change the appearance of the application
+* Added setting for the online check interval
+* Added setting to define the tab the application opens on start
 * Double-click starts playback of recordings
 * Refresh of thumbnails can be disabled
 

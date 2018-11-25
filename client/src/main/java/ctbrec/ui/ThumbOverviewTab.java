@@ -160,10 +160,10 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         popover.setMinWidth(400);
         popover.maxHeightProperty().bind(popover.minHeightProperty());
         popover.prefHeightProperty().bind(popover.minHeightProperty());
-        popover.setMinHeight(400);
+        popover.setMinHeight(450);
         popover.pushPage(popoverTreelist);
         StackPane.setAlignment(popover, Pos.TOP_RIGHT);
-        StackPane.setMargin(popover, new Insets(50, 50, 0, 0));
+        StackPane.setMargin(popover, new Insets(35, 50, 0, 0));
 
         HBox topBar = new HBox(5);
         HBox.setHgrow(filterInput, Priority.ALWAYS);

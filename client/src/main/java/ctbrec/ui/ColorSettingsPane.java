@@ -16,7 +16,7 @@ public class ColorSettingsPane extends Pane {
     Button reset = new Button("Reset");
     Pane foobar = new Pane();
 
-    public ColorSettingsPane() {
+    public ColorSettingsPane(SettingsTab settingsTab) {
         getChildren().add(labelBaseColor);
         getChildren().add(baseColor);
         getChildren().add(labelAccentColor);
@@ -26,13 +26,20 @@ public class ColorSettingsPane extends Pane {
         baseColor.setValue(Color.web(Config.getInstance().getSettings().colorBase));
         accentColor.setValue(Color.web(Config.getInstance().getSettings().colorAccent));
 
-        baseColor.setOnAction(evt -> Config.getInstance().getSettings().colorBase = toWeb(baseColor.getValue()));
-        accentColor.setOnAction(evt -> Config.getInstance().getSettings().colorAccent = toWeb(accentColor.getValue()));
+        baseColor.setOnAction(evt -> {
+            Config.getInstance().getSettings().colorBase = toWeb(baseColor.getValue());
+            settingsTab.showRestartRequired();
+        });
+        accentColor.setOnAction(evt -> {
+            Config.getInstance().getSettings().colorAccent = toWeb(accentColor.getValue());
+            settingsTab.showRestartRequired();
+        });
         reset.setOnAction(evt -> {
             baseColor.setValue(Color.WHITE);
             Config.getInstance().getSettings().colorBase = toWeb(Color.WHITE);
             accentColor.setValue(Color.WHITE);
             Config.getInstance().getSettings().colorAccent = toWeb(Color.WHITE);
+            settingsTab.showRestartRequired();
         });
     }
 

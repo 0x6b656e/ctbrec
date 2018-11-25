@@ -386,7 +386,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
 
         l = new Label("Colors");
         layout.add(l, 0, row);
-        ColorSettingsPane colorSettingsPane = new ColorSettingsPane();
+        ColorSettingsPane colorSettingsPane = new ColorSettingsPane(this);
         layout.add(colorSettingsPane, 1, row++);
         GridPane.setMargin(l, new Insets(0, 0, 0, 0));
         GridPane.setMargin(colorSettingsPane, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));

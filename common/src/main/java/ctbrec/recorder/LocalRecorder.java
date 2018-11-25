@@ -98,6 +98,9 @@ public class LocalRecorder implements Recorder {
             try {
                 models.add(model);
                 config.getSettings().models.add(model);
+                config.save();
+            } catch (IOException e) {
+                LOG.error("Couldn't save config", e);
             } finally {
                 lock.unlock();
             }
@@ -115,6 +118,7 @@ public class LocalRecorder implements Recorder {
                     stopRecordingProcess(model);
                 }
                 LOG.info("Model {} removed", model);
+                config.save();
             } else {
                 throw new NoSuchElementException("Model " + model.getName() + " ["+model.getUrl()+"] not found in list of recorded models");
             }
@@ -689,6 +693,7 @@ public class LocalRecorder implements Recorder {
             stopRecordingProcess(model);
         }
         tryRestartRecording(model);
+        config.save();
     }
 
     @Override
@@ -699,10 +704,13 @@ public class LocalRecorder implements Recorder {
                 int index = models.indexOf(model);
                 models.get(index).setSuspended(true);
                 model.setSuspended(true);
+                config.save();
             } else {
                 LOG.warn("Couldn't suspend model {}. Not found in list", model.getName());
                 return;
             }
+        } catch (IOException e) {
+            LOG.error("Couldn't save config", e);
         } finally {
             lock.unlock();
         }
@@ -723,6 +731,7 @@ public class LocalRecorder implements Recorder {
                 m.setSuspended(false);
                 startRecordingProcess(m);
                 model.setSuspended(false);
+                config.save();
             } else {
                 LOG.warn("Couldn't resume model {}. Not found in list", model.getName());
                 return;

@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -404,15 +405,14 @@ public class LocalRecorder implements Recorder {
         public void run() {
             running = true;
             while (running) {
+                Instant begin = Instant.now();
                 for (Model model : getModelsRecording()) {
                     try {
-                        if (!model.isSuspended() && !recordingProcesses.containsKey(model)) {
-                            boolean isOnline = model.isOnline(IGNORE_CACHE);
-                            LOG.trace("Checking online state for {}: {}", model, (isOnline ? "online" : "offline"));
-                            if (isOnline) {
-                                LOG.info("Model {}'s room back to public. Starting recording", model);
-                                startRecordingProcess(model);
-                            }
+                        boolean isOnline = model.isOnline(IGNORE_CACHE);
+                        LOG.trace("Checking online state for {}: {}", model, (isOnline ? "online" : "offline"));
+                        if (isOnline && !isSuspended(model) && !recordingProcesses.containsKey(model)) {
+                            LOG.info("Model {}'s room back to public. Starting recording", model);
+                            startRecordingProcess(model);
                         }
                     } catch (HttpException e) {
                         LOG.error("Couldn't check if model {} is online. HTTP Response: {} - {}",
@@ -421,12 +421,20 @@ public class LocalRecorder implements Recorder {
                         LOG.error("Couldn't check if model {} is online", model.getName(), e);
                     }
                 }
+                Instant end = Instant.now();
+                Duration timeCheckTook = Duration.between(begin, end);
 
-                try {
-                    if (running)
-                        Thread.sleep(TimeUnit.SECONDS.toMillis(60));
-                } catch (InterruptedException e) {
-                    LOG.trace("Sleep interrupted");
+                long sleepTime = Config.getInstance().getSettings().onlineCheckIntervalInSecs;
+                if(timeCheckTook.getSeconds() < sleepTime) {
+                    try {
+                        if (running) {
+                            long millis = TimeUnit.SECONDS.toMillis(sleepTime - timeCheckTook.getSeconds());
+                            LOG.trace("Sleeping {}ms", millis);
+                            Thread.sleep(millis);
+                        }
+                    } catch (InterruptedException e) {
+                        LOG.trace("Sleep interrupted");
+                    }
                 }
             }
             LOG.debug(getName() + " terminated");

@@ -74,5 +74,5 @@ public class Settings {
     public List<String> disabledSites = new ArrayList<>();
     public String colorBase = "#FFFFFF";
     public String colorAccent = "#FFFFFF";
-    public long onlineCheckIntervalInSecs = 60;
+    public int onlineCheckIntervalInSecs = 60;
 }

@@ -64,6 +64,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private TextField postProcessing;
     private TextField server;
     private TextField port;
+    private TextField onlineCheckIntervalInSecs;
     private CheckBox loadResolution;
     private CheckBox secureCommunication = new CheckBox();
     private CheckBox chooseStreamQuality = new CheckBox();
@@ -214,18 +215,6 @@ public class SettingsTab extends Tab implements TabSelectionListener {
                 saveConfig();
             }
         });
-        //        port.focusedProperty().addListener((e) -> {
-        //            if(!port.getText().isEmpty()) {
-        //                try {
-        //                    Config.getInstance().getSettings().httpPort = Integer.parseInt(port.getText());
-        //                    port.setBorder(Border.EMPTY);
-        //                    port.setTooltip(null);
-        //                } catch (NumberFormatException e1) {
-        //                    port.setBorder(new Border(new BorderStroke(Color.RED, BorderStrokeStyle.DASHED, new CornerRadii(2), new BorderWidths(2))));
-        //                    port.setTooltip(new Tooltip("Port has to be a number in the range 1 - 65536"));
-        //                }
-        //            }
-        //        });
         GridPane.setFillWidth(port, true);
         GridPane.setHgrow(port, Priority.ALWAYS);
         GridPane.setColumnSpan(port, 2);
@@ -408,6 +397,20 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         GridPane.setMargin(l, new Insets(0, 0, 0, 0));
         GridPane.setMargin(splitAfter, new Insets(0, 0, 0, CHECKBOX_MARGIN));
 
+        layout.add(new Label("Check online state every (secs"), 0, row);
+        onlineCheckIntervalInSecs = new TextField(Integer.toString(Config.getInstance().getSettings().onlineCheckIntervalInSecs));
+        onlineCheckIntervalInSecs.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                onlineCheckIntervalInSecs.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+            if(!onlineCheckIntervalInSecs.getText().isEmpty()) {
+                Config.getInstance().getSettings().onlineCheckIntervalInSecs = Integer.parseInt(onlineCheckIntervalInSecs.getText());
+                saveConfig();
+            }
+        });
+        GridPane.setMargin(onlineCheckIntervalInSecs, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        layout.add(onlineCheckIntervalInSecs, 1, row++);
+
         l = new Label("Start Tab");
         layout.add(l, 0, row);
         startTab = new ComboBox<>();
@@ -426,8 +429,11 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         GridPane.setMargin(l, new Insets(0, 0, 0, 0));
         GridPane.setMargin(colorSettingsPane, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
 
+
         splitAfter.prefWidthProperty().bind(startTab.widthProperty());
         maxResolution.prefWidthProperty().bind(startTab.widthProperty());
+        onlineCheckIntervalInSecs.prefWidthProperty().bind(startTab.widthProperty());
+        onlineCheckIntervalInSecs.maxWidthProperty().bind(startTab.widthProperty());
 
         TitledPane general = new TitledPane("General", layout);
         general.setCollapsible(false);

@@ -32,11 +32,8 @@
 package ctbrec.ui.controls;
 
 import javafx.event.EventHandler;
-import javafx.geometry.Bounds;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.util.Callback;
 
@@ -48,8 +45,6 @@ import javafx.util.Callback;
  * (it is the Control, the Skin, and the CellFactory all in one).
  */
 public class PopoverTreeList<T> extends ListView<T> implements Callback<ListView<T>, ListCell<T>> {
-    protected static final Image RIGHT_ARROW = new Image(
-            PopoverTreeList.class.getResource("/popover-arrow.png").toExternalForm());
 
     public PopoverTreeList(){
         getStyleClass().clear();
@@ -63,8 +58,6 @@ public class PopoverTreeList<T> extends ListView<T> implements Callback<ListView
     protected void itemClicked(T item) {}
 
     private class TreeItemListCell extends ListCell<T> implements EventHandler<MouseEvent> {
-        private ImageView arrow = new ImageView(RIGHT_ARROW);
-
         private TreeItemListCell() {
             super();
             getStyleClass().setAll("popover-tree-list-cell");
@@ -83,18 +76,6 @@ public class PopoverTreeList<T> extends ListView<T> implements Callback<ListView
             return 44;
         }
 
-        @Override protected void layoutChildren() {
-            if (getChildren().size() < 2) getChildren().add(arrow);
-            super.layoutChildren();
-            final int w = (int)getWidth();
-            final int h = (int)getHeight();
-            //final int centerX = (int)(w/2d);
-            //final int centerY = (int)(h/2d);
-            final Bounds arrowBounds = arrow.getLayoutBounds();
-            arrow.setLayoutX(w - arrowBounds.getWidth() - 12);
-            arrow.setLayoutY((int)((h - arrowBounds.getHeight())/2d));
-        }
-
         // CELL METHODS
         @Override protected void updateItem(T item, boolean empty) {
             // let super do its work
@@ -102,10 +83,8 @@ public class PopoverTreeList<T> extends ListView<T> implements Callback<ListView
             // update our state
             if (item == null) { // empty item
                 setText(null);
-                arrow.setVisible(false);
             } else {
                 setText(item.toString());
-                arrow.setVisible(true);
             }
         }
     }

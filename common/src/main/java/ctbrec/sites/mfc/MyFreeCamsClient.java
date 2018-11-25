@@ -616,6 +616,15 @@ public class MyFreeCamsClient {
         synchronized (monitor) {
             monitor.wait();
         }
+
+        for (MyFreeCamsModel model : models.asMap().values()) {
+            if(StringUtil.isNotBlank(model.getName())) {
+                if(model.getName().contains(q)) {
+                    result.add(model);
+                }
+            }
+        }
+
         return result;
     }
 }

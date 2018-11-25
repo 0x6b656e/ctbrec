@@ -1,10 +1,10 @@
 package ctbrec.ui.sites.chaturbate;
 
 import ctbrec.Config;
-import ctbrec.sites.ConfigUI;
 import ctbrec.sites.chaturbate.Chaturbate;
 import ctbrec.ui.DesktopIntegration;
 import ctbrec.ui.SettingsTab;
+import ctbrec.ui.sites.AbstractConfigUI;
 import javafx.geometry.Insets;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
@@ -14,14 +14,17 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 
-public class ChaturbateConfigUi implements ConfigUI {
+public class ChaturbateConfigUi extends AbstractConfigUI {
     @Override
     public Parent createConfigPanel() {
         GridPane layout = SettingsTab.createGridLayout();
 
         layout.add(new Label("Chaturbate User"), 0, 0);
         TextField username = new TextField(Config.getInstance().getSettings().username);
-        username.focusedProperty().addListener((e) -> Config.getInstance().getSettings().username = username.getText());
+        username.textProperty().addListener((ob, o, n) -> {
+            Config.getInstance().getSettings().username = username.getText();
+            save();
+        });
         GridPane.setFillWidth(username, true);
         GridPane.setHgrow(username, Priority.ALWAYS);
         GridPane.setColumnSpan(username, 2);
@@ -30,7 +33,10 @@ public class ChaturbateConfigUi implements ConfigUI {
         layout.add(new Label("Chaturbate Password"), 0, 1);
         PasswordField password = new PasswordField();
         password.setText(Config.getInstance().getSettings().password);
-        password.focusedProperty().addListener((e) -> Config.getInstance().getSettings().password = password.getText());
+        password.textProperty().addListener((ob, o, n) -> {
+            Config.getInstance().getSettings().password = password.getText();
+            save();
+        });
         GridPane.setFillWidth(password, true);
         GridPane.setHgrow(password, Priority.ALWAYS);
         GridPane.setColumnSpan(password, 2);

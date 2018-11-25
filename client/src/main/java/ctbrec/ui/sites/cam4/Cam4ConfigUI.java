@@ -1,10 +1,10 @@
 package ctbrec.ui.sites.cam4;
 
 import ctbrec.Config;
-import ctbrec.sites.ConfigUI;
 import ctbrec.sites.cam4.Cam4;
 import ctbrec.ui.DesktopIntegration;
 import ctbrec.ui.SettingsTab;
+import ctbrec.ui.sites.AbstractConfigUI;
 import javafx.geometry.Insets;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
@@ -14,14 +14,16 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 
-public class Cam4ConfigUI implements ConfigUI {
-
+public class Cam4ConfigUI extends AbstractConfigUI {
     @Override
     public Parent createConfigPanel() {
         GridPane layout = SettingsTab.createGridLayout();
         layout.add(new Label("Cam4 User"), 0, 0);
         TextField username = new TextField(Config.getInstance().getSettings().cam4Username);
-        username.focusedProperty().addListener((e) -> Config.getInstance().getSettings().cam4Username = username.getText());
+        username.textProperty().addListener((ob, o, n) -> {
+            Config.getInstance().getSettings().cam4Username = username.getText();
+            save();
+        });
         GridPane.setFillWidth(username, true);
         GridPane.setHgrow(username, Priority.ALWAYS);
         GridPane.setColumnSpan(username, 2);
@@ -30,7 +32,10 @@ public class Cam4ConfigUI implements ConfigUI {
         layout.add(new Label("Cam4 Password"), 0, 1);
         PasswordField password = new PasswordField();
         password.setText(Config.getInstance().getSettings().cam4Password);
-        password.focusedProperty().addListener((e) -> Config.getInstance().getSettings().cam4Password = password.getText());
+        password.focusedProperty().addListener((e) -> {
+            Config.getInstance().getSettings().cam4Password = password.getText();
+            save();
+        });
         GridPane.setFillWidth(password, true);
         GridPane.setHgrow(password, Priority.ALWAYS);
         GridPane.setColumnSpan(password, 2);

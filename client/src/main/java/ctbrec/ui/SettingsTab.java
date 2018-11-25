@@ -154,6 +154,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
                 } else {
                     settings.disabledSites.add(site.getName());
                 }
+                saveConfig();
                 showRestartRequired();
             });
             GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
@@ -183,6 +184,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             Config.getInstance().getSettings().localRecording = recordLocal.isSelected();
             setRecordingMode(recordLocal.isSelected());
             showRestartRequired();
+            saveConfig();
         });
         GridPane.setMargin(l, new Insets(0, 0, CHECKBOX_MARGIN, 0));
         GridPane.setMargin(recordLocal, new Insets(0, 0, CHECKBOX_MARGIN, 0));
@@ -190,9 +192,10 @@ public class SettingsTab extends Tab implements TabSelectionListener {
 
         layout.add(new Label("Server"), 0, 1);
         server = new TextField(Config.getInstance().getSettings().httpServer);
-        server.focusedProperty().addListener((e) -> {
+        server.textProperty().addListener((ob, o, n) -> {
             if(!server.getText().isEmpty()) {
                 Config.getInstance().getSettings().httpServer = server.getText();
+                saveConfig();
             }
         });
         GridPane.setFillWidth(server, true);
@@ -202,18 +205,27 @@ public class SettingsTab extends Tab implements TabSelectionListener {
 
         layout.add(new Label("Port"), 0, 2);
         port = new TextField(Integer.toString(Config.getInstance().getSettings().httpPort));
-        port.focusedProperty().addListener((e) -> {
+        port.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                port.setText(newValue.replaceAll("[^\\d]", ""));
+            }
             if(!port.getText().isEmpty()) {
-                try {
-                    Config.getInstance().getSettings().httpPort = Integer.parseInt(port.getText());
-                    port.setBorder(Border.EMPTY);
-                    port.setTooltip(null);
-                } catch (NumberFormatException e1) {
-                    port.setBorder(new Border(new BorderStroke(Color.RED, BorderStrokeStyle.DASHED, new CornerRadii(2), new BorderWidths(2))));
-                    port.setTooltip(new Tooltip("Port has to be a number in the range 1 - 65536"));
-                }
+                Config.getInstance().getSettings().httpPort = Integer.parseInt(port.getText());
+                saveConfig();
             }
         });
+        //        port.focusedProperty().addListener((e) -> {
+        //            if(!port.getText().isEmpty()) {
+        //                try {
+        //                    Config.getInstance().getSettings().httpPort = Integer.parseInt(port.getText());
+        //                    port.setBorder(Border.EMPTY);
+        //                    port.setTooltip(null);
+        //                } catch (NumberFormatException e1) {
+        //                    port.setBorder(new Border(new BorderStroke(Color.RED, BorderStrokeStyle.DASHED, new CornerRadii(2), new BorderWidths(2))));
+        //                    port.setTooltip(new Tooltip("Port has to be a number in the range 1 - 65536"));
+        //                }
+        //            }
+        //        });
         GridPane.setFillWidth(port, true);
         GridPane.setHgrow(port, Priority.ALWAYS);
         GridPane.setColumnSpan(port, 2);
@@ -229,6 +241,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
                 if(key == null) {
                     key = Hmac.generateKey();
                     Config.getInstance().getSettings().key = key;
+                    saveConfig();
                 }
                 TextInputDialog keyDialog = new TextInputDialog();
                 keyDialog.setResizable(true);
@@ -273,7 +286,10 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         options.add(ONE_PER_RECORDING);
         directoryStructure = new ComboBox<>(FXCollections.observableList(options));
         directoryStructure.setValue(Config.getInstance().getSettings().recordingsDirStructure);
-        directoryStructure.setOnAction((evt) -> Config.getInstance().getSettings().recordingsDirStructure = directoryStructure.getValue());
+        directoryStructure.setOnAction((evt) -> {
+            Config.getInstance().getSettings().recordingsDirStructure = directoryStructure.getValue();
+            saveConfig();
+        });
         GridPane.setColumnSpan(directoryStructure, 2);
         GridPane.setMargin(directoryStructure, new Insets(0, 0, 0, CHECKBOX_MARGIN));
         layout.add(directoryStructure, 1, row++);
@@ -313,6 +329,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         loadResolution.setSelected(Config.getInstance().getSettings().determineResolution);
         loadResolution.setOnAction((e) -> {
             Config.getInstance().getSettings().determineResolution = loadResolution.isSelected();
+            saveConfig();
             if(!loadResolution.isSelected()) {
                 ThumbOverviewTab.queue.clear();
             }
@@ -324,7 +341,10 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         l = new Label("Allow multiple players");
         layout.add(l, 0, row);
         multiplePlayers.setSelected(!Config.getInstance().getSettings().singlePlayer);
-        multiplePlayers.setOnAction((e) -> Config.getInstance().getSettings().singlePlayer = !multiplePlayers.isSelected());
+        multiplePlayers.setOnAction((e) -> {
+            Config.getInstance().getSettings().singlePlayer = !multiplePlayers.isSelected();
+            saveConfig();
+        });
         GridPane.setMargin(l, new Insets(3, 0, 0, 0));
         GridPane.setMargin(multiplePlayers, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(multiplePlayers, 1, row++);
@@ -332,7 +352,10 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         l = new Label("Manually select stream quality");
         layout.add(l, 0, row);
         chooseStreamQuality.setSelected(Config.getInstance().getSettings().chooseStreamQuality);
-        chooseStreamQuality.setOnAction((e) -> Config.getInstance().getSettings().chooseStreamQuality = chooseStreamQuality.isSelected());
+        chooseStreamQuality.setOnAction((e) -> {
+            Config.getInstance().getSettings().chooseStreamQuality = chooseStreamQuality.isSelected();
+            saveConfig();
+        });
         GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
         GridPane.setMargin(chooseStreamQuality, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(chooseStreamQuality, 1, row++);
@@ -340,7 +363,10 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         l = new Label("Update thumbnails");
         layout.add(l, 0, row);
         updateThumbnails.setSelected(Config.getInstance().getSettings().updateThumbnails);
-        updateThumbnails.setOnAction((e) -> Config.getInstance().getSettings().updateThumbnails = updateThumbnails.isSelected());
+        updateThumbnails.setOnAction((e) -> {
+            Config.getInstance().getSettings().updateThumbnails = updateThumbnails.isSelected();
+            saveConfig();
+        });
         GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
         GridPane.setMargin(updateThumbnails, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(updateThumbnails, 1, row++);
@@ -355,7 +381,10 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         resolutionOptions.add(0);
         maxResolution = new ComboBox<>(FXCollections.observableList(resolutionOptions));
         setMaxResolutionValue();
-        maxResolution.setOnAction((e) -> Config.getInstance().getSettings().maximumResolution = maxResolution.getSelectionModel().getSelectedItem());
+        maxResolution.setOnAction((e) -> {
+            Config.getInstance().getSettings().maximumResolution = maxResolution.getSelectionModel().getSelectedItem();
+            saveConfig();
+        });
         layout.add(maxResolution, 1, row++);
         GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
         GridPane.setMargin(maxResolution, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
@@ -372,7 +401,10 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         splitAfter = new ComboBox<>(FXCollections.observableList(options));
         layout.add(splitAfter, 1, row++);
         setSplitAfterValue();
-        splitAfter.setOnAction((e) -> Config.getInstance().getSettings().splitRecordings = splitAfter.getSelectionModel().getSelectedItem().getValue());
+        splitAfter.setOnAction((e) -> {
+            Config.getInstance().getSettings().splitRecordings = splitAfter.getSelectionModel().getSelectedItem().getValue();
+            saveConfig();
+        });
         GridPane.setMargin(l, new Insets(0, 0, 0, 0));
         GridPane.setMargin(splitAfter, new Insets(0, 0, 0, CHECKBOX_MARGIN));
 
@@ -380,7 +412,10 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         layout.add(l, 0, row);
         startTab = new ComboBox<>();
         layout.add(startTab, 1, row++);
-        startTab.setOnAction((e) -> Config.getInstance().getSettings().startTab = startTab.getSelectionModel().getSelectedItem());
+        startTab.setOnAction((e) -> {
+            Config.getInstance().getSettings().startTab = startTab.getSelectionModel().getSelectedItem();
+            saveConfig();
+        });
         GridPane.setMargin(l, new Insets(0, 0, 0, 0));
         GridPane.setMargin(startTab, new Insets(0, 0, 0, CHECKBOX_MARGIN));
 
@@ -488,6 +523,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
                         setPostProcessing(program);
                     } else {
                         Config.getInstance().getSettings().postProcessing = "";
+                        saveConfig();
                     }
                 }
             }
@@ -501,6 +537,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             mediaPlayer.setTooltip(new Tooltip(msg));
         } else {
             Config.getInstance().getSettings().mediaPlayer = mediaPlayer.getText();
+            saveConfig();
         }
     }
 
@@ -511,6 +548,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             postProcessing.setTooltip(new Tooltip(msg));
         } else {
             Config.getInstance().getSettings().postProcessing = postProcessing.getText();
+            saveConfig();
         }
     }
 
@@ -587,6 +625,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
                 String path = dir.getCanonicalPath();
                 Config.getInstance().getSettings().recordingsDir = path;
                 recordingsDirectory.setText(path);
+                saveConfig();
             } catch (IOException e1) {
                 LOG.error("Couldn't determine directory path", e1);
                 Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
@@ -625,6 +664,11 @@ public class SettingsTab extends Tab implements TabSelectionListener {
 
     public void saveConfig() {
         proxySettingsPane.saveConfig();
+        try {
+            Config.getInstance().save();
+        } catch (IOException e) {
+            LOG.error("Couldn't save config", e);
+        }
     }
 
     public static class SplitAfterOption {

@@ -29,10 +29,12 @@ public class ColorSettingsPane extends Pane {
         baseColor.setOnAction(evt -> {
             Config.getInstance().getSettings().colorBase = toWeb(baseColor.getValue());
             settingsTab.showRestartRequired();
+            settingsTab.saveConfig();
         });
         accentColor.setOnAction(evt -> {
             Config.getInstance().getSettings().colorAccent = toWeb(accentColor.getValue());
             settingsTab.showRestartRequired();
+            settingsTab.saveConfig();
         });
         reset.setOnAction(evt -> {
             baseColor.setValue(Color.WHITE);
@@ -40,6 +42,7 @@ public class ColorSettingsPane extends Pane {
             accentColor.setValue(Color.WHITE);
             Config.getInstance().getSettings().colorAccent = toWeb(Color.WHITE);
             settingsTab.showRestartRequired();
+            settingsTab.saveConfig();
         });
     }
 

@@ -1,10 +1,10 @@
 package ctbrec.ui.sites.camsoda;
 
 import ctbrec.Config;
-import ctbrec.sites.ConfigUI;
 import ctbrec.sites.camsoda.Camsoda;
 import ctbrec.ui.DesktopIntegration;
 import ctbrec.ui.SettingsTab;
+import ctbrec.ui.sites.AbstractConfigUI;
 import javafx.geometry.Insets;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
@@ -14,8 +14,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 
-public class CamsodaConfigUI implements ConfigUI {
-
+public class CamsodaConfigUI extends AbstractConfigUI {
     private Camsoda camsoda;
 
     public CamsodaConfigUI(Camsoda camsoda) {
@@ -27,7 +26,10 @@ public class CamsodaConfigUI implements ConfigUI {
         GridPane layout = SettingsTab.createGridLayout();
         layout.add(new Label("CamSoda User"), 0, 0);
         TextField username = new TextField(Config.getInstance().getSettings().camsodaUsername);
-        username.focusedProperty().addListener((e) -> Config.getInstance().getSettings().camsodaUsername = username.getText());
+        username.textProperty().addListener((ob, o, n) -> {
+            Config.getInstance().getSettings().camsodaUsername = username.getText();
+            save();
+        });
         GridPane.setFillWidth(username, true);
         GridPane.setHgrow(username, Priority.ALWAYS);
         GridPane.setColumnSpan(username, 2);
@@ -36,7 +38,10 @@ public class CamsodaConfigUI implements ConfigUI {
         layout.add(new Label("CamSoda Password"), 0, 1);
         PasswordField password = new PasswordField();
         password.setText(Config.getInstance().getSettings().camsodaPassword);
-        password.focusedProperty().addListener((e) -> Config.getInstance().getSettings().camsodaPassword = password.getText());
+        password.textProperty().addListener((ob, o, n) -> {
+            Config.getInstance().getSettings().camsodaPassword = password.getText();
+            save();
+        });
         GridPane.setFillWidth(password, true);
         GridPane.setHgrow(password, Priority.ALWAYS);
         GridPane.setColumnSpan(password, 2);

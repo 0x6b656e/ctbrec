@@ -81,7 +81,7 @@ public class ThumbCell extends StackPane {
         this.recorder = recorder;
         recording = recorder.isRecording(model);
         model.setSuspended(recorder.isSuspended(model));
-        this.setStyle("-fx-background-color: lightgray");
+        this.setStyle("-fx-background-color: -fx-base");
 
         iv = new ImageView();
         iv.setSmooth(true);
@@ -530,8 +530,14 @@ public class ThumbCell extends StackPane {
     }
 
     private void setSize(int w, int h) {
-        iv.setFitWidth(w);
-        iv.setFitHeight(h);
+        if(iv.getImage() != null) {
+            double aspectRatio = iv.getImage().getWidth() / iv.getImage().getHeight();
+            if(aspectRatio > 1) {
+                iv.setFitWidth(w);
+            } else {
+                iv.setFitHeight(h);
+            }
+        }
         setMinSize(w, h);
         setPrefSize(w, h);
         nameBackground.setWidth(w);
@@ -545,5 +551,10 @@ public class ThumbCell extends StackPane {
         topic.setWrappingWidth(w-margin*2);
         selectionOverlay.setWidth(w);
         selectionOverlay.setHeight(getHeight());
+
+        Rectangle clip = new Rectangle(w, h);
+        clip.setArcWidth(10);
+        clip.arcHeightProperty().bind(clip.arcWidthProperty());
+        this.setClip(clip);
     }
 }

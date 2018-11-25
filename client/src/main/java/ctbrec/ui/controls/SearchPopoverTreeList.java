@@ -171,6 +171,7 @@ public class SearchPopoverTreeList extends PopoverTreeList<Model> implements Pop
             thumb.setFitWidth(thumbSize);
             thumb.setFitHeight(thumbSize);
             thumb.setClip(clip);
+            thumb.setSmooth(true);
 
             follow = new Button("Follow");
             follow.setOnAction((evt) -> {

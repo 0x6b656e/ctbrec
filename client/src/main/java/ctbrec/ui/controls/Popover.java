@@ -48,15 +48,15 @@ import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
-import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.shape.Rectangle;
-import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
 
 /**
@@ -86,9 +86,7 @@ public class Popover extends Region implements EventHandler<Event>{
     private final Pane pagesPane = new Pane();
     private final Rectangle pagesClipRect = new Rectangle();
     private final Pane titlesPane = new Pane();
-    private Text title; // the current title
-    private final Rectangle titlesClipRect = new Rectangle();
-    //    private final EventHandler<ScrollEvent> popoverScrollHandler;
+    private Label title; // the current title
     private final EventHandler<MouseEvent> popoverHideHandler;
     private Runnable onHideCallback = null;
     private int maxPopupHeight = -1;
@@ -114,10 +112,10 @@ public class Popover extends Region implements EventHandler<Event>{
         rightButton.getStyleClass().add("popover-right-button");
         rightButton.setMinWidth(USE_PREF_SIZE);
         pagesClipRect.setSmooth(false);
+        pagesClipRect.setArcHeight(10);
+        pagesClipRect.arcWidthProperty().bind(pagesClipRect.arcHeightProperty());
         pagesPane.setClip(pagesClipRect);
-        titlesClipRect.setSmooth(false);
-        titlesPane.setClip(titlesClipRect);
-        getChildren().addAll(pagesPane, frameBorder, titlesPane, leftButton, rightButton);
+        getChildren().addAll(frameBorder, titlesPane, leftButton, rightButton, pagesPane);
         // always hide to start with
         setVisible(false);
         setOpacity(0);
@@ -228,10 +226,11 @@ public class Popover extends Region implements EventHandler<Event>{
         final Insets insets = getInsets();
         final int width = (int)getWidth();
         final int height = (int)getHeight();
-        final int top = (int)insets.getTop();
+        final int top = (int)insets.getTop() + 40;
         final int right = (int)insets.getRight();
         final int bottom = (int)insets.getBottom();
         final int left = (int)insets.getLeft();
+        final int offset = 18;
 
         int pageWidth = width - left - right;
         int pageHeight = height - top - bottom;
@@ -252,18 +251,15 @@ public class Popover extends Region implements EventHandler<Event>{
         if (buttonHeight < 30) buttonHeight = 30;
         final int buttonTop = (int)((top-buttonHeight)/2d);
         final int leftButtonWidth = (int)snapSizeX(leftButton.prefWidth(-1));
-        leftButton.resizeRelocate(left, buttonTop,leftButtonWidth,buttonHeight);
+        leftButton.resizeRelocate(left, buttonTop + offset,leftButtonWidth,buttonHeight);
         final int rightButtonWidth = (int)snapSizeX(rightButton.prefWidth(-1));
-        rightButton.resizeRelocate(width-right-rightButtonWidth, buttonTop,rightButtonWidth,buttonHeight);
-
-        final double leftButtonRight = leftButton.isVisible() ? (left + leftButtonWidth) : left;
-        final double rightButtonLeft = rightButton.isVisible() ? (right + rightButtonWidth) : right;
-        titlesClipRect.setX(leftButtonRight);
-        titlesClipRect.setWidth(pageWidth - leftButtonRight - rightButtonLeft);
-        titlesClipRect.setHeight(top);
+        rightButton.resizeRelocate(width-right-rightButtonWidth, buttonTop + offset,rightButtonWidth,buttonHeight);
 
         if (title != null) {
-            title.setTranslateY((int) (top / 2d));
+            double tw = title.getWidth();
+            double th = title.getHeight();
+            title.setTranslateX((width - tw) / 2);
+            title.setTranslateY((top - th) / 2 + offset);
         }
     }
 
@@ -279,7 +275,6 @@ public class Popover extends Region implements EventHandler<Event>{
         popoverHeight.set(400);
         pagesPane.setTranslateX(0);
         titlesPane.setTranslateX(0);
-        titlesClipRect.setTranslateX(0);
     }
 
     public final void popPage() {
@@ -307,8 +302,7 @@ public class Popover extends Region implements EventHandler<Event>{
                     },
                             new KeyValue(pagesPane.translateXProperty(), -newPageX, Interpolator.EASE_BOTH),
                             new KeyValue(titlesPane.translateXProperty(), -newPageX, Interpolator.EASE_BOTH),
-                            new KeyValue(pagesClipRect.xProperty(), newPageX, Interpolator.EASE_BOTH),
-                            new KeyValue(titlesClipRect.translateXProperty(), newPageX, Interpolator.EASE_BOTH)
+                            new KeyValue(pagesClipRect.xProperty(), newPageX, Interpolator.EASE_BOTH)
                             )
                     ).play();
         } else {
@@ -328,10 +322,9 @@ public class Popover extends Region implements EventHandler<Event>{
         rightButton.setVisible(page.rightButtonText() != null);
         rightButton.setText(page.rightButtonText());
 
-        title = new Text(page.getPageTitle());
+        title = new Label(page.getPageTitle());
         title.getStyleClass().add("popover-title");
-        //debtest title.setFill(Color.WHITE);
-        title.setTextOrigin(VPos.CENTER);
+        title.setTextAlignment(TextAlignment.CENTER);
         title.setTranslateX(newPageX + (int) ((pageWidth - title.getLayoutBounds().getWidth()) / 2d));
         titlesPane.getChildren().add(title);
 
@@ -343,8 +336,7 @@ public class Popover extends Region implements EventHandler<Event>{
                     },
                             new KeyValue(pagesPane.translateXProperty(), -newPageX, Interpolator.EASE_BOTH),
                             new KeyValue(titlesPane.translateXProperty(), -newPageX, Interpolator.EASE_BOTH),
-                            new KeyValue(pagesClipRect.xProperty(), newPageX, Interpolator.EASE_BOTH),
-                            new KeyValue(titlesClipRect.translateXProperty(), newPageX, Interpolator.EASE_BOTH)
+                            new KeyValue(pagesClipRect.xProperty(), newPageX, Interpolator.EASE_BOTH)
                             )
                     );
             timeline.play();

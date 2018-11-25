@@ -619,7 +619,7 @@ public class MyFreeCamsClient {
 
         for (MyFreeCamsModel model : models.asMap().values()) {
             if(StringUtil.isNotBlank(model.getName())) {
-                if(model.getName().contains(q)) {
+                if(model.getName().toLowerCase().contains(q.toLowerCase())) {
                     result.add(model);
                 }
             }

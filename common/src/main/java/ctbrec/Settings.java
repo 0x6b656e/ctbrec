@@ -75,4 +75,10 @@ public class Settings {
     public String colorBase = "#FFFFFF";
     public String colorAccent = "#FFFFFF";
     public int onlineCheckIntervalInSecs = 60;
+    public String recordedModelsSortColumn = "";
+    public String recordedModelsSortType = "";
+    public double[] recordedModelsColumnWidths = new double[0];
+    public String recordingsSortColumn = "";
+    public String recordingsSortType = "";
+    public double[] recordingsColumnWidths = new double[0];
 }

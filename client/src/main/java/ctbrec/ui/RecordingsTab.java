@@ -16,6 +16,7 @@ import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -30,6 +31,7 @@ import com.iheartradio.m3u8.PlaylistException;
 import ctbrec.Config;
 import ctbrec.Recording;
 import ctbrec.Recording.STATUS;
+import ctbrec.StringUtil;
 import ctbrec.recorder.Recorder;
 import ctbrec.recorder.download.MergedHlsDownload;
 import ctbrec.sites.Site;
@@ -50,6 +52,7 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableColumn.SortType;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.ContextMenuEvent;
@@ -180,6 +183,8 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
         root.setPadding(new Insets(5));
         root.setCenter(scrollPane);
         setContent(root);
+
+        restoreState();
     }
 
     void initializeUpdateService() {
@@ -535,6 +540,40 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
             deleteThread.start();
         } else {
             table.setCursor(Cursor.DEFAULT);
+        }
+    }
+
+    public void saveState() {
+        if(!table.getSortOrder().isEmpty()) {
+            TableColumn<JavaFxRecording, ?> col = table.getSortOrder().get(0);
+            Config.getInstance().getSettings().recordingsSortColumn = col.getText();
+            Config.getInstance().getSettings().recordingsSortType = col.getSortType().toString();
+        }
+        double[] columnWidths = new double[table.getColumns().size()];
+        for (int i = 0; i < columnWidths.length; i++) {
+            columnWidths[i] = table.getColumns().get(i).getWidth();
+        }
+        Config.getInstance().getSettings().recordingsColumnWidths = columnWidths;
+    };
+
+    private void restoreState() {
+        String sortCol = Config.getInstance().getSettings().recordingsSortColumn;
+        if(StringUtil.isNotBlank(sortCol)) {
+            for (TableColumn<JavaFxRecording, ?> col : table.getColumns()) {
+                if(Objects.equals(sortCol, col.getText())) {
+                    col.setSortType(SortType.valueOf(Config.getInstance().getSettings().recordingsSortType));
+                    table.getSortOrder().clear();
+                    table.getSortOrder().add(col);
+                    break;
+                }
+            }
+        }
+
+        double[] columnWidths = Config.getInstance().getSettings().recordingsColumnWidths;
+        if(columnWidths != null && columnWidths.length == table.getColumns().size()) {
+            for (int i = 0; i < columnWidths.length; i++) {
+                table.getColumns().get(i).setPrefWidth(columnWidths[i]);
+            }
         }
     }
 }

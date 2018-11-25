@@ -155,6 +155,8 @@ public class CamrecApplication extends Application {
             new Thread() {
                 @Override
                 public void run() {
+                    modelsTab.saveState();
+                    recordingsTab.saveState();
                     settingsTab.saveConfig();
                     recorder.shutdown();
                     for (Site site : sites) {

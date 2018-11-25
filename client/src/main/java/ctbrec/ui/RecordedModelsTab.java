@@ -20,8 +20,10 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.Recording;
+import ctbrec.StringUtil;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
 import ctbrec.ui.controls.AutoFillTextField;
@@ -42,6 +44,7 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableColumn.SortType;
 import javafx.scene.control.TableView;
 import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.CheckBoxTableCell;
@@ -135,6 +138,16 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
                 stopAction();
             }
         });
+        table.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if(event.getCode() == KeyCode.S) {
+                for (TableColumn<JavaFxModel, ?> col : table.getSortOrder()) {
+                    System.out.println(col.getText());
+                    System.out.println(col.getSortType());
+                    System.out.println(col.getComparator());
+                }
+            }
+        });
+
         scrollPane.setContent(table);
 
         HBox addModelBox = new HBox(5);
@@ -156,6 +169,8 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         root.setTop(addModelBox);
         root.setCenter(scrollPane);
         setContent(root);
+
+        restoreState();
     }
 
     private void addModel(ActionEvent e) {
@@ -223,6 +238,8 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
                     iterator.remove();
                 }
             }
+
+            table.sort();
         });
         updateService.setOnFailed((event) -> {
             LOG.info("Couldn't get list of models from recorder", event.getSource().getException());
@@ -464,5 +481,39 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
                 }
             }.start();
         }
+    }
+
+    public void saveState() {
+        if(!table.getSortOrder().isEmpty()) {
+            TableColumn<JavaFxModel, ?> col = table.getSortOrder().get(0);
+            Config.getInstance().getSettings().recordedModelsSortColumn = col.getText();
+            Config.getInstance().getSettings().recordedModelsSortType = col.getSortType().toString();
+        }
+        double[] columnWidths = new double[table.getColumns().size()];
+        for (int i = 0; i < columnWidths.length; i++) {
+            columnWidths[i] = table.getColumns().get(i).getWidth();
+        }
+        Config.getInstance().getSettings().recordedModelsColumnWidths = columnWidths;
     };
+
+    private void restoreState() {
+        String sortCol = Config.getInstance().getSettings().recordedModelsSortColumn;
+        if(StringUtil.isNotBlank(sortCol)) {
+            for (TableColumn<JavaFxModel, ?> col : table.getColumns()) {
+                if(Objects.equals(sortCol, col.getText())) {
+                    col.setSortType(SortType.valueOf(Config.getInstance().getSettings().recordedModelsSortType));
+                    table.getSortOrder().clear();
+                    table.getSortOrder().add(col);
+                    break;
+                }
+            }
+        }
+
+        double[] columnWidths = Config.getInstance().getSettings().recordedModelsColumnWidths;
+        if(columnWidths != null && columnWidths.length == table.getColumns().size()) {
+            for (int i = 0; i < columnWidths.length; i++) {
+                table.getColumns().get(i).setPrefWidth(columnWidths[i]);
+            }
+        }
+    }
 }

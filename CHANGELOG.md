@@ -6,6 +6,8 @@
 * Added setting to define the tab the application opens on start
 * Double-click starts playback of recordings
 * Refresh of thumbnails can be disabled
+* Changed settings are saved immediately (including changes of the
+  list of recorded models)
 
 1.10.0
 ========================

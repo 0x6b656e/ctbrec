@@ -669,7 +669,9 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     }
 
     public void saveConfig() {
-        proxySettingsPane.saveConfig();
+        if(proxySettingsPane != null) {
+            proxySettingsPane.saveConfig();
+        }
         try {
             Config.getInstance().save();
         } catch (IOException e) {

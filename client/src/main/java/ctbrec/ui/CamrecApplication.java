@@ -1,6 +1,7 @@
 package ctbrec.ui;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -122,6 +123,7 @@ public class CamrecApplication extends Application {
 
         switchToStartTab();
 
+        loadUserStyleSheet(primaryStage);
         primaryStage.getScene().getStylesheets().add("/ctbrec/ui/ThumbCell.css");
         primaryStage.getScene().getStylesheets().add("/ctbrec/ui/controls/SearchBox.css");
         primaryStage.getScene().getStylesheets().add("/ctbrec/ui/controls/Popover.css");
@@ -184,6 +186,13 @@ public class CamrecApplication extends Application {
                 }
             }
         });
+    }
+
+    private void loadUserStyleSheet(Stage primaryStage) {
+        File userCss = new File(Config.getInstance().getConfigDir(), "style.css");
+        if(userCss.exists() && userCss.isFile()) {
+            primaryStage.getScene().getStylesheets().add(userCss.toURI().toString());
+        }
     }
 
     private void switchToStartTab() {

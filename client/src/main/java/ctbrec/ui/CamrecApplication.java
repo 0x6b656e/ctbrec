@@ -2,6 +2,7 @@ package ctbrec.ui;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -44,6 +45,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.image.Image;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -122,8 +124,13 @@ public class CamrecApplication extends Application {
         rootPane.getTabs().add(new DonateTabFx());
 
         switchToStartTab();
-
-        loadUserStyleSheet(primaryStage);
+        writeColorSchemeStyleSheet(primaryStage);
+        Color base = Color.web(Config.getInstance().getSettings().colorBase);
+        if(!base.equals(Color.WHITE)) {
+            loadStyleSheet(primaryStage, "color.css");
+        }
+        loadStyleSheet(primaryStage, "style.css");
+        primaryStage.getScene().getStylesheets().add("/ctbrec/ui/ColorSettingsPane.css");
         primaryStage.getScene().getStylesheets().add("/ctbrec/ui/ThumbCell.css");
         primaryStage.getScene().getStylesheets().add("/ctbrec/ui/controls/SearchBox.css");
         primaryStage.getScene().getStylesheets().add("/ctbrec/ui/controls/Popover.css");
@@ -188,10 +195,26 @@ public class CamrecApplication extends Application {
         });
     }
 
-    private void loadUserStyleSheet(Stage primaryStage) {
-        File userCss = new File(Config.getInstance().getConfigDir(), "style.css");
-        if(userCss.exists() && userCss.isFile()) {
-            primaryStage.getScene().getStylesheets().add(userCss.toURI().toString());
+    private void writeColorSchemeStyleSheet(Stage primaryStage) {
+        File colorCss = new File(Config.getInstance().getConfigDir(), "color.css");
+        try(FileOutputStream fos = new FileOutputStream(colorCss)) {
+            String content = ".root {\n" +
+                    "    -fx-base: "+Config.getInstance().getSettings().colorBase+";\n" +
+                    "    -fx-accent: "+Config.getInstance().getSettings().colorAccent+";\n" +
+                    "    -fx-default-button: -fx-accent;\n" +
+                    "    -fx-focus-color: -fx-accent;\n" +
+                    "    -fx-control-inner-background-alt: derive(-fx-base, 95%);\n" +
+                    "}";
+            fos.write(content.getBytes("utf-8"));
+        } catch(Exception e) {
+            LOG.error("Couldn't write stylesheet for user defined color theme");
+        }
+    }
+
+    private void loadStyleSheet(Stage primaryStage, String filename) {
+        File css = new File(Config.getInstance().getConfigDir(), filename);
+        if(css.exists() && css.isFile()) {
+            primaryStage.getScene().getStylesheets().add(css.toURI().toString());
         }
     }
 

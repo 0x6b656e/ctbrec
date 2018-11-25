@@ -121,12 +121,12 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         leftSide.getChildren().add(createGeneralPanel());
         leftSide.getChildren().add(createLocationsPanel());
         leftSide.getChildren().add(createRecordLocationPanel());
-        proxySettingsPane = new ProxySettingsPane(this);
-        leftSide.getChildren().add(proxySettingsPane);
 
         //right side
         rightSide.getChildren().add(createSiteSelectionPanel());
         rightSide.getChildren().add(credentialsAccordion);
+        proxySettingsPane = new ProxySettingsPane(this);
+        rightSide.getChildren().add(proxySettingsPane);
         for (int i = 0; i < sites.size(); i++) {
             Site site = sites.get(i);
             ConfigUI siteConfig = SiteUiFactory.getUi(site).getConfigUI();
@@ -383,6 +383,13 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         startTab.setOnAction((e) -> Config.getInstance().getSettings().startTab = startTab.getSelectionModel().getSelectedItem());
         GridPane.setMargin(l, new Insets(0, 0, 0, 0));
         GridPane.setMargin(startTab, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+
+        l = new Label("Colors");
+        layout.add(l, 0, row);
+        ColorSettingsPane colorSettingsPane = new ColorSettingsPane();
+        layout.add(colorSettingsPane, 1, row++);
+        GridPane.setMargin(l, new Insets(0, 0, 0, 0));
+        GridPane.setMargin(colorSettingsPane, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
 
         splitAfter.prefWidthProperty().bind(startTab.widthProperty());
         maxResolution.prefWidthProperty().bind(startTab.widthProperty());

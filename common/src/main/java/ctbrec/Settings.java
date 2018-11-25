@@ -72,5 +72,6 @@ public class Settings {
     public int windowY;
     public int splitRecordings = 0;
     public List<String> disabledSites = new ArrayList<>();
-    public long onlineCheckIntervalInSecs = 60;
+    public String colorBase = "#FFFFFF";
+    public String colorAccent = "#FFFFFF";
 }

@@ -31,6 +31,8 @@
  */
 package ctbrec.ui.controls;
 
+import java.net.URL;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -53,6 +55,7 @@ import javafx.scene.control.Skin;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.shape.Rectangle;
 
 /**
  * Popover page that displays a list of samples and sample categories for a given SampleCategory.
@@ -161,8 +164,13 @@ public class SearchPopoverTreeList extends PopoverTreeList<Model> implements Pop
                 getStyleClass().remove("highlight");
                 title.getStyleClass().remove("highlight");
             });
+
+            Rectangle clip = new Rectangle(thumbSize, thumbSize);
+            clip.setArcWidth(20);
+            clip.arcHeightProperty().bind(clip.arcWidthProperty());
             thumb.setFitWidth(thumbSize);
             thumb.setFitHeight(thumbSize);
+            thumb.setClip(clip);
 
             follow = new Button("Follow");
             follow.setOnAction((evt) -> {
@@ -223,9 +231,15 @@ public class SearchPopoverTreeList extends PopoverTreeList<Model> implements Pop
                 title.setVisible(true);
                 title.setText(model.getName());
                 this.model = model;
-                String previewUrl = Optional.ofNullable(model.getPreview()).orElse(getClass().getResource("/anonymous.png").toString());
-                Image img = new Image(previewUrl, true);
-                thumb.setImage(img);
+                URL anonymousPng = getClass().getResource("/anonymous.png");
+                String previewUrl = Optional.ofNullable(model.getPreview()).orElse(anonymousPng.toString());
+                if(!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
+                    Image img = new Image(previewUrl, true);
+                    thumb.setImage(img);
+                } else {
+                    Image img = new Image(anonymousPng.toString(), true);
+                    thumb.setImage(img);
+                }
             }
 
         }

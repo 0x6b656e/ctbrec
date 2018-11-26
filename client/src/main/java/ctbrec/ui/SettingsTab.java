@@ -55,6 +55,7 @@ import javafx.stage.FileChooser;;
 public class SettingsTab extends Tab implements TabSelectionListener {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(SettingsTab.class);
+    private static final int ONE_GiB_IN_BYTES = 1024 * 1024 * 1024;
 
     public static final int CHECKBOX_MARGIN = 6;
     private TextField recordingsDirectory;
@@ -65,6 +66,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private TextField server;
     private TextField port;
     private TextField onlineCheckIntervalInSecs;
+    private TextField leaveSpaceOnDevice;
     private CheckBox loadResolution;
     private CheckBox secureCommunication = new CheckBox();
     private CheckBox chooseStreamQuality = new CheckBox();
@@ -333,8 +335,12 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         GridPane.setMargin(l, new Insets(0, 0, 0, 0));
         GridPane.setMargin(splitAfter, new Insets(0, 0, 0, CHECKBOX_MARGIN));
 
-        layout.add(new Label("Check online state every (seconds)"), 0, row);
+        Tooltip tt = new Tooltip("Check every x seconds, if a model came online");
+        l = new Label("Check online state every (seconds)");
+        l.setTooltip(tt);
+        layout.add(l, 0, row);
         onlineCheckIntervalInSecs = new TextField(Integer.toString(Config.getInstance().getSettings().onlineCheckIntervalInSecs));
+        onlineCheckIntervalInSecs.setTooltip(tt);
         onlineCheckIntervalInSecs.textProperty().addListener((observable, oldValue, newValue) -> {
             if (!newValue.matches("\\d*")) {
                 onlineCheckIntervalInSecs.setText(newValue.replaceAll("[^\\d]", ""));
@@ -346,6 +352,27 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         });
         GridPane.setMargin(onlineCheckIntervalInSecs, new Insets(0, 0, 0, CHECKBOX_MARGIN));
         layout.add(onlineCheckIntervalInSecs, 1, row++);
+
+        tt = new Tooltip("Stop recording, if the free space on the device gets below this threshold");
+        l = new Label("Leave space on device (GiB)");
+        l.setTooltip(tt);
+        layout.add(l, 0, row);
+        long minimumSpaceLeftInBytes = Config.getInstance().getSettings().minimumSpaceLeftInBytes;
+        int minimumSpaceLeftInGiB = (int) (minimumSpaceLeftInBytes / ONE_GiB_IN_BYTES);
+        leaveSpaceOnDevice = new TextField(Integer.toString(minimumSpaceLeftInGiB));
+        leaveSpaceOnDevice.setTooltip(tt);
+        leaveSpaceOnDevice.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                leaveSpaceOnDevice.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+            if(!leaveSpaceOnDevice.getText().isEmpty()) {
+                long spaceLeftInGiB = Long.parseLong(leaveSpaceOnDevice.getText());
+                Config.getInstance().getSettings().minimumSpaceLeftInBytes = spaceLeftInGiB * ONE_GiB_IN_BYTES;
+                saveConfig();
+            }
+        });
+        GridPane.setMargin(leaveSpaceOnDevice, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        layout.add(leaveSpaceOnDevice, 1, row++);
 
         TitledPane locations = new TitledPane("Recorder", layout);
         locations.setCollapsible(false);
@@ -479,6 +506,8 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         postProcessing.setDisable(!local);
         postProcessingDirectoryButton.setDisable(!local);
         directoryStructure.setDisable(!local);
+        onlineCheckIntervalInSecs.setDisable(!local);
+        leaveSpaceOnDevice.setDisable(!local);
     }
 
     private ChangeListener<? super Boolean> createRecordingsDirectoryFocusListener() {

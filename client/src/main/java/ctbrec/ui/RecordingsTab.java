@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.text.DecimalFormat;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -47,13 +48,16 @@ import javafx.scene.Cursor;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.SortType;
 import javafx.scene.control.TableView;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.KeyCode;
@@ -62,6 +66,9 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
+import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.util.Callback;
 import javafx.util.Duration;
@@ -74,12 +81,16 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
     private Recorder recorder;
     @SuppressWarnings("unused")
     private List<Site> sites;
+    private long spaceTotal = -1;
+    private long spaceFree = -1;
 
     FlowPane grid = new FlowPane();
     ScrollPane scrollPane = new ScrollPane();
     TableView<JavaFxRecording> table = new TableView<JavaFxRecording>();
     ObservableList<JavaFxRecording> observableRecordings = FXCollections.observableArrayList();
     ContextMenu popup;
+    ProgressBar spaceLeft;
+    Label spaceLabel;
 
     public RecordingsTab(String title, Recorder recorder, Config config, List<Site> sites) {
         super(title);
@@ -179,8 +190,21 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
         });
         scrollPane.setContent(table);
 
+        HBox spaceBox = new HBox(5);
+        Label l = new Label("Space left on device");
+        HBox.setMargin(l, new Insets(2, 0, 0, 0));
+        spaceBox.getChildren().add(l);
+        spaceLeft = new ProgressBar(0);
+        spaceLeft.setPrefSize(200, 22);
+        spaceLabel = new Label();
+        spaceLabel.setFont(Font.font(11));
+        StackPane stack = new StackPane(spaceLeft, spaceLabel);
+        spaceBox.getChildren().add(stack);
+        BorderPane.setMargin(spaceBox, new Insets(5));
+
         BorderPane root = new BorderPane();
         root.setPadding(new Insets(5));
+        root.setTop(spaceBox);
         root.setCenter(scrollPane);
         setContent(root);
 
@@ -191,30 +215,8 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
         updateService = createUpdateService();
         updateService.setPeriod(new Duration(TimeUnit.SECONDS.toMillis(2)));
         updateService.setOnSucceeded((event) -> {
-            List<JavaFxRecording> recordings = updateService.getValue();
-            if (recordings == null) {
-                return;
-            }
-
-            for (Iterator<JavaFxRecording> iterator = observableRecordings.iterator(); iterator.hasNext();) {
-                JavaFxRecording old = iterator.next();
-                if (!recordings.contains(old)) {
-                    // remove deleted recordings
-                    iterator.remove();
-                }
-            }
-            for (JavaFxRecording recording : recordings) {
-                if (!observableRecordings.contains(recording)) {
-                    // add new recordings
-                    observableRecordings.add(recording);
-                } else {
-                    // update existing ones
-                    int index = observableRecordings.indexOf(recording);
-                    JavaFxRecording old = observableRecordings.get(index);
-                    old.update(recording);
-                }
-            }
-            table.sort();
+            updateRecordingsTable();
+            updateFreeSpaceDisplay();
         });
         updateService.setOnFailed((event) -> {
             LOG.info("Couldn't get list of recordings from recorder", event.getSource().getException());
@@ -226,6 +228,46 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
         });
     }
 
+    private void updateFreeSpaceDisplay() {
+        if(spaceTotal != -1 && spaceFree != -1) {
+            double free = ((double)spaceFree) / spaceTotal;
+            spaceLeft.setProgress(free);
+            double totalGiB = ((double) spaceTotal) / 1024 / 1024 / 1024;
+            double freeGiB = ((double) spaceFree) / 1024 / 1024 / 1024;
+            DecimalFormat df = new DecimalFormat("0.00");
+            String tt = df.format(freeGiB) + " / " + df.format(totalGiB) + " GiB";
+            spaceLeft.setTooltip(new Tooltip(tt));
+            spaceLabel.setText(tt);
+        }
+    }
+
+    private void updateRecordingsTable() {
+        List<JavaFxRecording> recordings = updateService.getValue();
+        if (recordings == null) {
+            return;
+        }
+
+        for (Iterator<JavaFxRecording> iterator = observableRecordings.iterator(); iterator.hasNext();) {
+            JavaFxRecording old = iterator.next();
+            if (!recordings.contains(old)) {
+                // remove deleted recordings
+                iterator.remove();
+            }
+        }
+        for (JavaFxRecording recording : recordings) {
+            if (!observableRecordings.contains(recording)) {
+                // add new recordings
+                observableRecordings.add(recording);
+            } else {
+                // update existing ones
+                int index = observableRecordings.indexOf(recording);
+                JavaFxRecording old = observableRecordings.get(index);
+                old.update(recording);
+            }
+        }
+        table.sort();
+    }
+
     private ScheduledService<List<JavaFxRecording>> createUpdateService() {
         ScheduledService<List<JavaFxRecording>>  updateService = new ScheduledService<List<JavaFxRecording>>() {
             @Override
@@ -233,11 +275,22 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
                 return new Task<List<JavaFxRecording>>() {
                     @Override
                     public List<JavaFxRecording> call() throws IOException, InvalidKeyException, NoSuchAlgorithmException, IllegalStateException {
+                        updateSpace();
+
                         List<JavaFxRecording> recordings = new ArrayList<>();
                         for (Recording rec : recorder.getRecordings()) {
                             recordings.add(new JavaFxRecording(rec));
                         }
                         return recordings;
+                    }
+
+                    private void updateSpace() {
+                        try {
+                            spaceTotal = recorder.getTotalSpaceBytes();
+                            spaceFree = recorder.getFreeSpaceBytes();
+                        } catch (IOException e) {
+                            LOG.error("Couldn't update free space", e);
+                        }
                     }
                 };
             }

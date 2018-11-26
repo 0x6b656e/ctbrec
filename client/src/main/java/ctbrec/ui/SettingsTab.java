@@ -120,7 +120,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
 
         // left side
         leftSide.getChildren().add(createGeneralPanel());
-        leftSide.getChildren().add(createLocationsPanel());
+        leftSide.getChildren().add(createRecorderPanel());
         leftSide.getChildren().add(createRecordLocationPanel());
 
         //right side
@@ -253,9 +253,20 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         return recordLocation;
     }
 
-    private Node createLocationsPanel() {
+    private Node createRecorderPanel() {
         int row = 0;
         GridPane layout = createGridLayout();
+        layout.add(new Label("Post-Processing"), 0, row);
+        postProcessing = new TextField(Config.getInstance().getSettings().postProcessing);
+        postProcessing.focusedProperty().addListener(createPostProcessingFocusListener());
+        GridPane.setFillWidth(postProcessing, true);
+        GridPane.setHgrow(postProcessing, Priority.ALWAYS);
+        GridPane.setColumnSpan(postProcessing, 2);
+        GridPane.setMargin(postProcessing, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        layout.add(postProcessing, 1, row);
+        postProcessingDirectoryButton = createPostProcessingBrowseButton();
+        layout.add(postProcessingDirectoryButton, 3, row++);
+
         layout.add(new Label("Recordings Directory"), 0, row);
         recordingsDirectory = new TextField(Config.getInstance().getSettings().recordingsDir);
         recordingsDirectory.focusedProperty().addListener(createRecordingsDirectoryFocusListener());
@@ -283,16 +294,67 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         GridPane.setMargin(directoryStructure, new Insets(0, 0, 0, CHECKBOX_MARGIN));
         layout.add(directoryStructure, 1, row++);
 
-        layout.add(new Label("Post-Processing"), 0, row);
-        postProcessing = new TextField(Config.getInstance().getSettings().postProcessing);
-        postProcessing.focusedProperty().addListener(createPostProcessingFocusListener());
-        GridPane.setFillWidth(postProcessing, true);
-        GridPane.setHgrow(postProcessing, Priority.ALWAYS);
-        GridPane.setColumnSpan(postProcessing, 2);
-        GridPane.setMargin(postProcessing, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        layout.add(postProcessing, 1, row);
-        postProcessingDirectoryButton = createPostProcessingBrowseButton();
-        layout.add(postProcessingDirectoryButton, 3, row++);
+        Label l = new Label("Maximum resolution (0 = unlimited)");
+        layout.add(l, 0, row);
+        List<Integer> resolutionOptions = new ArrayList<>();
+        resolutionOptions.add(1080);
+        resolutionOptions.add(720);
+        resolutionOptions.add(600);
+        resolutionOptions.add(480);
+        resolutionOptions.add(0);
+        maxResolution = new ComboBox<>(FXCollections.observableList(resolutionOptions));
+        setMaxResolutionValue();
+        maxResolution.setOnAction((e) -> {
+            Config.getInstance().getSettings().maximumResolution = maxResolution.getSelectionModel().getSelectedItem();
+            saveConfig();
+        });
+        maxResolution.prefWidthProperty().bind(directoryStructure.widthProperty());
+        layout.add(maxResolution, 1, row++);
+        GridPane.setMargin(l, new Insets(0, 0, 0, 0));
+        GridPane.setMargin(maxResolution, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+
+        l = new Label("Split recordings after (minutes)");
+        layout.add(l, 0, row);
+        List<SplitAfterOption> splitOptions = new ArrayList<>();
+        splitOptions.add(new SplitAfterOption("disabled", 0));
+        splitOptions.add(new SplitAfterOption("10 min", 10 * 60));
+        splitOptions.add(new SplitAfterOption("15 min", 15 * 60));
+        splitOptions.add(new SplitAfterOption("20 min", 20 * 60));
+        splitOptions.add(new SplitAfterOption("30 min", 30 * 60));
+        splitOptions.add(new SplitAfterOption("60 min", 60 * 60));
+        splitAfter = new ComboBox<>(FXCollections.observableList(splitOptions));
+        layout.add(splitAfter, 1, row++);
+        setSplitAfterValue();
+        splitAfter.setOnAction((e) -> {
+            Config.getInstance().getSettings().splitRecordings = splitAfter.getSelectionModel().getSelectedItem().getValue();
+            saveConfig();
+        });
+        splitAfter.prefWidthProperty().bind(directoryStructure.widthProperty());
+        GridPane.setMargin(l, new Insets(0, 0, 0, 0));
+        GridPane.setMargin(splitAfter, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+
+        layout.add(new Label("Check online state every (seconds)"), 0, row);
+        onlineCheckIntervalInSecs = new TextField(Integer.toString(Config.getInstance().getSettings().onlineCheckIntervalInSecs));
+        onlineCheckIntervalInSecs.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                onlineCheckIntervalInSecs.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+            if(!onlineCheckIntervalInSecs.getText().isEmpty()) {
+                Config.getInstance().getSettings().onlineCheckIntervalInSecs = Integer.parseInt(onlineCheckIntervalInSecs.getText());
+                saveConfig();
+            }
+        });
+        GridPane.setMargin(onlineCheckIntervalInSecs, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        layout.add(onlineCheckIntervalInSecs, 1, row++);
+
+        TitledPane locations = new TitledPane("Recorder", layout);
+        locations.setCollapsible(false);
+        return locations;
+    }
+
+    private Node createGeneralPanel() {
+        GridPane layout = createGridLayout();
+        int row = 0;
 
         layout.add(new Label("Player"), 0, row);
         mediaPlayer = new TextField(Config.getInstance().getSettings().mediaPlayer);
@@ -304,15 +366,18 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         layout.add(mediaPlayer, 1, row);
         layout.add(createMpvBrowseButton(), 3, row++);
 
-        TitledPane locations = new TitledPane("Locations", layout);
-        locations.setCollapsible(false);
-        return locations;
-    }
+        Label l = new Label("Allow multiple players");
+        layout.add(l, 0, row);
+        multiplePlayers.setSelected(!Config.getInstance().getSettings().singlePlayer);
+        multiplePlayers.setOnAction((e) -> {
+            Config.getInstance().getSettings().singlePlayer = !multiplePlayers.isSelected();
+            saveConfig();
+        });
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
+        GridPane.setMargin(multiplePlayers, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
+        layout.add(multiplePlayers, 1, row++);
 
-    private Node createGeneralPanel() {
-        GridPane layout = createGridLayout();
-        int row = 0;
-        Label l = new Label("Display stream resolution in overview");
+        l = new Label("Display stream resolution in overview");
         layout.add(l, 0, row);
         loadResolution = new CheckBox();
         loadResolution.setSelected(Config.getInstance().getSettings().determineResolution);
@@ -323,20 +388,10 @@ public class SettingsTab extends Tab implements TabSelectionListener {
                 ThumbOverviewTab.queue.clear();
             }
         });
-        //GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
-        GridPane.setMargin(loadResolution, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+        GridPane.setMargin(loadResolution, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(loadResolution, 1, row++);
 
-        l = new Label("Allow multiple players");
-        layout.add(l, 0, row);
-        multiplePlayers.setSelected(!Config.getInstance().getSettings().singlePlayer);
-        multiplePlayers.setOnAction((e) -> {
-            Config.getInstance().getSettings().singlePlayer = !multiplePlayers.isSelected();
-            saveConfig();
-        });
-        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
-        GridPane.setMargin(multiplePlayers, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
-        layout.add(multiplePlayers, 1, row++);
 
         l = new Label("Manually select stream quality");
         layout.add(l, 0, row);
@@ -357,59 +412,8 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             saveConfig();
         });
         GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
-        GridPane.setMargin(updateThumbnails, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
+        GridPane.setMargin(updateThumbnails, new Insets(CHECKBOX_MARGIN, 0, CHECKBOX_MARGIN, CHECKBOX_MARGIN));
         layout.add(updateThumbnails, 1, row++);
-
-        l = new Label("Maximum resolution (0 = unlimited)");
-        layout.add(l, 0, row);
-        List<Integer> resolutionOptions = new ArrayList<>();
-        resolutionOptions.add(1080);
-        resolutionOptions.add(720);
-        resolutionOptions.add(600);
-        resolutionOptions.add(480);
-        resolutionOptions.add(0);
-        maxResolution = new ComboBox<>(FXCollections.observableList(resolutionOptions));
-        setMaxResolutionValue();
-        maxResolution.setOnAction((e) -> {
-            Config.getInstance().getSettings().maximumResolution = maxResolution.getSelectionModel().getSelectedItem();
-            saveConfig();
-        });
-        layout.add(maxResolution, 1, row++);
-        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
-        GridPane.setMargin(maxResolution, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
-
-        l = new Label("Split recordings after (minutes)");
-        layout.add(l, 0, row);
-        List<SplitAfterOption> options = new ArrayList<>();
-        options.add(new SplitAfterOption("disabled", 0));
-        options.add(new SplitAfterOption("10 min", 10 * 60));
-        options.add(new SplitAfterOption("15 min", 15 * 60));
-        options.add(new SplitAfterOption("20 min", 20 * 60));
-        options.add(new SplitAfterOption("30 min", 30 * 60));
-        options.add(new SplitAfterOption("60 min", 60 * 60));
-        splitAfter = new ComboBox<>(FXCollections.observableList(options));
-        layout.add(splitAfter, 1, row++);
-        setSplitAfterValue();
-        splitAfter.setOnAction((e) -> {
-            Config.getInstance().getSettings().splitRecordings = splitAfter.getSelectionModel().getSelectedItem().getValue();
-            saveConfig();
-        });
-        GridPane.setMargin(l, new Insets(0, 0, 0, 0));
-        GridPane.setMargin(splitAfter, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-
-        layout.add(new Label("Check online state every (seconds)"), 0, row);
-        onlineCheckIntervalInSecs = new TextField(Integer.toString(Config.getInstance().getSettings().onlineCheckIntervalInSecs));
-        onlineCheckIntervalInSecs.textProperty().addListener((observable, oldValue, newValue) -> {
-            if (!newValue.matches("\\d*")) {
-                onlineCheckIntervalInSecs.setText(newValue.replaceAll("[^\\d]", ""));
-            }
-            if(!onlineCheckIntervalInSecs.getText().isEmpty()) {
-                Config.getInstance().getSettings().onlineCheckIntervalInSecs = Integer.parseInt(onlineCheckIntervalInSecs.getText());
-                saveConfig();
-            }
-        });
-        GridPane.setMargin(onlineCheckIntervalInSecs, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        layout.add(onlineCheckIntervalInSecs, 1, row++);
 
         l = new Label("Start Tab");
         layout.add(l, 0, row);
@@ -428,12 +432,6 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         layout.add(colorSettingsPane, 1, row++);
         GridPane.setMargin(l, new Insets(0, 0, 0, 0));
         GridPane.setMargin(colorSettingsPane, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
-
-
-        splitAfter.prefWidthProperty().bind(startTab.widthProperty());
-        maxResolution.prefWidthProperty().bind(startTab.widthProperty());
-        onlineCheckIntervalInSecs.prefWidthProperty().bind(startTab.widthProperty());
-        onlineCheckIntervalInSecs.maxWidthProperty().bind(startTab.widthProperty());
 
         TitledPane general = new TitledPane("General", layout);
         general.setCollapsible(false);

@@ -137,9 +137,13 @@ public class RecorderServlet extends AbstractCtbrecServlet {
                     response = "{\"status\": \"success\", \"msg\": \"Recording resumed\"}";
                     resp.getWriter().write(response);
                     break;
+                case "space":
+                    response = "{\"status\": \"success\", \"spaceTotal\": "+recorder.getTotalSpaceBytes()+", \"spaceFree\": "+recorder.getFreeSpaceBytes()+"}";
+                    resp.getWriter().write(response);
+                    break;
                 default:
                     resp.setStatus(SC_BAD_REQUEST);
-                    response = "{\"status\": \"error\", \"msg\": \"Unknown action\"}";
+                    response = "{\"status\": \"error\", \"msg\": \"Unknown action ["+request.action+"]\"}";
                     resp.getWriter().write(response);
                     break;
                 }

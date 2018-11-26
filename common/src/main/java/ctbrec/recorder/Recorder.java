@@ -42,4 +42,18 @@ public interface Recorder {
     public List<Model> getOnlineModels();
 
     public HttpClient getHttpClient();
+
+    /**
+     * Get the total size of the filesystem we are recording to
+     * @return the total size in bytes
+     * @throws IOException
+     */
+    public long getTotalSpaceBytes() throws IOException;
+
+    /**
+     * Get the free space left on the filesystem we are recording to
+     * @return the free space in bytes
+     * @throws IOException
+     */
+    public long getFreeSpaceBytes() throws IOException;
 }

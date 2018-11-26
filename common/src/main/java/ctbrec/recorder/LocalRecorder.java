@@ -5,6 +5,7 @@ import static ctbrec.Recording.STATUS.*;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -744,5 +745,21 @@ public class LocalRecorder implements Recorder {
     @Override
     public HttpClient getHttpClient() {
         return client;
+    }
+
+    @Override
+    public long getTotalSpaceBytes() throws IOException {
+        return getRecordingsFileStore().getTotalSpace();
+    }
+
+    @Override
+    public long getFreeSpaceBytes() throws IOException {
+        return getRecordingsFileStore().getUsableSpace();
+    }
+
+    private FileStore getRecordingsFileStore() throws IOException {
+        File recordingsDir = new File(Config.getInstance().getSettings().recordingsDir);
+        FileStore store = Files.getFileStore(recordingsDir.toPath());
+        return store;
     }
 }

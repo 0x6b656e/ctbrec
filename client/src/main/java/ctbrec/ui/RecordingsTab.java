@@ -160,20 +160,7 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
                         if(empty || sizeInByte == null) {
                             setText(null);
                         } else {
-                            DecimalFormat df = new DecimalFormat("0.00");
-                            String unit = "Bytes";
-                            double size = sizeInByte.doubleValue();
-                            if(size > 1024.0 * 1024 * 1024) {
-                                size = size / 1024.0 / 1024 / 1024;
-                                unit = "GiB";
-                            } else if(size > 1024.0 * 1024) {
-                                size = size / 1024.0 / 1024;
-                                unit = "MiB";
-                            } else if(size > 1024.0) {
-                                size = size / 1024.0;
-                                unit = "KiB";
-                            }
-                            setText(df.format(size) + ' ' + unit);
+                            setText(StringUtil.formatSize(sizeInByte));
                         }
                     }
                 };

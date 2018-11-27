@@ -64,6 +64,7 @@ public class Cam4Model extends AbstractModel {
             if(response.isSuccessful()) {
                 JSONArray json = new JSONArray(response.body().string());
                 if(json.length() == 0) {
+                    onlineState = "offline";
                     throw new ModelDetailsEmptyException("Model details are empty");
                 }
                 JSONObject details = json.getJSONObject(0);

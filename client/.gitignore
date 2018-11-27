@@ -2,7 +2,7 @@
 /target/
 *~
 *.bak
-/ctbrec.log
+/*.log
 /ctbrec-tunnel.sh
 /jre/
 /server-local.sh

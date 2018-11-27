@@ -24,6 +24,7 @@ import com.iheartradio.m3u8.data.PlaylistData;
 
 import ctbrec.AbstractModel;
 import ctbrec.Config;
+import ctbrec.StringUtil;
 import ctbrec.io.HtmlParser;
 import ctbrec.io.HttpException;
 import ctbrec.recorder.download.StreamSource;
@@ -53,7 +54,7 @@ public class Cam4Model extends AbstractModel {
                 return false;
             }
         }
-        return Objects.equals("NORMAL", onlineState);
+        return Objects.equals("NORMAL", onlineState) && StringUtil.isNotBlank(playlistUrl);
     }
 
     private void loadModelDetails() throws IOException, ModelDetailsEmptyException {

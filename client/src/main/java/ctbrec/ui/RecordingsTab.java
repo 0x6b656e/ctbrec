@@ -147,9 +147,39 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
         TableColumn<JavaFxRecording, String> progress = new TableColumn<>("Progress");
         progress.setCellValueFactory((cdf) -> cdf.getValue().getProgressProperty());
         progress.setPrefWidth(100);
-        TableColumn<JavaFxRecording, String> size = new TableColumn<>("Size");
-        size.setCellValueFactory((cdf) -> cdf.getValue().getSizeProperty());
+        TableColumn<JavaFxRecording, Number> size = new TableColumn<>("Size");
+        size.setStyle("-fx-alignment: CENTER-RIGHT;");
         size.setPrefWidth(100);
+        size.setCellValueFactory(cdf -> cdf.getValue().getSizeProperty());
+        size.setCellFactory(new Callback<TableColumn<JavaFxRecording, Number>, TableCell<JavaFxRecording, Number>>() {
+            @Override
+            public TableCell<JavaFxRecording, Number> call(TableColumn<JavaFxRecording, Number> param) {
+                TableCell<JavaFxRecording, Number> cell = new TableCell<JavaFxRecording, Number>() {
+                    @Override
+                    protected void updateItem(Number sizeInByte, boolean empty) {
+                        if(empty || sizeInByte == null) {
+                            setText(null);
+                        } else {
+                            DecimalFormat df = new DecimalFormat("0.00");
+                            String unit = "Bytes";
+                            double size = sizeInByte.doubleValue();
+                            if(size > 1024.0 * 1024 * 1024) {
+                                size = size / 1024.0 / 1024 / 1024;
+                                unit = "GiB";
+                            } else if(size > 1024.0 * 1024) {
+                                size = size / 1024.0 / 1024;
+                                unit = "MiB";
+                            } else if(size > 1024.0) {
+                                size = size / 1024.0;
+                                unit = "KiB";
+                            }
+                            setText(df.format(size) + ' ' + unit);
+                        }
+                    }
+                };
+                return cell;
+            }
+        });
 
         table.getColumns().addAll(name, date, status, progress, size);
         table.setItems(observableRecordings);

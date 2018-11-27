@@ -680,9 +680,10 @@ public class SettingsTab extends Tab implements TabSelectionListener {
 
     @Override
     public void selected() {
-        startTab.getItems().clear();
-        for(Tab tab : getTabPane().getTabs()) {
-            startTab.getItems().add(tab.getText());
+        if(startTab.getItems().isEmpty()) {
+            for(Tab tab : getTabPane().getTabs()) {
+                startTab.getItems().add(tab.getText());
+            }
         }
         String startTabName = Config.getInstance().getSettings().startTab;
         if(StringUtil.isNotBlank(startTabName)) {

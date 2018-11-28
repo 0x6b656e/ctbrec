@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.LinkedList;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -175,7 +176,11 @@ public class MergedHlsDownload extends AbstractHlsDownload {
 
                 // download new segments
                 long downloadStart = System.currentTimeMillis();
-                downloadNewSegments(lsp, nextSegment);
+                if(livestreamDownload) {
+                    downloadNewSegments(lsp, nextSegment);
+                } else {
+                    downloadRecording(lsp);
+                }
                 long downloadTookMillis = System.currentTimeMillis() - downloadStart;
 
                 // download segments, which might have been skipped
@@ -197,9 +202,22 @@ public class MergedHlsDownload extends AbstractHlsDownload {
                     break;
                 }
             } catch(Exception e) {
-                LOG.info("Unexpected error while downloading {}", model.getName(), e);
+                if(model != null) {
+                    LOG.info("Unexpected error while downloading {}", model.getName(), e);
+                } else {
+                    LOG.info("Unexpected error while downloading", e);
+                }
                 running = false;
             }
+        }
+    }
+
+    private void downloadRecording(SegmentPlaylist lsp) throws IOException, InterruptedException {
+        for (String segment : lsp.segments) {
+            URL segmentUrl = new URL(segment);
+            SegmentDownload segmentDownload = new SegmentDownload(segmentUrl, client);
+            byte[] segmentData = segmentDownload.call();
+            writeSegment(segmentData);
         }
     }
 
@@ -354,7 +372,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
                         .setSink(sink)
                         .setSleepingEnabled(liveStream)
                         .setBufferSize(10)
-                        .setName(model.getName())
+                        .setName(Optional.ofNullable(model).map(m -> m.getName()).orElse(""))
                         .build();
 
                 // Start streaming
@@ -372,7 +390,11 @@ public class MergedHlsDownload extends AbstractHlsDownload {
                 closeFile(fileChannel);
             }
         });
-        t.setName("Segment Merger Thread [" + model.getName() + "]");
+        if(model != null) {
+            t.setName("Segment Merger Thread [" + model.getName() + "]");
+        } else {
+            t.setName("Segment Merger Thread");
+        }
         t.setDaemon(true);
         return t;
     }

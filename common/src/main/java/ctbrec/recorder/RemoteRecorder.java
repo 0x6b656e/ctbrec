@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +46,8 @@ public class RemoteRecorder implements Recorder {
     private List<Model> models = Collections.emptyList();
     private List<Model> onlineModels = Collections.emptyList();
     private List<Site> sites;
+    private long spaceTotal = -1;
+    private long spaceFree = -1;
 
     private Config config;
     private HttpClient client;
@@ -150,7 +153,32 @@ public class RemoteRecorder implements Recorder {
             while(running) {
                 syncModels();
                 syncOnlineModels();
+                syncSpace();
                 sleep();
+            }
+        }
+
+        private void syncSpace() {
+            try {
+                String msg = "{\"action\": \"space\"}";
+                RequestBody body = RequestBody.create(JSON, msg);
+                Request.Builder builder = new Request.Builder()
+                        .url("http://" + config.getSettings().httpServer + ":" + config.getSettings().httpPort + "/rec")
+                        .post(body);
+                addHmacIfNeeded(msg, builder);
+                Request request = builder.build();
+                try(Response response = client.execute(request)) {
+                    String json = response.body().string();
+                    if(response.isSuccessful()) {
+                        JSONObject resp = new JSONObject(json);
+                        spaceTotal = resp.getLong("spaceTotal");
+                        spaceFree = resp.getLong("spaceFree");
+                    } else {
+                        LOG.error("Couldn't synchronize with server. HTTP status: {} - {}", response.code(), json);
+                    }
+                }
+            } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e) {
+                LOG.error("Couldn't synchronize with server", e);
             }
         }
 
@@ -361,5 +389,15 @@ public class RemoteRecorder implements Recorder {
     @Override
     public HttpClient getHttpClient() {
         return client;
+    }
+
+    @Override
+    public long getTotalSpaceBytes() throws IOException {
+        return spaceTotal;
+    }
+
+    @Override
+    public long getFreeSpaceBytes() {
+        return spaceFree;
     }
 }

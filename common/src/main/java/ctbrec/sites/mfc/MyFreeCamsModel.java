@@ -221,7 +221,7 @@ public class MyFreeCamsModel extends AbstractModel {
         setName(state.getNm());
         setState(State.of(state.getVs()));
         setStreamUrl(streamUrl);
-        Optional<Double> camScore = Optional.of(state.getM()).map(m -> m.getCamscore());
+        Optional<Double> camScore = Optional.ofNullable(state.getM()).map(m -> m.getCamscore());
         setCamScore(camScore.orElse(0.0));
 
         // preview

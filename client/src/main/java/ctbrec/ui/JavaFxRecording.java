@@ -1,10 +1,11 @@
 package ctbrec.ui;
 
-import java.text.DecimalFormat;
 import java.time.Instant;
 
 import ctbrec.Config;
 import ctbrec.Recording;
+import javafx.beans.property.LongProperty;
+import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
@@ -12,9 +13,10 @@ public class JavaFxRecording extends Recording {
 
     private transient StringProperty statusProperty = new SimpleStringProperty();
     private transient StringProperty progressProperty = new SimpleStringProperty();
-    private transient StringProperty sizeProperty = new SimpleStringProperty();
+    private transient LongProperty sizeProperty = new SimpleLongProperty();
 
     private Recording delegate;
+    private long lastValue = 0;
 
     public JavaFxRecording(Recording recording) {
         this.delegate = recording;
@@ -89,9 +91,7 @@ public class JavaFxRecording extends Recording {
     @Override
     public void setSizeInByte(long sizeInByte) {
         delegate.setSizeInByte(sizeInByte);
-        double sizeInGiB = sizeInByte / 1024.0 / 1024 / 1024;
-        DecimalFormat df = new DecimalFormat("0.00");
-        sizeProperty.setValue(df.format(sizeInGiB) + " GiB");
+        sizeProperty.set(sizeInByte);
     }
 
     public StringProperty getProgressProperty() {
@@ -151,8 +151,13 @@ public class JavaFxRecording extends Recording {
         return delegate.getSizeInByte();
     }
 
-    public StringProperty getSizeProperty() {
+    public LongProperty getSizeProperty() {
         return sizeProperty;
     }
 
+    public boolean valueChanged() {
+        boolean changed = getSizeInByte() != lastValue;
+        lastValue = getSizeInByte();
+        return changed;
+    }
 }

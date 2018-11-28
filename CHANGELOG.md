@@ -1,3 +1,17 @@
+1.12.0
+========================
+* Added threshold setting to keep free space on the recording device.
+  This is useful, if you don't want to use up all of your storage.
+  The free space is also shown on the recordings tab
+* Tweaked the download internals a lot. Downloads should not hang
+  in RECORDING state without actually recording. Downloads should
+  be more robust in general.
+* Fixed and improved split recordings
+* Improved detection of online state for Cam4 models
+* Accelerated the initial loading of the "Recording" tab for many
+  Chaturbate models
+* Recordings tab now shows smaller size units (Bytes, KiB, MiB, GiB) 
+
 1.11.0
 ========================
 * Added model search function

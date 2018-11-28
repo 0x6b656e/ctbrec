@@ -219,7 +219,15 @@ public class Chaturbate extends AbstractSite {
     }
 
     StreamInfo getStreamInfo(String modelName) throws IOException, ExecutionException {
-        return streamInfoCache.get(modelName);
+        return getStreamInfo(modelName, false);
+    }
+
+    StreamInfo getStreamInfo(String modelName, boolean failFast) throws IOException, ExecutionException {
+        if(failFast) {
+            return streamInfoCache.getIfPresent(modelName);
+        } else {
+            return streamInfoCache.get(modelName);
+        }
     }
 
     StreamInfo loadStreamInfo(String modelName) throws HttpException, IOException, InterruptedException {

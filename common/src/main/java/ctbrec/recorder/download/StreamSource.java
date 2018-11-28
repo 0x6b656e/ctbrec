@@ -54,7 +54,7 @@ public class StreamSource implements Comparable<StreamSource> {
     @Override
     public int compareTo(StreamSource o) {
         int heightDiff = height - o.height;
-        if(heightDiff != 0) {
+        if(heightDiff != 0 && height != Integer.MAX_VALUE && o.height != Integer.MAX_VALUE) {
             return heightDiff;
         } else {
             return bandwidth - o.bandwidth;

@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 import org.json.JSONArray;
@@ -24,6 +25,7 @@ import com.iheartradio.m3u8.data.PlaylistData;
 
 import ctbrec.AbstractModel;
 import ctbrec.Config;
+import ctbrec.StringUtil;
 import ctbrec.io.HtmlParser;
 import ctbrec.io.HttpException;
 import ctbrec.recorder.download.StreamSource;
@@ -38,6 +40,7 @@ public class Cam4Model extends AbstractModel {
     private String playlistUrl;
     private String onlineState = "offline";
     private int[] resolution = null;
+    private boolean privateRoom = false;
 
     @Override
     public boolean isOnline() throws IOException, ExecutionException, InterruptedException {
@@ -53,7 +56,9 @@ public class Cam4Model extends AbstractModel {
                 return false;
             }
         }
-        return Objects.equals("NORMAL", onlineState);
+        return (Objects.equals("NORMAL", onlineState) || Objects.equals("GROUP_SHOW_SELLING_TICKETS", onlineState))
+                && StringUtil.isNotBlank(playlistUrl)
+                && !privateRoom;
     }
 
     private void loadModelDetails() throws IOException, ModelDetailsEmptyException {
@@ -64,11 +69,13 @@ public class Cam4Model extends AbstractModel {
             if(response.isSuccessful()) {
                 JSONArray json = new JSONArray(response.body().string());
                 if(json.length() == 0) {
+                    onlineState = "offline";
                     throw new ModelDetailsEmptyException("Model details are empty");
                 }
                 JSONObject details = json.getJSONObject(0);
                 onlineState = details.getString("showType");
                 playlistUrl = details.getString("hlsPreviewUrl");
+                privateRoom = details.getBoolean("privateRoom");
                 if(details.has("resolution")) {
                     String res = details.getString("resolution");
                     String[] tokens = res.split(":");
@@ -104,7 +111,7 @@ public class Cam4Model extends AbstractModel {
             if (playlist.hasStreamInfo()) {
                 StreamSource src = new StreamSource();
                 src.bandwidth = playlist.getStreamInfo().getBandwidth();
-                src.height = playlist.getStreamInfo().getResolution().height;
+                src.height = Optional.ofNullable(playlist.getStreamInfo()).map(si -> si.getResolution()).map(res -> res.height).orElse(0);
                 String masterUrl = getPlaylistUrl();
                 String baseUrl = masterUrl.substring(0, masterUrl.lastIndexOf('/') + 1);
                 String segmentUri = baseUrl + playlist.getUri();

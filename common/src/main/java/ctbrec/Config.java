@@ -100,8 +100,12 @@ public class Config {
         Files.write(configFile.toPath(), json.getBytes("utf-8"), CREATE, WRITE, TRUNCATE_EXISTING);
     }
 
-    public boolean isServerMode() {
+    public static boolean isServerMode() {
         return Objects.equals(System.getProperty("ctbrec.server.mode"), "1");
+    }
+
+    public static boolean isDevMode() {
+        return Objects.equals(System.getenv("CTBREC_DEV"), "1");
     }
 
     public File getConfigDir() {
@@ -113,10 +117,6 @@ public class Config {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm");
         String startTime = sdf.format(new Date());
         File targetFile = new File(dirForRecording, model.getName() + '_' + startTime + ".ts");
-        if(getSettings().splitRecordings > 0) {
-            LOG.debug("Splitting recordings every {} seconds", getSettings().splitRecordings);
-            targetFile = new File(targetFile.getAbsolutePath().replaceAll("\\.ts", "-00000.ts"));
-        }
         return targetFile;
     }
 

@@ -5,6 +5,7 @@ import static ctbrec.Recording.STATUS.*;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -63,6 +64,7 @@ public class LocalRecorder implements Recorder {
     private List<File> deleteInProgress = Collections.synchronizedList(new ArrayList<>());
     private RecorderHttpClient client = new RecorderHttpClient();
     private ReentrantLock lock = new ReentrantLock();
+    private long lastSpaceMessage = 0;
 
     public LocalRecorder(Config config) {
         this.config = config;
@@ -81,7 +83,7 @@ public class LocalRecorder implements Recorder {
         onlineMonitor.start();
 
         postProcessingTrigger = new PostProcessingTrigger();
-        if(Config.getInstance().isServerMode()) {
+        if(Config.isServerMode()) {
             postProcessingTrigger.start();
         }
 
@@ -133,7 +135,6 @@ public class LocalRecorder implements Recorder {
             return;
         }
 
-        LOG.debug("Starting recording for model {}", model.getName());
         if (recordingProcesses.containsKey(model)) {
             LOG.error("A recording for model {} is already running", model);
             return;
@@ -149,8 +150,18 @@ public class LocalRecorder implements Recorder {
             lock.unlock();
         }
 
+        if(!enoughSpaceForRecording()) {
+            long now = System.currentTimeMillis();
+            if( (now - lastSpaceMessage) > TimeUnit.MINUTES.toMillis(1)) {
+                LOG.info("Not enough space for recording, not starting recording for {}", model);
+                lastSpaceMessage = now;
+            }
+            return;
+        }
+
+        LOG.debug("Starting recording for model {}", model.getName());
         Download download;
-        if (Config.getInstance().isServerMode()) {
+        if (Config.isServerMode()) {
             download = new HlsDownload(client);
         } else {
             download = new MergedHlsDownload(client);
@@ -173,7 +184,7 @@ public class LocalRecorder implements Recorder {
         Download download = recordingProcesses.get(model);
         download.stop();
         recordingProcesses.remove(model);
-        if(!Config.getInstance().isServerMode()) {
+        if(!Config.isServerMode()) {
             postprocess(download);
         }
     }
@@ -329,6 +340,15 @@ public class LocalRecorder implements Recorder {
         public void run() {
             running = true;
             while (running) {
+                try {
+                    if(!enoughSpaceForRecording() && !recordingProcesses.isEmpty()) {
+                        LOG.info("No space left -> Stopping all recordings");
+                        stopRecordingProcesses();
+                    }
+                } catch (IOException e1) {
+                    LOG.warn("Couldn't check free space left", e1);
+                }
+
                 List<Model> restart = new ArrayList<>();
                 for (Iterator<Entry<Model, Download>> iterator = recordingProcesses.entrySet().iterator(); iterator.hasNext();) {
                     Entry<Model, Download> entry = iterator.next();
@@ -338,7 +358,7 @@ public class LocalRecorder implements Recorder {
                         LOG.debug("Recording terminated for model {}", m.getName());
                         iterator.remove();
                         restart.add(m);
-                        if(config.isServerMode()) {
+                        if(Config.isServerMode()) {
                             try {
                                 finishRecording(d.getTarget());
                             } catch(Exception e) {
@@ -365,7 +385,7 @@ public class LocalRecorder implements Recorder {
     }
 
     private void finishRecording(File directory) {
-        if(Config.getInstance().isServerMode()) {
+        if(Config.isServerMode()) {
             Thread t = new Thread() {
                 @Override
                 public void run() {
@@ -415,7 +435,7 @@ public class LocalRecorder implements Recorder {
                         boolean isOnline = model.isOnline(IGNORE_CACHE);
                         LOG.trace("Checking online state for {}: {}", model, (isOnline ? "online" : "offline"));
                         if (isOnline && !isSuspended(model) && !recordingProcesses.containsKey(model)) {
-                            LOG.info("Model {}'s room back to public. Starting recording", model);
+                            LOG.info("Model {}'s room back to public", model);
                             startRecordingProcess(model);
                         }
                     } catch (HttpException e) {
@@ -493,7 +513,7 @@ public class LocalRecorder implements Recorder {
 
     @Override
     public List<Recording> getRecordings() {
-        if(Config.getInstance().isServerMode()) {
+        if(Config.isServerMode()) {
             return listSegmentedRecordings();
         } else {
             return listMergedRecordings();
@@ -538,7 +558,7 @@ public class LocalRecorder implements Recorder {
             return GENERATING_PLAYLIST;
         }
 
-        if (config.isServerMode()) {
+        if (Config.isServerMode()) {
             if (recording.hasPlaylist()) {
                 return FINISHED;
             } else {
@@ -744,5 +764,26 @@ public class LocalRecorder implements Recorder {
     @Override
     public HttpClient getHttpClient() {
         return client;
+    }
+
+    @Override
+    public long getTotalSpaceBytes() throws IOException {
+        return getRecordingsFileStore().getTotalSpace();
+    }
+
+    @Override
+    public long getFreeSpaceBytes() throws IOException {
+        return getRecordingsFileStore().getUsableSpace();
+    }
+
+    private FileStore getRecordingsFileStore() throws IOException {
+        File recordingsDir = new File(config.getSettings().recordingsDir);
+        FileStore store = Files.getFileStore(recordingsDir.toPath());
+        return store;
+    }
+
+    private boolean enoughSpaceForRecording() throws IOException {
+        long minimum = config.getSettings().minimumSpaceLeftInBytes;
+        return getFreeSpaceBytes() > minimum;
     }
 }

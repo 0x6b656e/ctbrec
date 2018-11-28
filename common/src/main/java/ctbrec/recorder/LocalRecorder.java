@@ -5,6 +5,7 @@ import static ctbrec.Recording.STATUS.*;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.security.InvalidKeyException;
@@ -441,6 +442,8 @@ public class LocalRecorder implements Recorder {
                     } catch (HttpException e) {
                         LOG.error("Couldn't check if model {} is online. HTTP Response: {} - {}",
                                 model.getName(), e.getResponseCode(), e.getResponseMessage());
+                    } catch (SocketTimeoutException e) {
+                        LOG.error("Couldn't check if model {} is online. Request timed out", model.getName());
                     } catch (Exception e) {
                         LOG.error("Couldn't check if model {} is online", model.getName(), e);
                     }

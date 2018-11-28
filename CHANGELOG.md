@@ -1,3 +1,7 @@
+1.12.1
+========================
+* Fixed downloads in client / server mode
+
 1.12.0
 ========================
 * Added threshold setting to keep free space on the recording device.

@@ -159,8 +159,19 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
                     protected void updateItem(Number sizeInByte, boolean empty) {
                         if(empty || sizeInByte == null) {
                             setText(null);
+                            setStyle(null);
                         } else {
                             setText(StringUtil.formatSize(sizeInByte));
+                            if(Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
+                                int row = this.getTableRow().getIndex();
+                                JavaFxRecording rec = tableViewProperty().get().getItems().get(row);
+                                if(!rec.valueChanged() && rec.getStatus() == STATUS.RECORDING) {
+                                    setStyle("-fx-alignment: CENTER-RIGHT; -fx-background-color: red");
+                                } else {
+                                    setStyle("-fx-alignment: CENTER-RIGHT;");
+                                    //setStyle(null);
+                                }
+                            }
                         }
                     }
                 };

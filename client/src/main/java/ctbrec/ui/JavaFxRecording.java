@@ -16,6 +16,7 @@ public class JavaFxRecording extends Recording {
     private transient LongProperty sizeProperty = new SimpleLongProperty();
 
     private Recording delegate;
+    private long lastValue = 0;
 
     public JavaFxRecording(Recording recording) {
         this.delegate = recording;
@@ -154,4 +155,9 @@ public class JavaFxRecording extends Recording {
         return sizeProperty;
     }
 
+    public boolean valueChanged() {
+        boolean changed = getSizeInByte() != lastValue;
+        lastValue = getSizeInByte();
+        return changed;
+    }
 }

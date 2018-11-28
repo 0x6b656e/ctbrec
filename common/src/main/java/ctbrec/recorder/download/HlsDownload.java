@@ -171,7 +171,7 @@ public class HlsDownload extends AbstractHlsDownload {
                     break;
                 } catch(Exception e) {
                     if (i == maxTries) {
-                        LOG.warn("Error while downloading segment. Segment finally {} failed", file.toFile().getName());
+                        LOG.warn("Error while downloading segment. Segment {} finally failed", file.toFile().getName());
                     } else {
                         LOG.warn("Error while downloading segment on try {}", i);
                     }

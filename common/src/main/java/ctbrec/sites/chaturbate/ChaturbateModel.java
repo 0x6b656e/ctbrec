@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 import org.slf4j.Logger;
@@ -39,14 +40,16 @@ public class ChaturbateModel extends AbstractModel {
 
     @Override
     public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException {
-        StreamInfo info;
+        String roomStatus;
         if(ignoreCache) {
-            info = getChaturbate().loadStreamInfo(getName());
+            StreamInfo info = getChaturbate().loadStreamInfo(getName());
+            roomStatus = Optional.ofNullable(info).map(i -> i.room_status).orElse("");
             LOG.trace("Model {} room status: {}", getName(), info.room_status);
         } else {
-            info = getChaturbate().getStreamInfo(getName());
+            StreamInfo info = getChaturbate().getStreamInfo(getName(), true);
+            roomStatus = Optional.ofNullable(info).map(i -> i.room_status).orElse("");
         }
-        return Objects.equals("public", info.room_status);
+        return Objects.equals("public", roomStatus);
     }
 
     @Override

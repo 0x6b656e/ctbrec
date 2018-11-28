@@ -6,7 +6,9 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -16,6 +18,7 @@ import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 
 import ctbrec.Config;
+import ctbrec.EventBusHolder;
 import ctbrec.Hmac;
 import ctbrec.Model;
 import ctbrec.Recording;
@@ -95,6 +98,7 @@ public class RemoteRecorder implements Recorder {
                     models.add(model);
                 } else if ("stop".equals(action)) {
                     models.remove(model);
+                    onlineModels.remove(model);
                 }
             } else {
                 throw new HttpException(response.code(), response.message());
@@ -231,12 +235,32 @@ public class RemoteRecorder implements Recorder {
                     if (response.isSuccessful()) {
                         ModelListResponse resp = modelListResponseAdapter.fromJson(json);
                         if (resp.status.equals("success")) {
+                            List<Model> previouslyOnline = onlineModels;
                             onlineModels = resp.models;
                             for (Model model : models) {
                                 for (Site site : sites) {
                                     if (site.isSiteForModel(model)) {
                                         model.setSite(site);
                                     }
+                                }
+                            }
+
+                            for (Model prev : previouslyOnline) {
+                                if(!onlineModels.contains(prev)) {
+                                    Map<String, Object> evt = new HashMap<>();
+                                    evt.put("event", "model.status");
+                                    evt.put("status", "offline");
+                                    evt.put("model", prev);
+                                    EventBusHolder.BUS.post(evt);
+                                }
+                            }
+                            for (Model model : onlineModels) {
+                                if(!previouslyOnline.contains(model)) {
+                                    Map<String, Object> evt = new HashMap<>();
+                                    evt.put("event", "model.status");
+                                    evt.put("status", "online");
+                                    evt.put("model", model);
+                                    EventBusHolder.BUS.post(evt);
                                 }
                             }
                         } else {

@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.eventbus.Subscribe;
 
+import ctbrec.EventBusHolder;
 import ctbrec.sites.Site;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
@@ -24,7 +25,7 @@ public class TokenLabel extends Label {
     public TokenLabel(Site site) {
         this.site = site;
         setText("Tokens: loading…");
-        CamrecApplication.bus.register(new Object() {
+        EventBusHolder.BUS.register(new Object() {
             @Subscribe
             public void tokensUpdates(Map<String, Object> e) {
                 if (Objects.equals("tokens", e.get("event"))) {

@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
+import ctbrec.EventBusHolder;
 import ctbrec.Model;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
@@ -468,7 +469,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                         Map<String, Object> event = new HashMap<>();
                         event.put("event", "tokens.sent");
                         event.put("amount", tokens);
-                        CamrecApplication.bus.post(event);
+                        EventBusHolder.BUS.post(event);
                     } catch (Exception e1) {
                         showError("Couldn't send tip", "An error occured while sending tip:", e1);
                     }

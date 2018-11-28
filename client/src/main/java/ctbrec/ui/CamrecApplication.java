@@ -10,19 +10,21 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.eventbus.AsyncEventBus;
-import com.google.common.eventbus.EventBus;
+import com.google.common.eventbus.Subscribe;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 import com.squareup.moshi.Types;
 
 import ctbrec.Config;
+import ctbrec.EventBusHolder;
+import ctbrec.Model;
 import ctbrec.StringUtil;
 import ctbrec.Version;
 import ctbrec.io.HttpClient;
@@ -35,6 +37,7 @@ import ctbrec.sites.cam4.Cam4;
 import ctbrec.sites.camsoda.Camsoda;
 import ctbrec.sites.chaturbate.Chaturbate;
 import ctbrec.sites.mfc.MyFreeCams;
+import eu.hansolo.enzo.notification.Notification;
 import javafx.application.Application;
 import javafx.application.HostServices;
 import javafx.application.Platform;
@@ -45,6 +48,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.image.Image;
+import javafx.scene.media.AudioClip;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import okhttp3.Request;
@@ -54,17 +58,19 @@ public class CamrecApplication extends Application {
 
     static final transient Logger LOG = LoggerFactory.getLogger(CamrecApplication.class);
 
+    private Stage primaryStage;
     private Config config;
     private Recorder recorder;
     static HostServices hostServices;
     private SettingsTab settingsTab;
     private TabPane rootPane = new TabPane();
-    static EventBus bus;
     private List<Site> sites = new ArrayList<>();
     public static HttpClient httpClient;
+    private Notification.Notifier notifier;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+        this.primaryStage = primaryStage;
         logEnvironment();
         sites.add(new BongaCams());
         sites.add(new Cam4());
@@ -73,7 +79,6 @@ public class CamrecApplication extends Application {
         sites.add(new MyFreeCams());
         loadConfig();
         createHttpClient();
-        bus = new AsyncEventBus(Executors.newSingleThreadExecutor());
         hostServices = getHostServices();
         createRecorder();
         for (Site site : sites) {
@@ -88,6 +93,14 @@ public class CamrecApplication extends Application {
         }
         createGui(primaryStage);
         checkForUpdates();
+        new Thread(() -> {
+            try {
+                Thread.sleep(TimeUnit.SECONDS.toMillis(10));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            Platform.runLater(() -> registerAlertSystem());
+        }).start();
     }
 
     private void logEnvironment() {
@@ -192,6 +205,33 @@ public class CamrecApplication extends Application {
                 }
                 if (to != null && to instanceof TabSelectionListener) {
                     ((TabSelectionListener) to).selected();
+                }
+            }
+        });
+    }
+
+    private void registerAlertSystem() {
+        Notification.Notifier.setNotificationOwner(primaryStage);
+        notifier = Notification.Notifier.INSTANCE;
+        EventBusHolder.BUS.register(new Object() {
+            @Subscribe
+            public void modelEvent(Map<String, Object> e) {
+                try {
+                    if (Objects.equals("model.status", e.get("event"))) {
+                        String status = (String) e.get("status");
+                        Model model = (Model) e.get("model");
+                        LOG.debug("Alert: {} is {}", model.getName(), status);
+                        if (Objects.equals("online", status)) {
+                            Platform.runLater(() -> {
+                                AudioClip clip = new AudioClip("file:///tmp/Oxygen-Im-Highlight-Msg.mp3");
+                                clip.play();
+                                Notification notification = new Notification("Model Online", model.getName() + " is now online");
+                                notifier.notify(notification);
+                            });
+                        }
+                    }
+                } catch (Exception e1) {
+                    e1.printStackTrace();
                 }
             }
         });

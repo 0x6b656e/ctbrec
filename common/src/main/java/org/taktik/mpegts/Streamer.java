@@ -64,6 +64,12 @@ public class Streamer {
 
         bufferingThread.join();
         streamingThread.join();
+
+        try {
+            sink.close();
+        } catch(Exception e) {
+            log.error("Couldn't close sink", e);
+        }
     }
 
     public void stop() {
@@ -84,6 +90,16 @@ public class Streamer {
             streamingThread.interrupt();
         } catch (Exception e) {
             log.error("Couldn't interrupt streamer threads");
+        }
+    }
+
+    public void switchSink(MTSSink sink) {
+        MTSSink old = this.sink;
+        this.sink = sink;
+        try {
+            old.close();
+        } catch (Exception e) {
+            log.error("Couldn't close old sink while switching sinks", e);
         }
     }
 

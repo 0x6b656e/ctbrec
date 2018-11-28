@@ -15,7 +15,6 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.text.DecimalFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZonedDateTime;
@@ -57,13 +56,12 @@ public class MergedHlsDownload extends AbstractHlsDownload {
     private BlockingMultiMTSSource multiSource;
     private Thread mergeThread;
     private Streamer streamer;
-    private ZonedDateTime startTime;
+    private ZonedDateTime splitRecStartTime;
     private Config config;
     private File targetFile;
-    private DecimalFormat df = new DecimalFormat("00000");
-    private int splitCounter = 0;
     private BlockingQueue<Runnable> downloadQueue = new LinkedBlockingQueue<>(50);
     private ExecutorService downloadThreadPool = new ThreadPoolExecutor(5, 5, 2, TimeUnit.MINUTES, downloadQueue);
+    private FileChannel fileChannel = null;
 
     public MergedHlsDownload(HttpClient client) {
         super(client);
@@ -78,6 +76,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
         try {
             running = true;
             super.startTime = Instant.now();
+            splitRecStartTime = ZonedDateTime.now();
             mergeThread = createMergeThread(targetFile, progressListener, false);
             LOG.debug("Merge thread started");
             mergeThread.start();
@@ -123,6 +122,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
 
             running = true;
             super.startTime = Instant.now();
+            splitRecStartTime = ZonedDateTime.now();
             super.model = model;
             targetFile = Config.getInstance().getFileForRecording(model);
             String segments = getSegmentPlaylistUrl(model);
@@ -130,6 +130,9 @@ public class MergedHlsDownload extends AbstractHlsDownload {
             mergeThread.start();
             if(segments != null) {
                 downloadSegments(segments, true);
+                if(config.getSettings().splitRecordings > 0) {
+                    LOG.debug("Splitting recordings every {} seconds", config.getSettings().splitRecordings);
+                }
             } else {
                 throw new IOException("Couldn't determine segments uri");
             }
@@ -194,7 +197,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
                     break;
                 }
             } catch(Exception e) {
-                LOG.info("Unexpected error while downloading ", model.getName());
+                LOG.info("Unexpected error while downloading {}", model.getName(), e);
                 running = false;
             }
         }
@@ -226,6 +229,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
         }
 
         // get completed downloads and write them to the file
+        // TODO it might be a good idea to do this in a separate thread, so that the main download loop isn't blocked
         writeFinishedSegments(downloads);
     }
 
@@ -276,14 +280,20 @@ public class MergedHlsDownload extends AbstractHlsDownload {
 
     private void splitRecording() {
         if(config.getSettings().splitRecordings > 0) {
-            Duration recordingDuration = Duration.between(startTime, ZonedDateTime.now());
+            Duration recordingDuration = Duration.between(splitRecStartTime, ZonedDateTime.now());
             long seconds = recordingDuration.getSeconds();
             if(seconds >= config.getSettings().splitRecordings) {
-                streamer.stop();
-                File target = new File(targetFile.getAbsolutePath().replaceAll("\\.ts", "-"+df.format(++splitCounter)+".ts"));
-                mergeThread = createMergeThread(target, null, true);
-                mergeThread.start();
-                startTime = ZonedDateTime.now();
+                try {
+                    targetFile = Config.getInstance().getFileForRecording(model);
+                    LOG.debug("Switching to file {}", targetFile.getAbsolutePath());
+                    fileChannel = FileChannel.open(targetFile.toPath(), CREATE, WRITE);
+                    MTSSink sink = ByteChannelSink.builder().setByteChannel(fileChannel).build();
+                    streamer.switchSink(sink);
+                    splitRecStartTime = ZonedDateTime.now();
+                } catch (IOException e) {
+                    LOG.error("Error while splitting recording", e);
+                    running = false;
+                }
             }
         }
     }
@@ -331,14 +341,13 @@ public class MergedHlsDownload extends AbstractHlsDownload {
                     .setProgressListener(listener)
                     .build();
 
-            FileChannel channel = null;
             try {
                 Path downloadDir = targetFile.getParentFile().toPath();
                 if (!Files.exists(downloadDir, LinkOption.NOFOLLOW_LINKS)) {
                     Files.createDirectories(downloadDir);
                 }
-                channel = FileChannel.open(targetFile.toPath(), CREATE, WRITE);
-                MTSSink sink = ByteChannelSink.builder().setByteChannel(channel).build();
+                fileChannel = FileChannel.open(targetFile.toPath(), CREATE, WRITE);
+                MTSSink sink = ByteChannelSink.builder().setByteChannel(fileChannel).build();
 
                 streamer = Streamer.builder()
                         .setSource(multiSource)
@@ -358,9 +367,9 @@ public class MergedHlsDownload extends AbstractHlsDownload {
             }  catch(Exception e) {
                 LOG.error("Error while saving stream to file", e);
             } finally {
-                closeFile(channel);
                 deleteEmptyRecording(targetFile);
                 running = false;
+                closeFile(fileChannel);
             }
         });
         t.setName("Segment Merger Thread [" + model.getName() + "]");
@@ -381,7 +390,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
 
     private void closeFile(FileChannel channel) {
         try {
-            if (channel != null) {
+            if (channel != null && channel.isOpen()) {
                 channel.close();
             }
         } catch (Exception e) {

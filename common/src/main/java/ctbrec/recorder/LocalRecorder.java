@@ -83,7 +83,7 @@ public class LocalRecorder implements Recorder {
         onlineMonitor.start();
 
         postProcessingTrigger = new PostProcessingTrigger();
-        if(Config.getInstance().isServerMode()) {
+        if(Config.isServerMode()) {
             postProcessingTrigger.start();
         }
 
@@ -161,7 +161,7 @@ public class LocalRecorder implements Recorder {
 
         LOG.debug("Starting recording for model {}", model.getName());
         Download download;
-        if (Config.getInstance().isServerMode()) {
+        if (Config.isServerMode()) {
             download = new HlsDownload(client);
         } else {
             download = new MergedHlsDownload(client);
@@ -184,7 +184,7 @@ public class LocalRecorder implements Recorder {
         Download download = recordingProcesses.get(model);
         download.stop();
         recordingProcesses.remove(model);
-        if(!Config.getInstance().isServerMode()) {
+        if(!Config.isServerMode()) {
             postprocess(download);
         }
     }
@@ -358,7 +358,7 @@ public class LocalRecorder implements Recorder {
                         LOG.debug("Recording terminated for model {}", m.getName());
                         iterator.remove();
                         restart.add(m);
-                        if(config.isServerMode()) {
+                        if(Config.isServerMode()) {
                             try {
                                 finishRecording(d.getTarget());
                             } catch(Exception e) {
@@ -385,7 +385,7 @@ public class LocalRecorder implements Recorder {
     }
 
     private void finishRecording(File directory) {
-        if(Config.getInstance().isServerMode()) {
+        if(Config.isServerMode()) {
             Thread t = new Thread() {
                 @Override
                 public void run() {
@@ -513,7 +513,7 @@ public class LocalRecorder implements Recorder {
 
     @Override
     public List<Recording> getRecordings() {
-        if(Config.getInstance().isServerMode()) {
+        if(Config.isServerMode()) {
             return listSegmentedRecordings();
         } else {
             return listMergedRecordings();
@@ -558,7 +558,7 @@ public class LocalRecorder implements Recorder {
             return GENERATING_PLAYLIST;
         }
 
-        if (config.isServerMode()) {
+        if (Config.isServerMode()) {
             if (recording.hasPlaylist()) {
                 return FINISHED;
             } else {

@@ -100,8 +100,12 @@ public class Config {
         Files.write(configFile.toPath(), json.getBytes("utf-8"), CREATE, WRITE, TRUNCATE_EXISTING);
     }
 
-    public boolean isServerMode() {
+    public static boolean isServerMode() {
         return Objects.equals(System.getProperty("ctbrec.server.mode"), "1");
+    }
+
+    public static boolean isDevMode() {
+        return Objects.equals(System.getenv("CTBREC_DEV"), "1");
     }
 
     public File getConfigDir() {

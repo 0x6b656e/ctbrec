@@ -319,6 +319,11 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         layout.add(l, 0, row);
         List<SplitAfterOption> splitOptions = new ArrayList<>();
         splitOptions.add(new SplitAfterOption("disabled", 0));
+        if(Config.isDevMode()) {
+            splitOptions.add(new SplitAfterOption( "1 min",  1 * 60));
+            splitOptions.add(new SplitAfterOption( "3 min",  3 * 60));
+            splitOptions.add(new SplitAfterOption( "5 min",  5 * 60));
+        }
         splitOptions.add(new SplitAfterOption("10 min", 10 * 60));
         splitOptions.add(new SplitAfterOption("15 min", 15 * 60));
         splitOptions.add(new SplitAfterOption("20 min", 20 * 60));

@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
@@ -14,6 +16,7 @@ import com.iheartradio.m3u8.ParseException;
 
 import ctbrec.Config;
 import ctbrec.Model;
+import ctbrec.io.HttpException;
 import ctbrec.recorder.Recorder;
 import ctbrec.ui.controls.Toast;
 import javafx.animation.FadeTransition;
@@ -43,6 +46,8 @@ import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
+import okhttp3.Request;
+import okhttp3.Response;
 
 public class ThumbCell extends StackPane {
 
@@ -74,6 +79,7 @@ public class ThumbCell extends StackPane {
     private ObservableList<Node> thumbCellList;
     private boolean mouseHovering = false;
     private boolean recording = false;
+    private static ExecutorService imageLoadingThreadPool = Executors.newFixedThreadPool(10);
 
     public ThumbCell(ThumbOverviewTab parent, Model model, Recorder recorder) {
         this.thumbCellList = parent.grid.getChildren();
@@ -267,18 +273,35 @@ public class ThumbCell extends StackPane {
         if(!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
             boolean updateThumbs = Config.getInstance().getSettings().updateThumbnails;
             if(updateThumbs || iv.getImage() == null) {
-                Image img = new Image(url, true);
-
-                // wait for the image to load, otherwise the ImageView replaces the current image with an "empty" image,
-                // which causes to show the grey background until the image is loaded
-                img.progressProperty().addListener(new ChangeListener<Number>() {
-                    @Override
-                    public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
-                        if(newValue.doubleValue() == 1.0) {
-                            //imgAspectRatio = img.getHeight() / img.getWidth();
-                            iv.setImage(img);
-                            setThumbWidth(Config.getInstance().getSettings().thumbWidth);
+                imageLoadingThreadPool.submit(() -> {
+                    Request req = new Request.Builder()
+                            .url(url)
+                            .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
+                            .build();
+                    try(Response resp = CamrecApplication.httpClient.execute(req)) {
+                        if(resp.isSuccessful()) {
+                            Image img = new Image(resp.body().byteStream());
+                            if(img.progressProperty().get() == 1.0) {
+                                Platform.runLater(() -> {
+                                    iv.setImage(img);
+                                    setThumbWidth(Config.getInstance().getSettings().thumbWidth);
+                                });
+                            } else {
+                                img.progressProperty().addListener(new ChangeListener<Number>() {
+                                    @Override
+                                    public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
+                                        if(newValue.doubleValue() == 1.0) {
+                                            iv.setImage(img);
+                                            setThumbWidth(Config.getInstance().getSettings().thumbWidth);
+                                        }
+                                    }
+                                });
+                            }
+                        } else {
+                            throw new HttpException(resp.code(), resp.message());
                         }
+                    } catch (IOException e) {
+                        LOG.error("Error loading image", e);
                     }
                 });
             }

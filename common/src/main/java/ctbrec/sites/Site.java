@@ -29,4 +29,5 @@ public interface Site {
     public boolean isEnabled();
     public List<Model> search(String q) throws IOException, InterruptedException;
     public boolean searchRequiresLogin();
+    public Model createModelFromUrl(String url);
 }

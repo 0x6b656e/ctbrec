@@ -2,6 +2,8 @@ package ctbrec.sites.mfc;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.jsoup.select.Elements;
 
@@ -121,5 +123,21 @@ public class MyFreeCams extends AbstractSite {
     public boolean credentialsAvailable() {
         String username = Config.getInstance().getSettings().mfcUsername;
         return username != null && !username.trim().isEmpty();
+    }
+
+    @Override
+    public Model createModelFromUrl(String url) {
+        String[] patterns = new String[] {
+                "https?://profiles.myfreecams.com/([^/]*?)",
+                "https?://(?:www.)?myfreecams.com/#(.*)"
+        };
+        for (String pattern : patterns) {
+            Matcher m = Pattern.compile(pattern).matcher(url);
+            if(m.matches()) {
+                String modelName = m.group(1);
+                return createModel(modelName);
+            }
+        }
+        return super.createModelFromUrl(url);
     }
 }

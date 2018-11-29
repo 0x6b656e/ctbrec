@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -339,5 +341,16 @@ public class Chaturbate extends AbstractSite {
     public boolean credentialsAvailable() {
         String username = Config.getInstance().getSettings().username;
         return username != null && !username.trim().isEmpty();
+    }
+
+    @Override
+    public Model createModelFromUrl(String url) {
+        Matcher m = Pattern.compile("https?://.*?chaturbate.com(?:/p)?/([^/]*?)/?").matcher(url);
+        if(m.matches()) {
+            String modelName = m.group(1);
+            return createModel(modelName);
+        } else {
+            return super.createModelFromUrl(url);
+        }
     }
 }

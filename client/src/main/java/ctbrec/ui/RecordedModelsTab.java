@@ -155,8 +155,8 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         ObservableList<String> suggestions = FXCollections.observableArrayList();
         sites.forEach(site -> suggestions.add(site.getName()));
         model = new AutoFillTextField(suggestions);
-        model.setPrefWidth(300);
-        model.setPromptText("e.g. MyFreeCams:ModelName");
+        model.setPrefWidth(600);
+        model.setPromptText("e.g. MyFreeCams:ModelName or an URL like https://chaturbate.com/modelname/");
         model.onActionHandler(e -> addModel(e));
         model.setTooltip(new Tooltip("To add a model enter SiteName:ModelName\n" +
                 "press ENTER to confirm a suggested site name"));
@@ -174,6 +174,43 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
     }
 
     private void addModel(ActionEvent e) {
+        String input = model.getText();
+        if(StringUtil.isBlank(input)) {
+            return;
+        }
+
+        if(input.startsWith("http")) {
+            addModelByUrl(input);
+        } else {
+            addModelByName(input);
+        }
+    };
+
+    private void addModelByUrl(String url) {
+        for (Site site : sites) {
+            Model model = site.createModelFromUrl(url);
+            if(model != null) {
+                try {
+                    recorder.startRecording(model);
+                } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e1) {
+                    Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+                    alert.setTitle("Error");
+                    alert.setHeaderText("Couldn't add model");
+                    alert.setContentText("The model " + model.getName() + " could not be added: " + e1.getLocalizedMessage());
+                    alert.showAndWait();
+                }
+                return;
+            }
+        }
+
+        Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+        alert.setTitle("Unknown URL format");
+        alert.setHeaderText("Couldn't add model");
+        alert.setContentText("The URL you entered has an unknown format or the function does not support this site, yet");
+        alert.showAndWait();
+    }
+
+    private void addModelByName(String siteModelCombo) {
         String[] parts = model.getText().trim().split(":");
         if (parts.length != 2) {
             Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
@@ -207,8 +244,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         alert.setHeaderText("Couldn't add model");
         alert.setContentText("The site you entered is unknown");
         alert.showAndWait();
-    };
-
+    }
 
     void initializeUpdateService() {
         updateService = createUpdateService();

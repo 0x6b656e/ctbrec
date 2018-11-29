@@ -1,3 +1,9 @@
+1.12.2
+========================
+* Fix: Player not starting when path contains spaces
+* Added setting to toggle "Player Starting" message
+* Added possibility to add models by their URL
+
 1.12.1
 ========================
 * Fixed downloads in client / server mode

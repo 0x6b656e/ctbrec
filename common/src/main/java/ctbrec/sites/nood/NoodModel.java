@@ -44,9 +44,9 @@ public class NoodModel extends AbstractModel {
                     .addHeader("Referer", getSite().getBaseUrl())
                     .build();
             try(Response response = getSite().getHttpClient().execute(request)) {
-                online = response.code() == 200;
-                System.out.println(response.isRedirect());
-                if(!response.isSuccessful()) {
+                if(response.isSuccessful()) {
+                    return response.body().string().contains("data-source");
+                } else {
                     throw new HttpException(response.code(), response.message());
                 }
             }

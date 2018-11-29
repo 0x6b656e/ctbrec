@@ -30,7 +30,7 @@ public class Settings {
     }
 
     public boolean singlePlayer = true;
-    public boolean showPlayerStarting = true;
+    public boolean showPlayerStarting = false;
     public boolean localRecording = true;
     public int httpPort = 8080;
     public int httpTimeout = 10000;

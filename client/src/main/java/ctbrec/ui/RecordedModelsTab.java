@@ -348,7 +348,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         new Thread(() -> {
             boolean started = Player.play(selectedModel);
             Platform.runLater(() -> {
-                if(started) {
+                if(started && Config.getInstance().getSettings().showPlayerStarting) {
                     Toast.makeText(getTabPane().getScene(), "Starting Player", 2000, 500, 500);
                 }
                 table.setCursor(Cursor.DEFAULT);

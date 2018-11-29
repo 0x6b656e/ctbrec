@@ -308,7 +308,7 @@ public class ThumbCell extends StackPane {
             boolean started = Player.play(model);
             Platform.runLater(() -> {
                 setCursor(Cursor.DEFAULT);
-                if (started) {
+                if (started && Config.getInstance().getSettings().showPlayerStarting) {
                     Toast.makeText(getScene(), "Starting Player", 2000, 500, 500);
                 }
             });

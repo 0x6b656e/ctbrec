@@ -38,6 +38,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.recorder.Recorder;
 import ctbrec.ui.Player;
@@ -86,7 +87,7 @@ public class SearchPopoverTreeList extends PopoverTreeList<Model> implements Pop
         new Thread(() -> {
             Platform.runLater(() -> {
                 boolean started = Player.play(model);
-                if(started) {
+                if(started && Config.getInstance().getSettings().showPlayerStarting) {
                     Toast.makeText(getScene(), "Starting Player", 2000, 500, 500);
                 }
                 setCursor(Cursor.DEFAULT);

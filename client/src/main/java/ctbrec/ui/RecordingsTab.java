@@ -497,7 +497,7 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
                 @Override
                 public void run() {
                     boolean started = Player.play(recording);
-                    if(started) {
+                    if(started && Config.getInstance().getSettings().showPlayerStarting) {
                         Platform.runLater(() -> Toast.makeText(getTabPane().getScene(), "Starting Player", 2000, 500, 500));
                     }
                 }
@@ -509,7 +509,7 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
                 @Override
                 public void run() {
                     boolean started = Player.play(url);
-                    if(started) {
+                    if(started && Config.getInstance().getSettings().showPlayerStarting) {
                         Platform.runLater(() -> Toast.makeText(getTabPane().getScene(), "Starting Player", 2000, 500, 500));
                     }
                 }

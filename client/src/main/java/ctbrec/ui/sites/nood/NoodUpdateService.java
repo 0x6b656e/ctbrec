@@ -55,7 +55,7 @@ public class NoodUpdateService extends PaginatedScheduledService {
                     for (Element box : boxes) {
                         String boxHtml = box.html();
                         String href = box.attr("data-href");
-                        String name = href.substring(href.lastIndexOf('/')+1);
+                        String name = parseName(boxHtml);
                         Model model = nood.createModel(name);
                         model.setUrl(nood.getBaseUrl() + href);
                         parsePreview(model, boxHtml);
@@ -65,18 +65,18 @@ public class NoodUpdateService extends PaginatedScheduledService {
                         }
                     }
 
-                    Model model = nood.createModel("5727");
-                    model.setUrl(nood.getBaseUrl() + "/broadcasts/5727");
-                    parsePreview(model, "https://www.nood.tv/snapshots/W1siZiIsImJyb2FkY2FzdC81NzI5L3NuYXAiXSxbInAiLCJ0aHVtYiIsIjY0MHgzNjAjbiJdXQ/4969f2a9aa1d420f");
-                    parseDescription(model, "");
-                    models.add(model);
-
                     return models;
                 } else {
                     int code = response.code();
                     response.close();
                     throw new IOException("HTTP status " + code);
                 }
+            }
+
+            private String parseName(String boxHtml) {
+                Element link = HtmlParser.getTag(boxHtml, "li[class~=content-box-avatar] a");
+                String href = link.attr("href");
+                return href.substring(1);
             }
 
             private void parseDescription(Model model, String boxHtml) {

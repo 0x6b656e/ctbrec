@@ -79,6 +79,8 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
     Label modelLabel = new Label("Model");
     AutoFillTextField model;
     Button addModelButton = new Button("Record");
+    Button pauseAll = new Button("Pause All");
+    Button resumeAll = new Button("Resume All");
 
     public RecordedModelsTab(String title, Recorder recorder, List<Site> sites) {
         super(title);
@@ -157,12 +159,15 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         model = new AutoFillTextField(suggestions);
         model.setPrefWidth(600);
         model.setPromptText("e.g. MyFreeCams:ModelName or an URL like https://chaturbate.com/modelname/");
-        model.onActionHandler(e -> addModel(e));
+        model.onActionHandler(this::addModel);
         model.setTooltip(new Tooltip("To add a model enter SiteName:ModelName\n" +
                 "press ENTER to confirm a suggested site name"));
         BorderPane.setMargin(addModelBox, new Insets(5));
-        addModelButton.setOnAction((e) -> addModel(e));
-        addModelBox.getChildren().addAll(modelLabel, model, addModelButton);
+        addModelButton.setOnAction(this::addModel);
+        addModelBox.getChildren().addAll(modelLabel, model, addModelButton, pauseAll, resumeAll);
+        HBox.setMargin(pauseAll, new Insets(0, 0, 0, 20));
+        pauseAll.setOnAction(this::pauseAll);
+        resumeAll.setOnAction(this::resumeAll);
 
         BorderPane root = new BorderPane();
         root.setPadding(new Insets(5));
@@ -244,6 +249,60 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         alert.setHeaderText("Couldn't add model");
         alert.setContentText("The site you entered is unknown");
         alert.showAndWait();
+    }
+
+    private void pauseAll(ActionEvent evt) {
+        getTabPane().setCursor(Cursor.WAIT);
+        threadPool.submit(() -> {
+            List<Model> models = recorder.getModelsRecording();
+            Exception ex = null;
+            for (Model model : models) {
+                try {
+                    recorder.suspendRecording(model);
+                } catch (InvalidKeyException | NoSuchAlgorithmException | IllegalStateException | IOException e) {
+                    LOG.error("Couldn't suspend model {}: {}", model, e.getMessage());
+                    ex = e;
+                }
+            }
+            final Exception exc = ex; // stupid compiler
+            Platform.runLater(() -> {
+                getTabPane().setCursor(Cursor.DEFAULT);
+                if(exc != null) {
+                    Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+                    alert.setTitle("Pause Model");
+                    alert.setHeaderText("Couldn't pause recording");
+                    alert.setContentText("At least one recording couldn't be paused: " + exc.getMessage());
+                    alert.showAndWait();
+                }
+            });
+        });
+    }
+
+    private void resumeAll(ActionEvent evt) {
+        getTabPane().setCursor(Cursor.WAIT);
+        threadPool.submit(() -> {
+            List<Model> models = recorder.getModelsRecording();
+            Exception ex = null;
+            for (Model model : models) {
+                try {
+                    recorder.resumeRecording(model);
+                } catch (InvalidKeyException | NoSuchAlgorithmException | IllegalStateException | IOException e) {
+                    LOG.error("Couldn't resume model {}: {}", model, e.getMessage());
+                    ex = e;
+                }
+            }
+            final Exception exc = ex; // stupid compiler
+            Platform.runLater(() -> {
+                getTabPane().setCursor(Cursor.DEFAULT);
+                if(exc != null) {
+                    Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+                    alert.setTitle("Resume Model");
+                    alert.setHeaderText("Couldn't resume recording");
+                    alert.setContentText("At least one recording couldn't be resumed: " + exc.getMessage());
+                    alert.showAndWait();
+                }
+            });
+        });
     }
 
     void initializeUpdateService() {

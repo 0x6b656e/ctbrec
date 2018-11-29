@@ -79,7 +79,7 @@ public class Notification {
         private static       double offsetX       = 0;
         private static       double offsetY       = 25;
         private static       double spacingY      = 5;
-        private static       Pos    popupLocation = Pos.TOP_RIGHT;
+        private static       Pos    popupLocation = Pos.BOTTOM_RIGHT;
         private static       Stage  stageRef      = null;
         private Duration              popupLifetime;
         private Stage                 stage;
@@ -101,7 +101,10 @@ public class Notification {
         }
 
         private void initGraphics() {
-            scene = new Scene(new Region());
+            Region region = new Region();
+            region.resize(0, 0);
+            region.setVisible(false);
+            scene = new Scene(region);
             scene.setFill(null);
             scene.getStylesheets().add(getClass().getResource("notifier.css").toExternalForm());
 
@@ -134,6 +137,7 @@ public class Notification {
          */
         public static void setNotificationOwner(final Stage OWNER) {
             INSTANCE.stage.initOwner(OWNER);
+            INSTANCE.stage.getScene().getStylesheets().addAll(OWNER.getScene().getStylesheets());
         }
 
         /**
@@ -306,7 +310,6 @@ public class Notification {
             final Popup POPUP = new Popup();
             POPUP.setX( getX() );
             POPUP.setY( getY() );
-            System.out.println(POPUP.getX() + "," + POPUP.getY());
             POPUP.getContent().add(popupContent);
 
             popups.add(POPUP);
@@ -323,6 +326,7 @@ public class Notification {
             timeline.setOnFinished(actionEvent -> Platform.runLater(() -> {
                 POPUP.hide();
                 popups.remove(POPUP);
+                stage.hide();
             }));
 
             // Move popup to the right during fade out

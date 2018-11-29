@@ -48,7 +48,6 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.image.Image;
-import javafx.scene.media.AudioClip;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import okhttp3.Request;
@@ -66,7 +65,7 @@ public class CamrecApplication extends Application {
     private TabPane rootPane = new TabPane();
     private List<Site> sites = new ArrayList<>();
     public static HttpClient httpClient;
-    private Notification.Notifier notifier;
+    private Notification.Notifier notifier = Notification.Notifier.INSTANCE;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -93,6 +92,7 @@ public class CamrecApplication extends Application {
         }
         createGui(primaryStage);
         checkForUpdates();
+
         new Thread(() -> {
             try {
                 Thread.sleep(TimeUnit.SECONDS.toMillis(10));
@@ -212,7 +212,6 @@ public class CamrecApplication extends Application {
 
     private void registerAlertSystem() {
         Notification.Notifier.setNotificationOwner(primaryStage);
-        notifier = Notification.Notifier.INSTANCE;
         EventBusHolder.BUS.register(new Object() {
             @Subscribe
             public void modelEvent(Map<String, Object> e) {
@@ -223,10 +222,9 @@ public class CamrecApplication extends Application {
                         LOG.debug("Alert: {} is {}", model.getName(), status);
                         if (Objects.equals("online", status)) {
                             Platform.runLater(() -> {
-                                AudioClip clip = new AudioClip("file:///tmp/Oxygen-Im-Highlight-Msg.mp3");
-                                clip.play();
-                                Notification notification = new Notification("Model Online", model.getName() + " is now online");
-                                notifier.notify(notification);
+                                notifier.notifyInfo("Model Online", model.getName() + " is now online");
+                                //AudioClip clip = new AudioClip("file:///tmp/Oxygen-Im-Highlight-Msg.mp3");
+                                //clip.play();
                             });
                         }
                     }

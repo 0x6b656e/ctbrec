@@ -301,7 +301,7 @@ public class ThumbCell extends StackPane {
                             throw new HttpException(resp.code(), resp.message());
                         }
                     } catch (IOException e) {
-                        LOG.error("Error loading image", e);
+                        LOG.error("Error loading image {}", e.getMessage());
                     }
                 });
             }

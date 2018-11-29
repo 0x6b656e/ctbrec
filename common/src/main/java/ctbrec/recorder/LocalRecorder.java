@@ -165,7 +165,7 @@ public class LocalRecorder implements Recorder {
         if (Config.isServerMode()) {
             download = new HlsDownload(client);
         } else {
-            download = new MergedHlsDownload(client);
+            download = new MergedHlsDownload(model.getSite().getHttpClient());
         }
 
         recordingProcesses.put(model, download);

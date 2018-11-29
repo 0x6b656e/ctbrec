@@ -5,11 +5,14 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.nodes.Element;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.iheartradio.m3u8.Encoding;
 import com.iheartradio.m3u8.Format;
@@ -32,31 +35,63 @@ import okhttp3.Response;
 
 public class NoodModel extends AbstractModel {
 
-    boolean online = false;
+    private static final transient Logger LOG = LoggerFactory.getLogger(NoodModel.class);
+    private int[] resolution;
+    private boolean online = false;
+    private String streamUrl;
+    private String onlineState;
 
     @Override
     public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException {
         if(ignoreCache) {
-            Request request = new Request.Builder()
-                    .url(getUrl())
-                    .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
-                    .addHeader("Accept-Language", "en")
-                    .addHeader("Referer", getSite().getBaseUrl())
-                    .build();
-            try(Response response = getSite().getHttpClient().execute(request)) {
-                if(response.isSuccessful()) {
-                    return response.body().string().contains("data-source");
-                } else {
-                    throw new HttpException(response.code(), response.message());
-                }
-            }
+            loadModelInfo();
         }
         return online;
     }
 
+    private void loadModelInfo() throws IOException {
+        Request request = new Request.Builder()
+                .url(getUrl())
+                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
+                .addHeader("Accept-Language", "en")
+                .addHeader("Referer", getSite().getBaseUrl())
+                .build();
+        try(Response response = getSite().getHttpClient().execute(request)) {
+            if(response.isSuccessful()) {
+                String body = response.body().string();
+
+                // online?
+                online = body.contains("data-source");
+                onlineState = online ? "online" : "offline";
+
+                // stream url
+                Element div = HtmlParser.getTag(body, "div[data-source]");
+                JSONArray sources = new JSONArray(div.attr("data-source"));
+                for (int i = 0; i < sources.length(); i++) {
+                    JSONObject source = sources.getJSONObject(i);
+                    String type = source.optString("type");
+                    String quality = source.optString("quality");
+                    String src = source.getString("src");
+                    if(type.equalsIgnoreCase("application/x-mpegURL") && quality.equalsIgnoreCase("auto")) {
+                        streamUrl = src;
+                    }
+                }
+            } else {
+                throw new HttpException(response.code(), response.message());
+            }
+        }
+    }
+
     @Override
     public String getOnlineState(boolean failFast) throws IOException, ExecutionException {
-        return "n/a";
+        if(failFast) {
+            return Optional.ofNullable(online).orElse(false) ? "online" : "offline";
+        } else {
+            if(onlineState == null) {
+                loadModelInfo();
+            }
+            return onlineState;
+        }
     }
 
     @Override
@@ -103,37 +138,16 @@ public class NoodModel extends AbstractModel {
     }
 
     private String getStreamUrl() throws IOException {
-        Request request = new Request.Builder()
-                .url(getUrl())
-                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
-                .addHeader("Accept-Language", "en")
-                .addHeader("Referer", getSite().getBaseUrl())
-                .addHeader("Origin", getSite().getBaseUrl())
-                .build();
-        try(Response response = getSite().getHttpClient().execute(request)) {
-            online = response.code() == 200;
-            if(response.isSuccessful()) {
-                String body = response.body().string();
-                Element div = HtmlParser.getTag(body, "div[data-source]");
-                JSONArray sources = new JSONArray(div.attr("data-source"));
-                for (int i = 0; i < sources.length(); i++) {
-                    JSONObject source = sources.getJSONObject(i);
-                    String type = source.optString("type");
-                    String quality = source.optString("quality");
-                    String src = source.getString("src");
-                    if(type.equalsIgnoreCase("application/x-mpegURL") && quality.equalsIgnoreCase("auto")) {
-                        return src;
-                    }
-                }
-                throw new RuntimeException("HLS playlist not found");
-            } else {
-                throw new HttpException(response.code(), response.message());
-            }
+        if(streamUrl == null) {
+            loadModelInfo();
         }
+        return streamUrl;
     }
 
     @Override
     public void invalidateCacheEntries() {
+        resolution = null;
+        streamUrl = null;
     }
 
     @Override
@@ -142,7 +156,25 @@ public class NoodModel extends AbstractModel {
 
     @Override
     public int[] getStreamResolution(boolean failFast) throws ExecutionException {
-        return new int[2];
+        if(resolution == null) {
+            if(failFast) {
+                return new int[2];
+            }
+            try {
+                if(!isOnline()) {
+                    return new int[2];
+                }
+                List<StreamSource> streamSources = getStreamSources();
+                Collections.sort(streamSources);
+                StreamSource best = streamSources.get(streamSources.size()-1);
+                resolution = new int[] {best.width, best.height};
+            } catch (ExecutionException | IOException | ParseException | PlaylistException | InterruptedException e) {
+                LOG.warn("Couldn't determine stream resolution for {} - {}", getName(), e.getMessage());
+            }
+            return resolution;
+        } else {
+            return resolution;
+        }
     }
 
     @Override

@@ -3,6 +3,7 @@ package ctbrec.ui;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -104,45 +105,50 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         scrollPane.setFitToWidth(true);
         BorderPane.setMargin(scrollPane, new Insets(5));
 
-        table.setEditable(false);
+        table.setEditable(true);
         table.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         TableColumn<JavaFxModel, String> name = new TableColumn<>("Model");
         name.setPrefWidth(200);
         name.setCellValueFactory(new PropertyValueFactory<JavaFxModel, String>("name"));
+        name.setEditable(false);
         TableColumn<JavaFxModel, String> url = new TableColumn<>("URL");
         url.setCellValueFactory(new PropertyValueFactory<JavaFxModel, String>("url"));
         url.setPrefWidth(400);
+        url.setEditable(false);
         TableColumn<JavaFxModel, Boolean> online = new TableColumn<>("Online");
         online.setCellValueFactory((cdf) -> cdf.getValue().getOnlineProperty());
         online.setCellFactory(CheckBoxTableCell.forTableColumn(online));
         online.setPrefWidth(100);
+        online.setEditable(false);
         TableColumn<JavaFxModel, Boolean> recording = new TableColumn<>("Recording");
         recording.setCellValueFactory((cdf) -> cdf.getValue().getRecordingProperty());
         recording.setCellFactory(CheckBoxTableCell.forTableColumn(recording));
         recording.setPrefWidth(100);
+        recording.setEditable(false);
         TableColumn<JavaFxModel, Boolean> paused = new TableColumn<>("Paused");
         paused.setCellValueFactory((cdf) -> cdf.getValue().getPausedProperty());
         paused.setCellFactory(CheckBoxTableCell.forTableColumn(paused));
         paused.setPrefWidth(100);
+        paused.setEditable(true);
         table.getColumns().addAll(name, url, online, recording, paused);
         table.setItems(observableModels);
         table.addEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> {
             popup = createContextMenu();
-            if(popup != null) {
+            if (popup != null) {
                 popup.show(table, event.getScreenX(), event.getScreenY());
             }
             event.consume();
         });
         table.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
-            if(popup != null) {
+            if (popup != null) {
                 popup.hide();
             }
         });
         table.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
             List<JavaFxModel> selectedModels = table.getSelectionModel().getSelectedItems();
-            if(event.getCode() == KeyCode.DELETE) {
+            if (event.getCode() == KeyCode.DELETE) {
                 stopAction(selectedModels);
-            } else if(event.getCode() == KeyCode.P) {
+            } else if (event.getCode() == KeyCode.P) {
                 List<JavaFxModel> pausedModels = selectedModels.stream().filter(m -> m.isSuspended()).collect(Collectors.toList());
                 List<JavaFxModel> runningModels = selectedModels.stream().filter(m -> !m.isSuspended()).collect(Collectors.toList());
                 resumeRecording(pausedModels);
@@ -179,11 +185,11 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
 
     private void addModel(ActionEvent e) {
         String input = model.getText();
-        if(StringUtil.isBlank(input)) {
+        if (StringUtil.isBlank(input)) {
             return;
         }
 
-        if(input.startsWith("http")) {
+        if (input.startsWith("http")) {
             addModelByUrl(input);
         } else {
             addModelByName(input);
@@ -193,7 +199,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
     private void addModelByUrl(String url) {
         for (Site site : sites) {
             Model model = site.createModelFromUrl(url);
-            if(model != null) {
+            if (model != null) {
                 try {
                     recorder.startRecording(model);
                 } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e1) {
@@ -291,7 +297,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         updateService.setPeriod(new Duration(TimeUnit.SECONDS.toMillis(2)));
         updateService.setOnSucceeded((event) -> {
             List<JavaFxModel> models = updateService.getValue();
-            if(models == null) {
+            if (models == null) {
                 return;
             }
 
@@ -299,6 +305,13 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
                 int index = observableModels.indexOf(updatedModel);
                 if (index == -1) {
                     observableModels.add(updatedModel);
+                    updatedModel.getPausedProperty().addListener((obs, oldV, newV) -> {
+                        if(newV) {
+                            pauseRecording(Collections.singletonList(updatedModel));
+                        } else {
+                            resumeRecording(Collections.singletonList(updatedModel));
+                        }
+                    });
                 } else {
                     // make sure to update the JavaFX online property, so that the table cell is updated
                     JavaFxModel oldModel = observableModels.get(index);
@@ -387,7 +400,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
 
     private ContextMenu createContextMenu() {
         ObservableList<JavaFxModel> selectedModels = table.getSelectionModel().getSelectedItems();
-        if(selectedModels.isEmpty()) {
+        if (selectedModels.isEmpty()) {
             return null;
         }
         MenuItem stop = new MenuItem("Remove Model");
@@ -414,14 +427,14 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         switchStreamSource.setOnAction((e) -> switchStreamSource(selectedModels.get(0)));
 
         ContextMenu menu = new ContextMenu(stop);
-        if(selectedModels.size() == 1) {
+        if (selectedModels.size() == 1) {
             menu.getItems().add(selectedModels.get(0).isSuspended() ? resumeRecording : pauseRecording);
         } else {
             menu.getItems().addAll(resumeRecording, pauseRecording);
         }
         menu.getItems().addAll(copyUrl, openInPlayer, openInBrowser, switchStreamSource);
 
-        if(selectedModels.size() > 1) {
+        if (selectedModels.size() > 1) {
             copyUrl.setDisable(true);
             openInPlayer.setDisable(true);
             openInBrowser.setDisable(true);
@@ -436,7 +449,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         new Thread(() -> {
             boolean started = Player.play(selectedModel);
             Platform.runLater(() -> {
-                if(started && Config.getInstance().getSettings().showPlayerStarting) {
+                if (started && Config.getInstance().getSettings().showPlayerStarting) {
                     Toast.makeText(getTabPane().getScene(), "Starting Player", 2000, 500, 500);
                 }
                 table.setCursor(Cursor.DEFAULT);
@@ -446,7 +459,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
 
     private void switchStreamSource(JavaFxModel fxModel) {
         try {
-            if(!fxModel.isOnline()) {
+            if (!fxModel.isOnline()) {
                 Alert alert = new AutosizeAlert(Alert.AlertType.INFORMATION);
                 alert.setTitle("Switch resolution");
                 alert.setHeaderText("Couldn't switch stream resolution");
@@ -533,7 +546,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
     }
 
     public void saveState() {
-        if(!table.getSortOrder().isEmpty()) {
+        if (!table.getSortOrder().isEmpty()) {
             TableColumn<JavaFxModel, ?> col = table.getSortOrder().get(0);
             Config.getInstance().getSettings().recordedModelsSortColumn = col.getText();
             Config.getInstance().getSettings().recordedModelsSortType = col.getSortType().toString();
@@ -547,9 +560,9 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
 
     private void restoreState() {
         String sortCol = Config.getInstance().getSettings().recordedModelsSortColumn;
-        if(StringUtil.isNotBlank(sortCol)) {
+        if (StringUtil.isNotBlank(sortCol)) {
             for (TableColumn<JavaFxModel, ?> col : table.getColumns()) {
-                if(Objects.equals(sortCol, col.getText())) {
+                if (Objects.equals(sortCol, col.getText())) {
                     col.setSortType(SortType.valueOf(Config.getInstance().getSettings().recordedModelsSortType));
                     table.getSortOrder().clear();
                     table.getSortOrder().add(col);
@@ -559,7 +572,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         }
 
         double[] columnWidths = Config.getInstance().getSettings().recordedModelsColumnWidths;
-        if(columnWidths != null && columnWidths.length == table.getColumns().size()) {
+        if (columnWidths != null && columnWidths.length == table.getColumns().size()) {
             for (int i = 0; i < columnWidths.length; i++) {
                 table.getColumns().get(i).setPrefWidth(columnWidths[i]);
             }

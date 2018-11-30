@@ -79,7 +79,7 @@ public class ThumbCell extends StackPane {
     private ObservableList<Node> thumbCellList;
     private boolean mouseHovering = false;
     private boolean recording = false;
-    private static ExecutorService imageLoadingThreadPool = Executors.newFixedThreadPool(10);
+    private static ExecutorService imageLoadingThreadPool = Executors.newFixedThreadPool(30);
 
     public ThumbCell(ThumbOverviewTab parent, Model model, Recorder recorder) {
         this.thumbCellList = parent.grid.getChildren();

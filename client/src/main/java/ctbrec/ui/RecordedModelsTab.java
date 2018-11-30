@@ -139,8 +139,14 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
             }
         });
         table.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            List<JavaFxModel> selectedModels = table.getSelectionModel().getSelectedItems();
             if(event.getCode() == KeyCode.DELETE) {
-                stopAction(table.getSelectionModel().getSelectedItems());
+                stopAction(selectedModels);
+            } else if(event.getCode() == KeyCode.P) {
+                List<JavaFxModel> pausedModels = selectedModels.stream().filter(m -> m.isSuspended()).collect(Collectors.toList());
+                List<JavaFxModel> runningModels = selectedModels.stream().filter(m -> !m.isSuspended()).collect(Collectors.toList());
+                resumeRecording(pausedModels);
+                pauseRecording(runningModels);
             }
         });
         scrollPane.setContent(table);
@@ -486,7 +492,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         alert.showAndWait();
     }
 
-    private void stopAction(ObservableList<JavaFxModel> selectedModels) {
+    private void stopAction(List<JavaFxModel> selectedModels) {
         Consumer<Model> action = (m) -> {
             try {
                 recorder.stopRecording(m);
@@ -500,7 +506,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         massEdit(models, action);
     };
 
-    private void pauseRecording(ObservableList<JavaFxModel> selectedModels) {
+    private void pauseRecording(List<JavaFxModel> selectedModels) {
         Consumer<Model> action = (m) -> {
             try {
                 recorder.suspendRecording(m);
@@ -513,7 +519,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         massEdit(models, action);
     };
 
-    private void resumeRecording(ObservableList<JavaFxModel> selectedModels) {
+    private void resumeRecording(List<JavaFxModel> selectedModels) {
         Consumer<Model> action = (m) -> {
             try {
                 recorder.resumeRecording(m);

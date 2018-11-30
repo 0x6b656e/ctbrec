@@ -99,7 +99,7 @@ public class MyFreeCamsModel extends AbstractModel {
     }
 
     private MasterPlaylist getMasterPlaylist() throws IOException, ParseException, PlaylistException {
-        if(hlsUrl == null) {
+        if(getHlsUrl() == null) {
             throw new IllegalStateException("Stream url unknown");
         }
         LOG.trace("Loading master playlist {}", hlsUrl);
@@ -115,6 +115,14 @@ public class MyFreeCamsModel extends AbstractModel {
                 throw new HttpException(response.code(), response.message());
             }
         }
+    }
+
+    private String getHlsUrl() {
+        if(hlsUrl == null) {
+            MyFreeCams mfc = (MyFreeCams) getSite();
+            mfc.getClient().update(this);
+        }
+        return hlsUrl;
     }
 
     @Override

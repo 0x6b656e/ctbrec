@@ -3,6 +3,9 @@
 * Fix: Player not starting when path contains spaces
 * Added setting to toggle "Player Starting" message
 * Added possibility to add models by their URL
+* Added pause / resume all buttons
+* Implemented multi-selection for Recording and Recordings tab
+* Fix: Don't do space check, if minimum is set to 0
 
 1.12.1
 ========================

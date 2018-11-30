@@ -53,6 +53,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
@@ -115,6 +116,7 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
         BorderPane.setMargin(scrollPane, new Insets(5));
 
         table.setEditable(false);
+        table.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         TableColumn<JavaFxRecording, String> name = new TableColumn<>("Model");
         name.setPrefWidth(200);
         name.setCellValueFactory(new PropertyValueFactory<JavaFxRecording, String>("modelName"));
@@ -183,9 +185,9 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
         table.getColumns().addAll(name, date, status, progress, size);
         table.setItems(observableRecordings);
         table.addEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> {
-            Recording recording = table.getSelectionModel().getSelectedItem();
-            if(recording != null) {
-                popup = createContextMenu(recording);
+            List<JavaFxRecording> recordings = table.getSelectionModel().getSelectedItems();
+            if(recordings != null && !recordings.isEmpty()) {
+                popup = createContextMenu(recordings);
                 if(!popup.getItems().isEmpty()) {
                     popup.show(table, event.getScreenX(), event.getScreenY());
                 }
@@ -206,13 +208,15 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
             }
         });
         table.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            JavaFxRecording recording = table.getSelectionModel().getSelectedItem();
-            if (recording != null) {
+            List<JavaFxRecording> recordings = table.getSelectionModel().getSelectedItems();
+            if (recordings != null && !recordings.isEmpty()) {
                 if (event.getCode() == KeyCode.DELETE) {
-                    delete(recording);
+                    if(recordings.size() > 1 || recordings.get(0).getStatus() == STATUS.FINISHED) {
+                        delete(recordings);
+                    }
                 } else if (event.getCode() == KeyCode.ENTER) {
-                    if(recording.getStatus() == STATUS.FINISHED) {
-                        play(recording);
+                    if(recordings.get(0).getStatus() == STATUS.FINISHED) {
+                        play(recordings.get(0));
                     }
                 }
             }
@@ -356,7 +360,7 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
         }
     }
 
-    private ContextMenu createContextMenu(Recording recording) {
+    private ContextMenu createContextMenu(List<JavaFxRecording> recordings) {
         ContextMenu contextMenu = new ContextMenu();
         contextMenu.setHideOnEscape(true);
         contextMenu.setAutoHide(true);
@@ -364,9 +368,9 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
 
         MenuItem openInPlayer = new MenuItem("Open in Player");
         openInPlayer.setOnAction((e) -> {
-            play(recording);
+            play(recordings.get(0));
         });
-        if(recording.getStatus() == STATUS.FINISHED || Config.getInstance().getSettings().localRecording) {
+        if(recordings.get(0).getStatus() == STATUS.FINISHED || Config.getInstance().getSettings().localRecording) {
             contextMenu.getItems().add(openInPlayer);
         }
 
@@ -386,16 +390,16 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
 
         MenuItem deleteRecording = new MenuItem("Delete");
         deleteRecording.setOnAction((e) -> {
-            delete(recording);
+            delete(recordings);
         });
-        if(recording.getStatus() == STATUS.FINISHED) {
+        if(recordings.get(0).getStatus() == STATUS.FINISHED || recordings.size() > 1) {
             contextMenu.getItems().add(deleteRecording);
         }
 
         MenuItem openDir = new MenuItem("Open directory");
         openDir.setOnAction((e) -> {
             String recordingsDir = Config.getInstance().getSettings().recordingsDir;
-            String path = recording.getPath();
+            String path = recordings.get(0).getPath();
             File tsFile = new File(recordingsDir, path);
             new Thread(() -> {
                 DesktopIntegration.open(tsFile.getParent());
@@ -408,14 +412,20 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
         MenuItem downloadRecording = new MenuItem("Download");
         downloadRecording.setOnAction((e) -> {
             try {
-                download(recording);
+                download(recordings.get(0));
             } catch (IOException | ParseException | PlaylistException e1) {
                 showErrorDialog("Error while downloading recording", "The recording could not be downloaded", e1);
                 LOG.error("Error while downloading recording", e1);
             }
         });
-        if (!Config.getInstance().getSettings().localRecording && recording.getStatus() == STATUS.FINISHED) {
+        if (!Config.getInstance().getSettings().localRecording && recordings.get(0).getStatus() == STATUS.FINISHED) {
             contextMenu.getItems().add(downloadRecording);
+        }
+
+        if(recordings.size() > 1) {
+            openInPlayer.setDisable(true);
+            openDir.setDisable(true);
+            downloadRecording.setDisable(true);
         }
 
         return contextMenu;
@@ -523,12 +533,16 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
 
     }
 
-    private void delete(Recording r) {
-        if(r.getStatus() != STATUS.FINISHED) {
-            return;
-        }
+    private void delete(List<JavaFxRecording> recordings) {
         table.setCursor(Cursor.WAIT);
-        String msg = "Delete " + r.getModelName() + "/" + r.getStartDate() + " for good?";
+
+        String msg;
+        if(recordings.size() > 1) {
+            msg = "Delete " + recordings.size() + " recordings for good?";
+        } else {
+            Recording r = recordings.get(0);
+            msg = "Delete " + r.getModelName() + "/" + r.getStartDate() + " for good?";
+        }
         AutosizeAlert confirm = new AutosizeAlert(AlertType.CONFIRMATION, msg, YES, NO);
         confirm.setTitle("Delete recording?");
         confirm.setHeaderText(msg);
@@ -539,13 +553,20 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
                 @Override
                 public void run() {
                     try {
-                        recorder.delete(r);
-                        Platform.runLater(() -> observableRecordings.remove(r));
-                    } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e1) {
-                        LOG.error("Error while deleting recording", e1);
-                        showErrorDialog("Error while deleting recording", "Recording not deleted", e1);
+                        for (JavaFxRecording r : recordings) {
+                            if(r.getStatus() != STATUS.FINISHED) {
+                                continue;
+                            }
+                            try {
+                                recorder.delete(r);
+                                Platform.runLater(() -> observableRecordings.remove(r));
+                            } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e1) {
+                                LOG.error("Error while deleting recording", e1);
+                                showErrorDialog("Error while deleting recording", "Recording not deleted", e1);
+                            }
+                        }
                     } finally {
-                        table.setCursor(Cursor.DEFAULT);
+                        Platform.runLater(() -> table.setCursor(Cursor.DEFAULT));
                     }
                 }
             };

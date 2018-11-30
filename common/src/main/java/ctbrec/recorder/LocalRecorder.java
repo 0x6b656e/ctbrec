@@ -787,6 +787,10 @@ public class LocalRecorder implements Recorder {
 
     private boolean enoughSpaceForRecording() throws IOException {
         long minimum = config.getSettings().minimumSpaceLeftInBytes;
-        return getFreeSpaceBytes() > minimum;
+        if(minimum == 0) { // 0 means don't check
+            return true;
+        } else {
+            return getFreeSpaceBytes() > minimum;
+        }
     }
 }

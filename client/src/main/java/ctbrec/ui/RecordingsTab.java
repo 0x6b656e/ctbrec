@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.NoSuchFileException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
@@ -316,6 +317,10 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
                         try {
                             spaceTotal = recorder.getTotalSpaceBytes();
                             spaceFree = recorder.getFreeSpaceBytes();
+                            Platform.runLater(() -> spaceLeft.setTooltip(new Tooltip()));
+                        } catch (NoSuchFileException e) {
+                            // recordings dir does not exist
+                            Platform.runLater(() -> spaceLeft.setTooltip(new Tooltip("Recordings directory does not exist")));
                         } catch (IOException e) {
                             LOG.error("Couldn't update free space", e);
                         }

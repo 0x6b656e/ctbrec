@@ -31,6 +31,9 @@ import ctbrec.sites.Site;
 import ctbrec.ui.controls.AutoFillTextField;
 import ctbrec.ui.controls.Toast;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.ScheduledService;
@@ -48,6 +51,7 @@ import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.SortType;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.CheckBoxTableCell;
@@ -105,8 +109,20 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         scrollPane.setFitToWidth(true);
         BorderPane.setMargin(scrollPane, new Insets(5));
 
+
         table.setEditable(true);
         table.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        PreviewPopupHandler previewPopupHandler = new PreviewPopupHandler(table);
+        table.setRowFactory((tableview) -> {
+            TableRow<JavaFxModel> row = new TableRow<>();
+            row.addEventHandler(MouseEvent.ANY, previewPopupHandler);
+            return row;
+        });
+        TableColumn<JavaFxModel, String> preview = new TableColumn<>("🎥");
+        preview.setPrefWidth(35);
+        preview.setCellValueFactory(cdf -> new SimpleStringProperty("  ▶  "));
+        preview.setEditable(false);
+        preview.setId("preview");
         TableColumn<JavaFxModel, String> name = new TableColumn<>("Model");
         name.setPrefWidth(200);
         name.setCellValueFactory(new PropertyValueFactory<JavaFxModel, String>("name"));
@@ -116,21 +132,21 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         url.setPrefWidth(400);
         url.setEditable(false);
         TableColumn<JavaFxModel, Boolean> online = new TableColumn<>("Online");
-        online.setCellValueFactory((cdf) -> cdf.getValue().getOnlineProperty());
+        online.setCellValueFactory(cdf -> cdf.getValue().getOnlineProperty());
         online.setCellFactory(CheckBoxTableCell.forTableColumn(online));
         online.setPrefWidth(100);
         online.setEditable(false);
         TableColumn<JavaFxModel, Boolean> recording = new TableColumn<>("Recording");
-        recording.setCellValueFactory((cdf) -> cdf.getValue().getRecordingProperty());
+        recording.setCellValueFactory(cdf -> cdf.getValue().getRecordingProperty());
         recording.setCellFactory(CheckBoxTableCell.forTableColumn(recording));
         recording.setPrefWidth(100);
         recording.setEditable(false);
         TableColumn<JavaFxModel, Boolean> paused = new TableColumn<>("Paused");
-        paused.setCellValueFactory((cdf) -> cdf.getValue().getPausedProperty());
+        paused.setCellValueFactory(cdf -> cdf.getValue().getPausedProperty());
         paused.setCellFactory(CheckBoxTableCell.forTableColumn(paused));
         paused.setPrefWidth(100);
         paused.setEditable(true);
-        table.getColumns().addAll(name, url, online, recording, paused);
+        table.getColumns().addAll(preview, name, url, online, recording, paused);
         table.setItems(observableModels);
         table.addEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> {
             popup = createContextMenu();
@@ -144,7 +160,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
                 popup.hide();
             }
         });
-        table.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+        table.addEventHandler(KeyEvent.KEY_PRESSED, event -> {
             List<JavaFxModel> selectedModels = table.getSelectionModel().getSelectedItems();
             if (event.getCode() == KeyCode.DELETE) {
                 stopAction(selectedModels);
@@ -305,11 +321,20 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
                 int index = observableModels.indexOf(updatedModel);
                 if (index == -1) {
                     observableModels.add(updatedModel);
-                    updatedModel.getPausedProperty().addListener((obs, oldV, newV) -> {
-                        if(newV) {
-                            pauseRecording(Collections.singletonList(updatedModel));
-                        } else {
-                            resumeRecording(Collections.singletonList(updatedModel));
+                    updatedModel.getPausedProperty().addListener(new ChangeListener<Boolean>() {
+                        boolean firstChange = true;
+                        @Override
+                        public void changed(ObservableValue<? extends Boolean> obs, Boolean oldV, Boolean newV) {
+                            if(firstChange) {
+                                // don't react to the first change, because that is made by the recorder and not by the user
+                                firstChange = false;
+                                return;
+                            }
+                            if (newV) {
+                                pauseRecording(Collections.singletonList(updatedModel));
+                            } else {
+                                resumeRecording(Collections.singletonList(updatedModel));
+                            }
                         }
                     });
                 } else {

@@ -23,6 +23,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,6 +95,7 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
     ContextMenu popup;
     ProgressBar spaceLeft;
     Label spaceLabel;
+    Lock recordingsLock = new ReentrantLock();
 
     public RecordingsTab(String title, Recorder recorder, Config config, List<Site> sites) {
         super(title);
@@ -165,14 +168,12 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
                             setStyle(null);
                         } else {
                             setText(StringUtil.formatSize(sizeInByte));
+                            setStyle("-fx-alignment: CENTER-RIGHT;");
                             if(Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
                                 int row = this.getTableRow().getIndex();
                                 JavaFxRecording rec = tableViewProperty().get().getItems().get(row);
                                 if(!rec.valueChanged() && rec.getStatus() == STATUS.RECORDING) {
                                     setStyle("-fx-alignment: CENTER-RIGHT; -fx-background-color: red");
-                                } else {
-                                    setStyle("-fx-alignment: CENTER-RIGHT;");
-                                    //setStyle(null);
                                 }
                             }
                         }
@@ -280,23 +281,28 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
             return;
         }
 
-        for (Iterator<JavaFxRecording> iterator = observableRecordings.iterator(); iterator.hasNext();) {
-            JavaFxRecording old = iterator.next();
-            if (!recordings.contains(old)) {
-                // remove deleted recordings
-                iterator.remove();
+        recordingsLock.lock();
+        try {
+            for (Iterator<JavaFxRecording> iterator = observableRecordings.iterator(); iterator.hasNext();) {
+                JavaFxRecording old = iterator.next();
+                if (!recordings.contains(old)) {
+                    // remove deleted recordings
+                    iterator.remove();
+                }
             }
-        }
-        for (JavaFxRecording recording : recordings) {
-            if (!observableRecordings.contains(recording)) {
-                // add new recordings
-                observableRecordings.add(recording);
-            } else {
-                // update existing ones
-                int index = observableRecordings.indexOf(recording);
-                JavaFxRecording old = observableRecordings.get(index);
-                old.update(recording);
+            for (JavaFxRecording recording : recordings) {
+                if (!observableRecordings.contains(recording)) {
+                    // add new recordings
+                    observableRecordings.add(recording);
+                } else {
+                    // update existing ones
+                    int index = observableRecordings.indexOf(recording);
+                    JavaFxRecording old = observableRecordings.get(index);
+                    old.update(recording);
+                }
             }
+        } finally {
+            recordingsLock.unlock();
         }
         table.sort();
     }
@@ -552,20 +558,25 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
             Thread deleteThread = new Thread() {
                 @Override
                 public void run() {
+                    recordingsLock.lock();
                     try {
-                        for (JavaFxRecording r : recordings) {
+                        List<Recording> deleted = new ArrayList<>();
+                        for (Iterator<JavaFxRecording> iterator = recordings.iterator(); iterator.hasNext();) {
+                            JavaFxRecording r =  iterator.next();
                             if(r.getStatus() != STATUS.FINISHED) {
                                 continue;
                             }
                             try {
                                 recorder.delete(r);
-                                Platform.runLater(() -> observableRecordings.remove(r));
+                                deleted.add(r);
                             } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e1) {
                                 LOG.error("Error while deleting recording", e1);
                                 showErrorDialog("Error while deleting recording", "Recording not deleted", e1);
                             }
                         }
+                        observableRecordings.removeAll(deleted);
                     } finally {
+                        recordingsLock.unlock();
                         Platform.runLater(() -> table.setCursor(Cursor.DEFAULT));
                     }
                 }

@@ -431,7 +431,8 @@ public class LocalRecorder implements Recorder {
             running = true;
             while (running) {
                 Instant begin = Instant.now();
-                for (Model model : getModelsRecording()) {
+                List<Model> models = getModelsRecording();
+                for (Model model : models) {
                     try {
                         boolean isOnline = model.isOnline(IGNORE_CACHE);
                         LOG.trace("Checking online state for {}: {}", model, (isOnline ? "online" : "offline"));
@@ -450,6 +451,7 @@ public class LocalRecorder implements Recorder {
                 }
                 Instant end = Instant.now();
                 Duration timeCheckTook = Duration.between(begin, end);
+                LOG.trace("Online check for {} models took {} seconds", models.size(), timeCheckTook.getSeconds());
 
                 long sleepTime = Config.getInstance().getSettings().onlineCheckIntervalInSecs;
                 if(timeCheckTook.getSeconds() < sleepTime) {

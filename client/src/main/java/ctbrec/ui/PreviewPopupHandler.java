@@ -200,10 +200,10 @@ public class PreviewPopupHandler implements EventHandler<MouseEvent> {
                             double aspect = (double)video.getWidth() / video.getHeight();
                             double w = Config.getInstance().getSettings().thumbWidth;
                             double h = w / aspect;
+                            resize(w, h);
                             progressIndicator.setVisible(false);
                             videoPreview.setVisible(true);
                             videoPreview.setMediaPlayer(videoPlayer);
-                            resize(w, h);
                             videoPlayer.play();
                         });
                     }

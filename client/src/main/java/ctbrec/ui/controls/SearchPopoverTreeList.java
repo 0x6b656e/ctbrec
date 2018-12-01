@@ -231,7 +231,7 @@ public class SearchPopoverTreeList extends PopoverTreeList<Model> implements Pop
             } else {
                 follow.setVisible(model.getSite().supportsFollow());
                 title.setVisible(true);
-                title.setText(model.getName());
+                title.setText(model.getDisplayName());
                 this.model = model;
                 URL anonymousPng = getClass().getResource("/anonymous.png");
                 String previewUrl = Optional.ofNullable(model.getPreview()).orElse(anonymousPng.toString());

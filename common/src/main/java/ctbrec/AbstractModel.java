@@ -14,6 +14,7 @@ public abstract class AbstractModel implements Model {
 
     private String url;
     private String name;
+    private String displayName;
     private String preview;
     private String description;
     private List<String> tags = new ArrayList<>();
@@ -44,6 +45,20 @@ public abstract class AbstractModel implements Model {
     @Override
     public void setName(String name) {
         this.name = name;
+    }
+
+    @Override
+    public String getDisplayName() {
+        if(displayName != null) {
+            return displayName;
+        } else {
+            return getName();
+        }
+    }
+
+    @Override
+    public void setDisplayName(String name) {
+        this.displayName = name;
     }
 
     @Override

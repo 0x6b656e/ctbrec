@@ -48,6 +48,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.image.Image;
+import javafx.scene.media.AudioClip;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import okhttp3.Request;
@@ -93,14 +94,7 @@ public class CamrecApplication extends Application {
         createGui(primaryStage);
         checkForUpdates();
 
-        new Thread(() -> {
-            try {
-                Thread.sleep(TimeUnit.SECONDS.toMillis(10));
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            Platform.runLater(() -> registerAlertSystem());
-        }).start();
+        registerAlertSystem();
     }
 
     private void logEnvironment() {
@@ -211,28 +205,41 @@ public class CamrecApplication extends Application {
     }
 
     private void registerAlertSystem() {
-        Notification.Notifier.setNotificationOwner(primaryStage);
-        EventBusHolder.BUS.register(new Object() {
-            @Subscribe
-            public void modelEvent(Map<String, Object> e) {
-                try {
-                    if (Objects.equals("model.status", e.get("event"))) {
-                        String status = (String) e.get("status");
-                        Model model = (Model) e.get("model");
-                        LOG.debug("Alert: {} is {}", model.getName(), status);
-                        if (Objects.equals("online", status)) {
-                            Platform.runLater(() -> {
-                                notifier.notifyInfo("Model Online", model.getName() + " is now online");
-                                //AudioClip clip = new AudioClip("file:///tmp/Oxygen-Im-Highlight-Msg.mp3");
-                                //clip.play();
-                            });
+        new Thread(() -> {
+            try {
+                // don't register before 1 minute has passed, because directly after
+                // the start of ctbrec, an event for every online model would be fired,
+                // which is annoying as f
+                Thread.sleep(TimeUnit.MINUTES.toMillis(1));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            LOG.debug("Alert System registered");
+            Platform.runLater(() -> {
+                Notification.Notifier.setNotificationOwner(primaryStage);
+                EventBusHolder.BUS.register(new Object() {
+                    @Subscribe
+                    public void modelEvent(Map<String, Object> e) {
+                        LOG.debug("Alert: {}", e);
+                        try {
+                            if (Objects.equals("model.status", e.get("event"))) {
+                                String status = (String) e.get("status");
+                                Model model = (Model) e.get("model");
+                                if (Objects.equals("online", status)) {
+                                    Platform.runLater(() -> {
+                                        notifier.notifyInfo("Model Online", model.getName() + " is now online");
+                                        AudioClip clip = new AudioClip(getClass().getResource("/Oxygen-Im-Highlight-Msg.mp3").toString());
+                                        clip.play();
+                                    });
+                                }
+                            }
+                        } catch (Exception e1) {
+                            e1.printStackTrace();
                         }
                     }
-                } catch (Exception e1) {
-                    e1.printStackTrace();
-                }
-            }
-        });
+                });
+            });
+        }).start();
     }
 
     private void writeColorSchemeStyleSheet(Stage primaryStage) {

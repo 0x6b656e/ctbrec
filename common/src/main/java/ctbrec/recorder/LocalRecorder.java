@@ -36,6 +36,7 @@ import com.iheartradio.m3u8.ParseException;
 import com.iheartradio.m3u8.PlaylistException;
 
 import ctbrec.Config;
+import ctbrec.EventBusHolder;
 import ctbrec.Model;
 import ctbrec.OS;
 import ctbrec.Recording;
@@ -179,6 +180,7 @@ public class LocalRecorder implements Recorder {
                 }
             }
         }.start();
+        fireRecordingStateChanged(model, true);
     }
 
     private void stopRecordingProcess(Model model)  {
@@ -188,6 +190,7 @@ public class LocalRecorder implements Recorder {
         if(!Config.isServerMode()) {
             postprocess(download);
         }
+        fireRecordingStateChanged(model, false);
     }
 
     private void postprocess(Download download) {
@@ -368,6 +371,7 @@ public class LocalRecorder implements Recorder {
                         } else {
                             postprocess(d);
                         }
+                        fireRecordingStateChanged(m, false);
                     }
                 }
                 for (Model m : restart) {
@@ -434,7 +438,11 @@ public class LocalRecorder implements Recorder {
                 List<Model> models = getModelsRecording();
                 for (Model model : models) {
                     try {
+                        boolean wasOnline = model.isOnline();
                         boolean isOnline = model.isOnline(IGNORE_CACHE);
+                        if(wasOnline != isOnline) {
+                            fireModelOnlineStateChanged(model, isOnline);
+                        }
                         LOG.trace("Checking online state for {}: {}", model, (isOnline ? "online" : "offline"));
                         if (isOnline && !isSuspended(model) && !recordingProcesses.containsKey(model)) {
                             LOG.info("Model {}'s room back to public", model);
@@ -468,6 +476,25 @@ public class LocalRecorder implements Recorder {
             }
             LOG.debug(getName() + " terminated");
         }
+
+    }
+
+    private void fireModelOnlineStateChanged(Model model, boolean online) {
+        Map<String, Object> evt = new HashMap<>();
+        evt.put("event", "model.status");
+        evt.put("status", online ? "online" : "offline");
+        evt.put("model", model);
+        EventBusHolder.BUS.post(evt);
+        LOG.debug("Event fired {}", evt);
+    }
+
+    private void fireRecordingStateChanged(Model model, boolean recording) {
+        Map<String, Object> evt = new HashMap<>();
+        evt.put("event", "recording.status");
+        evt.put("status", recording ? "started" : "stopped");
+        evt.put("model", model);
+        EventBusHolder.BUS.post(evt);
+        LOG.debug("Event fired {}", evt);
     }
 
     private class PostProcessingTrigger extends Thread {

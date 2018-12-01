@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +22,7 @@ import com.google.common.cache.LoadingCache;
 import com.iheartradio.m3u8.Encoding;
 import com.iheartradio.m3u8.Format;
 import com.iheartradio.m3u8.ParseException;
+import com.iheartradio.m3u8.ParsingMode;
 import com.iheartradio.m3u8.PlaylistException;
 import com.iheartradio.m3u8.PlaylistParser;
 import com.iheartradio.m3u8.data.MasterPlaylist;
@@ -42,14 +45,14 @@ import okhttp3.Response;
 public class Chaturbate extends AbstractSite {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(Chaturbate.class);
-    public static final String BASE_URI = "https://chaturbate.com";
-    public static final String AFFILIATE_LINK = BASE_URI + "/in/?track=default&tour=grq0&campaign=55vTi";
-    public static final String REGISTRATION_LINK = BASE_URI + "/in/?track=default&tour=g4pe&campaign=55vTi";
+    static String baseUrl = "https://chaturbate.com";
+    public static final String AFFILIATE_LINK = "https://chaturbate.com/in/?track=default&tour=grq0&campaign=55vTi";
+    public static final String REGISTRATION_LINK = "https://chaturbate.com/in/?track=default&tour=g4pe&campaign=55vTi";
     private ChaturbateHttpClient httpClient;
 
     @Override
     public void init() throws IOException {
-
+        baseUrl = Config.getInstance().getSettings().chaturbateBaseUrl;
     }
 
     @Override
@@ -59,7 +62,7 @@ public class Chaturbate extends AbstractSite {
 
     @Override
     public String getBaseUrl() {
-        return "https://chaturbate.com";
+        return baseUrl;
     }
 
     @Override
@@ -136,7 +139,7 @@ public class Chaturbate extends AbstractSite {
 
     @Override
     public List<Model> search(String q) throws IOException, InterruptedException {
-        String url = BASE_URI + "?keywords=" + URLEncoder.encode(q, "utf-8");
+        String url = baseUrl + "?keywords=" + URLEncoder.encode(q, "utf-8");
         List<Model> result = new ArrayList<>();
 
         // search online models
@@ -152,7 +155,7 @@ public class Chaturbate extends AbstractSite {
 
         // since chaturbate does not return offline models, we at least try, if the profile page
         // exists for the search string
-        url = BASE_URI + '/' + q;
+        url = baseUrl + '/' + q;
         req = new Request.Builder()
                 .url(url)
                 .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
@@ -324,7 +327,7 @@ public class Chaturbate extends AbstractSite {
         try (Response response = getHttpClient().execute(req)) {
             if(response.isSuccessful()) {
                 InputStream inputStream = response.body().byteStream();
-                PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
+                PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8, ParsingMode.LENIENT);
                 Playlist playlist = parser.parse();
                 MasterPlaylist master = playlist.getMasterPlaylist();
                 return master;
@@ -338,5 +341,16 @@ public class Chaturbate extends AbstractSite {
     public boolean credentialsAvailable() {
         String username = Config.getInstance().getSettings().username;
         return username != null && !username.trim().isEmpty();
+    }
+
+    @Override
+    public Model createModelFromUrl(String url) {
+        Matcher m = Pattern.compile("https?://.*?chaturbate.com(?:/p)?/([^/]*?)/?").matcher(url);
+        if(m.matches()) {
+            String modelName = m.group(1);
+            return createModel(modelName);
+        } else {
+            return super.createModelFromUrl(url);
+        }
     }
 }

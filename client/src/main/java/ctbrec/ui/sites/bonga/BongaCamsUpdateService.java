@@ -70,6 +70,9 @@ public class BongaCamsUpdateService extends PaginatedScheduledService {
                                 model.setOnlineState("offline");
                             }
                             model.setPreview("https:" + m.getString("thumb_image"));
+                            if(m.has("display_name")) {
+                                model.setDisplayName(m.getString("display_name"));
+                            }
                             models.add(model);
                         }
                     }

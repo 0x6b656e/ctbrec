@@ -15,6 +15,8 @@ import ctbrec.sites.Site;
 public interface Model {
     public String getUrl();
     public void setUrl(String url);
+    public String getDisplayName();
+    public void setDisplayName(String name);
     public String getName();
     public void setName(String name);
     public String getPreview();

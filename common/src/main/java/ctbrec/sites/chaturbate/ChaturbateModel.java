@@ -1,7 +1,5 @@
 package ctbrec.sites.chaturbate;
 
-import static ctbrec.sites.chaturbate.Chaturbate.*;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -113,6 +111,9 @@ public class ChaturbateModel extends AbstractModel {
                 String baseUrl = masterUrl.substring(0, masterUrl.lastIndexOf('/') + 1);
                 String segmentUri = baseUrl + playlist.getUri();
                 src.mediaPlaylistUrl = segmentUri;
+                if(src.mediaPlaylistUrl.contains("?")) {
+                    src.mediaPlaylistUrl = src.mediaPlaylistUrl.substring(0, src.mediaPlaylistUrl.lastIndexOf('?'));
+                }
                 LOG.trace("Media playlist {}", src.mediaPlaylistUrl);
                 sources.add(src);
             }
@@ -137,9 +138,9 @@ public class ChaturbateModel extends AbstractModel {
 
         String url = null;
         if(follow) {
-            url = BASE_URI + "/follow/follow/" + getName() + "/";
+            url = getSite().getBaseUrl() + "/follow/follow/" + getName() + "/";
         } else {
-            url = BASE_URI + "/follow/unfollow/" + getName() + "/";
+            url = getSite().getBaseUrl() + "/follow/unfollow/" + getName() + "/";
         }
 
         RequestBody body = RequestBody.create(null, new byte[0]);

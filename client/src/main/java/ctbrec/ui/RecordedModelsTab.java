@@ -32,8 +32,6 @@ import ctbrec.ui.controls.AutoFillTextField;
 import ctbrec.ui.controls.Toast;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.ScheduledService;
@@ -321,20 +319,11 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
                 int index = observableModels.indexOf(updatedModel);
                 if (index == -1) {
                     observableModels.add(updatedModel);
-                    updatedModel.getPausedProperty().addListener(new ChangeListener<Boolean>() {
-                        boolean firstChange = true;
-                        @Override
-                        public void changed(ObservableValue<? extends Boolean> obs, Boolean oldV, Boolean newV) {
-                            if(firstChange) {
-                                // don't react to the first change, because that is made by the recorder and not by the user
-                                firstChange = false;
-                                return;
-                            }
-                            if (newV) {
-                                pauseRecording(Collections.singletonList(updatedModel));
-                            } else {
-                                resumeRecording(Collections.singletonList(updatedModel));
-                            }
+                    updatedModel.getPausedProperty().addListener((obs, oldV, newV) -> {
+                        if (newV) {
+                            pauseRecording(Collections.singletonList(updatedModel));
+                        } else {
+                            resumeRecording(Collections.singletonList(updatedModel));
                         }
                     });
                 } else {

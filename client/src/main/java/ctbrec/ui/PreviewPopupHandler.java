@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
+import ctbrec.io.HttpException;
 import ctbrec.recorder.download.StreamSource;
 import javafx.application.Platform;
 import javafx.event.EventHandler;
@@ -199,11 +200,11 @@ public class PreviewPopupHandler implements EventHandler<MouseEvent> {
                             double aspect = (double)video.getWidth() / video.getHeight();
                             double w = Config.getInstance().getSettings().thumbWidth;
                             double h = w / aspect;
+                            progressIndicator.setVisible(false);
                             videoPreview.setVisible(true);
                             videoPreview.setMediaPlayer(videoPlayer);
                             resize(w, h);
                             videoPlayer.play();
-                            progressIndicator.setVisible(false);
                         });
                     }
                 });
@@ -212,7 +213,12 @@ public class PreviewPopupHandler implements EventHandler<MouseEvent> {
                 if(e.getMessage().equals("Stream url unknown")) {
                     // fine hls url for mfc not known yet
                 } else {
-                    LOG.error("Couldn't start preview video", e);
+                    LOG.warn("Couldn't start preview video: {}", e.getMessage());
+                }
+                showTestImage();
+            } catch (HttpException e) {
+                if(e.getResponseCode() != 404) {
+                    LOG.warn("Couldn't start preview video: {}", e.getMessage());
                 }
                 showTestImage();
             } catch (InterruptedException | InterruptedIOException e) {
@@ -221,11 +227,11 @@ public class PreviewPopupHandler implements EventHandler<MouseEvent> {
                 if(e.getCause() instanceof InterruptedException || e.getCause() instanceof InterruptedIOException) {
                     // future has been canceled, that's fine
                 } else {
-                    LOG.error("Couldn't start preview video", e);
+                    LOG.warn("Couldn't start preview video: {}", e.getMessage());
                     showTestImage();
                 }
             } catch (Exception e) {
-                LOG.error("Couldn't start preview video", e);
+                LOG.warn("Couldn't start preview video: {}", e.getMessage());
                 showTestImage();
             }
         });

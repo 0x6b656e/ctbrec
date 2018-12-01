@@ -761,13 +761,17 @@ public class LocalRecorder implements Recorder {
                 int index = models.indexOf(model);
                 Model m = models.get(index);
                 m.setSuspended(false);
-                startRecordingProcess(m);
+                if(m.isOnline()) {
+                    startRecordingProcess(m);
+                }
                 model.setSuspended(false);
                 config.save();
             } else {
                 LOG.warn("Couldn't resume model {}. Not found in list", model.getName());
                 return;
             }
+        } catch (ExecutionException | InterruptedException e) {
+            LOG.error("Couldn't check, if model {} is online", model.getName());
         } finally {
             lock.unlock();
         }

@@ -42,13 +42,28 @@ public class ChaturbateConfigUi extends AbstractConfigUI {
         GridPane.setColumnSpan(password, 2);
         layout.add(password, 1, 1);
 
+        layout.add(new Label("Chaturbate Base URL"), 0, 2);
+        TextField baseUrl = new TextField();
+        baseUrl.setText(Config.getInstance().getSettings().chaturbateBaseUrl);
+        baseUrl.textProperty().addListener((ob, o, n) -> {
+            Config.getInstance().getSettings().chaturbateBaseUrl = baseUrl.getText();
+            save();
+        });
+        GridPane.setFillWidth(baseUrl, true);
+        GridPane.setHgrow(baseUrl, Priority.ALWAYS);
+        GridPane.setColumnSpan(baseUrl, 2);
+        layout.add(baseUrl, 1, 2);
+
         Button createAccount = new Button("Create new Account");
         createAccount.setOnAction((e) -> DesktopIntegration.open(Chaturbate.REGISTRATION_LINK));
-        layout.add(createAccount, 1, 2);
+        layout.add(createAccount, 1, 3);
         GridPane.setColumnSpan(createAccount, 2);
         GridPane.setMargin(username, new Insets(0, 0, 0, SettingsTab.CHECKBOX_MARGIN));
         GridPane.setMargin(password, new Insets(0, 0, 0, SettingsTab.CHECKBOX_MARGIN));
+        GridPane.setMargin(baseUrl, new Insets(0, 0, 0, SettingsTab.CHECKBOX_MARGIN));
         GridPane.setMargin(createAccount, new Insets(0, 0, 0, SettingsTab.CHECKBOX_MARGIN));
+
+        username.setPrefWidth(300);
 
         return layout;
     }

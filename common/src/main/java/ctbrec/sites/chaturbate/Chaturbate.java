@@ -45,14 +45,14 @@ import okhttp3.Response;
 public class Chaturbate extends AbstractSite {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(Chaturbate.class);
-    public static final String BASE_URI = "https://chaturbate.com";
-    public static final String AFFILIATE_LINK = BASE_URI + "/in/?track=default&tour=grq0&campaign=55vTi";
-    public static final String REGISTRATION_LINK = BASE_URI + "/in/?track=default&tour=g4pe&campaign=55vTi";
+    static String baseUrl = "https://chaturbate.com";
+    public static final String AFFILIATE_LINK = "https://chaturbate.com/in/?track=default&tour=grq0&campaign=55vTi";
+    public static final String REGISTRATION_LINK = "https://chaturbate.com/in/?track=default&tour=g4pe&campaign=55vTi";
     private ChaturbateHttpClient httpClient;
 
     @Override
     public void init() throws IOException {
-
+        baseUrl = Config.getInstance().getSettings().chaturbateBaseUrl;
     }
 
     @Override
@@ -62,7 +62,7 @@ public class Chaturbate extends AbstractSite {
 
     @Override
     public String getBaseUrl() {
-        return "https://chaturbate.com";
+        return baseUrl;
     }
 
     @Override
@@ -139,7 +139,7 @@ public class Chaturbate extends AbstractSite {
 
     @Override
     public List<Model> search(String q) throws IOException, InterruptedException {
-        String url = BASE_URI + "?keywords=" + URLEncoder.encode(q, "utf-8");
+        String url = baseUrl + "?keywords=" + URLEncoder.encode(q, "utf-8");
         List<Model> result = new ArrayList<>();
 
         // search online models
@@ -155,7 +155,7 @@ public class Chaturbate extends AbstractSite {
 
         // since chaturbate does not return offline models, we at least try, if the profile page
         // exists for the search string
-        url = BASE_URI + '/' + q;
+        url = baseUrl + '/' + q;
         req = new Request.Builder()
                 .url(url)
                 .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)

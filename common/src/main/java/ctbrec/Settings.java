@@ -43,6 +43,7 @@ public class Settings {
     public String postProcessing = "";
     public String username = ""; // chaturbate username TODO maybe rename this onetime
     public String password = ""; // chaturbate password TODO maybe rename this onetime
+    public String chaturbateBaseUrl = "https://chaturbate.com";
     public String bongaUsername = "";
     public String bongaPassword = "";
     public String mfcUsername = "";

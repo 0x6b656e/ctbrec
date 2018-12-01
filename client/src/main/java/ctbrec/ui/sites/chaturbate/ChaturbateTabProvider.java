@@ -1,7 +1,5 @@
 package ctbrec.ui.sites.chaturbate;
 
-import static ctbrec.sites.chaturbate.Chaturbate.*;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,17 +19,17 @@ public class ChaturbateTabProvider extends TabProvider {
     public ChaturbateTabProvider(Chaturbate chaturbate) {
         this.chaturbate = chaturbate;
         this.recorder = chaturbate.getRecorder();
-        this.followedTab = new ChaturbateFollowedTab("Followed", BASE_URI + "/followed-cams/", chaturbate);
+        this.followedTab = new ChaturbateFollowedTab("Followed", chaturbate.getBaseUrl() + "/followed-cams/", chaturbate);
     }
 
     @Override
     public List<Tab> getTabs(Scene scene) {
         List<Tab> tabs = new ArrayList<>();
-        tabs.add(createTab("Featured", BASE_URI + "/"));
-        tabs.add(createTab("Female", BASE_URI + "/female-cams/"));
-        tabs.add(createTab("Male", BASE_URI + "/male-cams/"));
-        tabs.add(createTab("Couples", BASE_URI + "/couple-cams/"));
-        tabs.add(createTab("Trans", BASE_URI + "/trans-cams/"));
+        tabs.add(createTab("Featured", chaturbate.getBaseUrl() + "/"));
+        tabs.add(createTab("Female", chaturbate.getBaseUrl() + "/female-cams/"));
+        tabs.add(createTab("Male", chaturbate.getBaseUrl() + "/male-cams/"));
+        tabs.add(createTab("Couples", chaturbate.getBaseUrl() + "/couple-cams/"));
+        tabs.add(createTab("Trans", chaturbate.getBaseUrl() + "/trans-cams/"));
         followedTab.setScene(scene);
         followedTab.setRecorder(recorder);
         tabs.add(followedTab);

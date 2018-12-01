@@ -162,6 +162,9 @@ public class BongaCams extends AbstractSite {
                         if(thumb != null) {
                             model.setPreview("https:" + thumb);
                         }
+                        if(result.has("display_name")) {
+                            model.setDisplayName(result.getString("display_name"));
+                        }
                         models.add(model);
                     }
                     return models;

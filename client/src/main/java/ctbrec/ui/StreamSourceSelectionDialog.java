@@ -1,5 +1,6 @@
 package ctbrec.ui;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
@@ -15,7 +16,9 @@ public class StreamSourceSelectionDialog {
         Task<List<StreamSource>> selectStreamSource = new Task<List<StreamSource>>() {
             @Override
             protected List<StreamSource> call() throws Exception {
-                return model.getStreamSources();
+                List<StreamSource> sources = model.getStreamSources();
+                Collections.sort(sources);
+                return sources;
             }
         };
         selectStreamSource.setOnSucceeded((e) -> {

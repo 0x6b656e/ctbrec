@@ -710,13 +710,20 @@ public class LocalRecorder implements Recorder {
 
     @Override
     public void switchStreamSource(Model model) throws IOException, InvalidKeyException, NoSuchAlgorithmException, IllegalStateException {
-        LOG.debug("Switching stream source to index {} for model {}", model.getStreamUrlIndex(), model.getName());
-        Download download = recordingProcesses.get(model);
-        if(download != null) {
-            stopRecordingProcess(model);
+        if (models.contains(model)) {
+            int index = models.indexOf(model);
+            models.get(index).setStreamUrlIndex(model.getStreamUrlIndex());
+            config.save();
+            LOG.debug("Switching stream source to index {} for model {}", model.getStreamUrlIndex(), model.getName());
+            Download download = recordingProcesses.get(model);
+            if(download != null) {
+                stopRecordingProcess(model);
+            }
+            tryRestartRecording(model);
+        } else {
+            LOG.warn("Couldn't switch stream source for model {}. Not found in list", model.getName());
+            return;
         }
-        tryRestartRecording(model);
-        config.save();
     }
 
     @Override

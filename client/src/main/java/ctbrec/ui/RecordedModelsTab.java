@@ -321,9 +321,13 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
                     observableModels.add(updatedModel);
                     updatedModel.getPausedProperty().addListener((obs, oldV, newV) -> {
                         if (newV) {
-                            pauseRecording(Collections.singletonList(updatedModel));
+                            if(!recorder.isSuspended(updatedModel)) {
+                                pauseRecording(Collections.singletonList(updatedModel));
+                            }
                         } else {
-                            resumeRecording(Collections.singletonList(updatedModel));
+                            if(recorder.isSuspended(updatedModel)) {
+                                resumeRecording(Collections.singletonList(updatedModel));
+                            }
                         }
                     });
                 } else {
@@ -537,6 +541,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         Consumer<Model> action = (m) -> {
             try {
                 recorder.suspendRecording(m);
+                m.setSuspended(true);
             } catch(Exception e) {
                 Platform.runLater(() ->
                 showErrorDialog(e, "Couldn't pause recording of model", "Pausing recording of " + m.getName() + " failed"));
@@ -550,6 +555,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         Consumer<Model> action = (m) -> {
             try {
                 recorder.resumeRecording(m);
+                m.setSuspended(false);
             } catch(Exception e) {
                 Platform.runLater(() ->
                 showErrorDialog(e, "Couldn't resume recording of model", "Resuming recording of " + m.getName() + " failed"));

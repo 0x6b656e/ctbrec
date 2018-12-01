@@ -185,6 +185,7 @@ public class PreviewPopupHandler implements EventHandler<MouseEvent> {
                 Collections.sort(sources);
                 StreamSource best = sources.get(0);
                 checkInterrupt();
+                LOG.debug("Preview url for {} is {}", model.getName(), best.getMediaPlaylistUrl());
                 video = new Media(best.getMediaPlaylistUrl());
                 if(videoPlayer != null) {
                     videoPlayer.dispose();
@@ -206,6 +207,7 @@ public class PreviewPopupHandler implements EventHandler<MouseEvent> {
                         });
                     }
                 });
+                videoPlayer.setOnError(() -> onError(videoPlayer));
             } catch (IllegalStateException e) {
                 if(e.getMessage().equals("Stream url unknown")) {
                     // fine hls url for mfc not known yet
@@ -226,6 +228,16 @@ public class PreviewPopupHandler implements EventHandler<MouseEvent> {
                 LOG.error("Couldn't start preview video", e);
                 showTestImage();
             }
+        });
+    }
+
+    private void onError(MediaPlayer videoPlayer) {
+        LOG.error("Error while starting preview stream", videoPlayer.getError());
+        if(videoPlayer.getError().getCause() != null) {
+            LOG.error("Error while starting preview stream root cause:", videoPlayer.getError().getCause());
+        }
+        Platform.runLater(() -> {
+            showTestImage();
         });
     }
 

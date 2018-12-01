@@ -111,6 +111,9 @@ public class ChaturbateModel extends AbstractModel {
                 String baseUrl = masterUrl.substring(0, masterUrl.lastIndexOf('/') + 1);
                 String segmentUri = baseUrl + playlist.getUri();
                 src.mediaPlaylistUrl = segmentUri;
+                if(src.mediaPlaylistUrl.contains("?")) {
+                    src.mediaPlaylistUrl = src.mediaPlaylistUrl.substring(0, src.mediaPlaylistUrl.lastIndexOf('?'));
+                }
                 LOG.trace("Media playlist {}", src.mediaPlaylistUrl);
                 sources.add(src);
             }

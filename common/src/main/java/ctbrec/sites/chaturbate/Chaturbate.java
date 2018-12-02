@@ -240,7 +240,7 @@ public class Chaturbate extends AbstractSite {
                 .add("bandwidth", "high")
                 .build();
         Request req = new Request.Builder()
-                .url("https://chaturbate.com/get_edge_hls_url_ajax/")
+                .url(getBaseUrl() + "/get_edge_hls_url_ajax/")
                 .post(body)
                 .addHeader("X-Requested-With", "XMLHttpRequest")
                 .build();

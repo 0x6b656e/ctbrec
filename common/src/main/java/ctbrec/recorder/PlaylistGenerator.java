@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import com.iheartradio.m3u8.Encoding;
 import com.iheartradio.m3u8.Format;
 import com.iheartradio.m3u8.ParseException;
+import com.iheartradio.m3u8.ParsingMode;
 import com.iheartradio.m3u8.PlaylistException;
 import com.iheartradio.m3u8.PlaylistParser;
 import com.iheartradio.m3u8.PlaylistWriter;
@@ -190,7 +191,7 @@ public class PlaylistGenerator {
     public void validate(File recDir) throws IOException, ParseException, PlaylistException {
         File playlist = new File(recDir, "playlist.m3u8");
         if(playlist.exists()) {
-            PlaylistParser playlistParser = new PlaylistParser(new FileInputStream(playlist), Format.EXT_M3U, Encoding.UTF_8);
+            PlaylistParser playlistParser = new PlaylistParser(new FileInputStream(playlist), Format.EXT_M3U, Encoding.UTF_8, ParsingMode.LENIENT);
             Playlist m3u = playlistParser.parse();
             MediaPlaylist mediaPlaylist = m3u.getMediaPlaylist();
             int playlistSize = mediaPlaylist.getTracks().size();

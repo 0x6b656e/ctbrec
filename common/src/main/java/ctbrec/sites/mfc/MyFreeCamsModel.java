@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import com.iheartradio.m3u8.Encoding;
 import com.iheartradio.m3u8.Format;
 import com.iheartradio.m3u8.ParseException;
+import com.iheartradio.m3u8.ParsingMode;
 import com.iheartradio.m3u8.PlaylistException;
 import com.iheartradio.m3u8.PlaylistParser;
 import com.iheartradio.m3u8.data.MasterPlaylist;
@@ -98,7 +99,7 @@ public class MyFreeCamsModel extends AbstractModel {
     }
 
     private MasterPlaylist getMasterPlaylist() throws IOException, ParseException, PlaylistException {
-        if(hlsUrl == null) {
+        if(getHlsUrl() == null) {
             throw new IllegalStateException("Stream url unknown");
         }
         LOG.trace("Loading master playlist {}", hlsUrl);
@@ -106,7 +107,7 @@ public class MyFreeCamsModel extends AbstractModel {
         try(Response response = site.getHttpClient().execute(req)) {
             if(response.isSuccessful()) {
                 InputStream inputStream = response.body().byteStream();
-                PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
+                PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8, ParsingMode.LENIENT);
                 Playlist playlist = parser.parse();
                 MasterPlaylist master = playlist.getMasterPlaylist();
                 return master;
@@ -116,6 +117,14 @@ public class MyFreeCamsModel extends AbstractModel {
         }
     }
 
+    private String getHlsUrl() {
+        if(hlsUrl == null) {
+            MyFreeCams mfc = (MyFreeCams) getSite();
+            mfc.getClient().update(this);
+        }
+        return hlsUrl;
+    }
+
     @Override
     public void invalidateCacheEntries() {
         resolution = null;
@@ -123,7 +132,7 @@ public class MyFreeCamsModel extends AbstractModel {
 
     @Override
     public void receiveTip(int tokens) throws IOException {
-        String tipUrl = MyFreeCams.BASE_URI + "/php/tip.php";
+        String tipUrl = MyFreeCams.baseUrl + "/php/tip.php";
         String initUrl = tipUrl + "?request=tip&username="+getName()+"&broadcaster_id="+getUid();
         Request req = new Request.Builder().url(initUrl).build();
         try(Response resp = site.getHttpClient().execute(req)) {

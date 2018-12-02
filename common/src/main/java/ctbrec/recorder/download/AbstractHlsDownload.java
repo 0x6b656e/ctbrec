@@ -83,12 +83,18 @@ public abstract class AbstractHlsDownload implements Download {
 
 
     String getSegmentPlaylistUrl(Model model) throws IOException, ExecutionException, ParseException, PlaylistException {
+        LOG.debug("{} stream idx: {}", model.getName(), model.getStreamUrlIndex());
         List<StreamSource> streamSources = model.getStreamSources();
+        Collections.sort(streamSources);
+        for (StreamSource streamSource : streamSources) {
+            LOG.debug("{} src {}", model.getName(), streamSource);
+        }
         String url = null;
         if(model.getStreamUrlIndex() >= 0 && model.getStreamUrlIndex() < streamSources.size()) {
+            // TODO don't use the index, but the bandwidth. if the bandwidth does not match, take the closest one
+            LOG.debug("{} selected {}", model.getName(), streamSources.get(model.getStreamUrlIndex()));
             url = streamSources.get(model.getStreamUrlIndex()).getMediaPlaylistUrl();
         } else {
-            Collections.sort(streamSources);
             // filter out stream resolutions, which are too high
             int maxRes = Config.getInstance().getSettings().maximumResolution;
             if(maxRes > 0) {
@@ -103,9 +109,11 @@ public abstract class AbstractHlsDownload implements Download {
             if(streamSources.isEmpty()) {
                 throw new ExecutionException(new RuntimeException("No stream left in playlist"));
             } else {
+                LOG.debug("{} selected {}", model.getName(), streamSources.get(streamSources.size()-1));
                 url = streamSources.get(streamSources.size()-1).getMediaPlaylistUrl();
             }
         }
+        LOG.debug("Segment playlist url {}", url);
         return url;
     }
 

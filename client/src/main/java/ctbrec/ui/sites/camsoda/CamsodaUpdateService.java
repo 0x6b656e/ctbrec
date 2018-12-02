@@ -62,6 +62,7 @@ public class CamsodaUpdateService extends PaginatedScheduledService {
                                     if(result.has("tpl")) {
                                         JSONArray tpl = result.getJSONArray("tpl");
                                         String name = tpl.getString(0);
+                                        String displayName = tpl.getString(1);
                                         // int connections = tpl.getInt(2);
                                         String streamName = tpl.getString(5);
                                         String tsize = tpl.getString(6);
@@ -77,11 +78,11 @@ public class CamsodaUpdateService extends PaginatedScheduledService {
                                             JSONArray edgeServers = result.getJSONArray("edge_servers");
                                             model.setStreamUrl("https://" + edgeServers.getString(0) + "/cam/mp4:" + streamName + "_h264_aac_480p/playlist.m3u8");
                                         }
+                                        model.setDisplayName(displayName);
                                         models.add(model);
                                     } else {
                                         String name = result.getString("username");
                                         CamsodaModel model = (CamsodaModel) camsoda.createModel(name);
-
                                         if(result.has("server_prefix")) {
                                             String serverPrefix = result.getString("server_prefix");
                                             String streamName = result.getString("stream_name");
@@ -89,6 +90,10 @@ public class CamsodaUpdateService extends PaginatedScheduledService {
                                             models.add(model);
                                             if(result.has("status")) {
                                                 model.setOnlineState(result.getString("status"));
+                                            }
+
+                                            if(result.has("display_name")) {
+                                                model.setDisplayName(result.getString("display_name"));
                                             }
 
                                             if(result.has("edge_servers")) {

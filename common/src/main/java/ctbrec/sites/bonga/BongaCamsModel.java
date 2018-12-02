@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import com.iheartradio.m3u8.Encoding;
 import com.iheartradio.m3u8.Format;
 import com.iheartradio.m3u8.ParseException;
+import com.iheartradio.m3u8.ParsingMode;
 import com.iheartradio.m3u8.PlaylistException;
 import com.iheartradio.m3u8.PlaylistParser;
 import com.iheartradio.m3u8.data.MasterPlaylist;
@@ -101,7 +102,7 @@ public class BongaCamsModel extends AbstractModel {
         try(Response response = site.getHttpClient().execute(req)) {
             if(response.isSuccessful()) {
                 InputStream inputStream = response.body().byteStream();
-                PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8);
+                PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8, ParsingMode.LENIENT);
                 Playlist playlist = parser.parse();
                 MasterPlaylist master = playlist.getMasterPlaylist();
                 streamSources.clear();

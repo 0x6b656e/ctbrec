@@ -12,7 +12,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +24,7 @@ import com.squareup.moshi.Types;
 import ctbrec.Config;
 import ctbrec.EventBusHolder;
 import ctbrec.Model;
+import ctbrec.OS;
 import ctbrec.StringUtil;
 import ctbrec.Version;
 import ctbrec.io.HttpClient;
@@ -37,7 +37,6 @@ import ctbrec.sites.cam4.Cam4;
 import ctbrec.sites.camsoda.Camsoda;
 import ctbrec.sites.chaturbate.Chaturbate;
 import ctbrec.sites.mfc.MyFreeCams;
-import eu.hansolo.enzo.notification.Notification;
 import javafx.application.Application;
 import javafx.application.HostServices;
 import javafx.application.Platform;
@@ -48,7 +47,6 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.image.Image;
-import javafx.scene.media.AudioClip;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import okhttp3.Request;
@@ -66,7 +64,6 @@ public class CamrecApplication extends Application {
     private TabPane rootPane = new TabPane();
     private List<Site> sites = new ArrayList<>();
     public static HttpClient httpClient;
-    private Notification.Notifier notifier = Notification.Notifier.INSTANCE;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -210,13 +207,13 @@ public class CamrecApplication extends Application {
                 // don't register before 1 minute has passed, because directly after
                 // the start of ctbrec, an event for every online model would be fired,
                 // which is annoying as f
-                Thread.sleep(TimeUnit.MINUTES.toMillis(1));
+                //Thread.sleep(TimeUnit.MINUTES.toMillis(1));
+                Thread.sleep(1);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
             LOG.debug("Alert System registered");
             Platform.runLater(() -> {
-                Notification.Notifier.setNotificationOwner(primaryStage);
                 EventBusHolder.BUS.register(new Object() {
                     @Subscribe
                     public void modelEvent(Map<String, Object> e) {
@@ -227,9 +224,9 @@ public class CamrecApplication extends Application {
                                 Model model = (Model) e.get("model");
                                 if (Objects.equals("online", status)) {
                                     Platform.runLater(() -> {
-                                        notifier.notifyInfo("Model Online", model.getName() + " is now online");
-                                        AudioClip clip = new AudioClip(getClass().getResource("/Oxygen-Im-Highlight-Msg.mp3").toString());
-                                        clip.play();
+                                        String header = "Model Online";
+                                        String msg = model.getDisplayName() + " is now online";
+                                        OS.notification(primaryStage.getTitle(), header, msg);
                                     });
                                 }
                             }

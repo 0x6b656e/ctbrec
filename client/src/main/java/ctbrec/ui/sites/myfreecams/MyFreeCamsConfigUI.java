@@ -26,6 +26,7 @@ public class MyFreeCamsConfigUI extends AbstractConfigUI {
         GridPane layout = SettingsTab.createGridLayout();
         layout.add(new Label("MyFreeCams User"), 0, 0);
         TextField username = new TextField(Config.getInstance().getSettings().mfcUsername);
+        username.setPrefWidth(300);
         username.textProperty().addListener((ob, o, n) -> {
             Config.getInstance().getSettings().mfcUsername = username.getText();
             save();
@@ -47,13 +48,27 @@ public class MyFreeCamsConfigUI extends AbstractConfigUI {
         GridPane.setColumnSpan(password, 2);
         layout.add(password, 1, 1);
 
+        layout.add(new Label("MyFreeCams Base URL"), 0, 2);
+        TextField baseUrl = new TextField();
+        baseUrl.setText(Config.getInstance().getSettings().mfcBaseUrl);
+        baseUrl.textProperty().addListener((ob, o, n) -> {
+            Config.getInstance().getSettings().mfcBaseUrl = baseUrl.getText();
+            save();
+        });
+        GridPane.setFillWidth(baseUrl, true);
+        GridPane.setHgrow(baseUrl, Priority.ALWAYS);
+        GridPane.setColumnSpan(baseUrl, 2);
+        layout.add(baseUrl, 1, 2);
+
         Button createAccount = new Button("Create new Account");
         createAccount.setOnAction((e) -> DesktopIntegration.open(myFreeCams.getAffiliateLink()));
-        layout.add(createAccount, 1, 2);
+        layout.add(createAccount, 1, 3);
         GridPane.setColumnSpan(createAccount, 2);
         GridPane.setMargin(username, new Insets(0, 0, 0, SettingsTab.CHECKBOX_MARGIN));
         GridPane.setMargin(password, new Insets(0, 0, 0, SettingsTab.CHECKBOX_MARGIN));
+        GridPane.setMargin(baseUrl, new Insets(0, 0, 0, SettingsTab.CHECKBOX_MARGIN));
         GridPane.setMargin(createAccount, new Insets(0, 0, 0, SettingsTab.CHECKBOX_MARGIN));
+
         return layout;
     }
 }

@@ -17,13 +17,14 @@ import okhttp3.Response;
 
 public class MyFreeCams extends AbstractSite {
 
-    public static final String BASE_URI = "https://www.myfreecams.com";
+    static String baseUrl = "https://www.myfreecams.com";
 
     private MyFreeCamsClient client;
     private MyFreeCamsHttpClient httpClient;
 
     @Override
     public void init() throws IOException {
+        baseUrl = Config.getInstance().getSettings().mfcBaseUrl;
         client = MyFreeCamsClient.getInstance();
         client.setSite(this);
         client.start();
@@ -41,12 +42,12 @@ public class MyFreeCams extends AbstractSite {
 
     @Override
     public String getBaseUrl() {
-        return BASE_URI;
+        return baseUrl;
     }
 
     @Override
     public String getAffiliateLink() {
-        return BASE_URI + "/?baf=8127165";
+        return baseUrl + "/?baf=8127165";
     }
 
     @Override
@@ -59,7 +60,7 @@ public class MyFreeCams extends AbstractSite {
 
     @Override
     public Integer getTokenBalance() throws IOException {
-        Request req = new Request.Builder().url(BASE_URI + "/php/account.php?request=status").build();
+        Request req = new Request.Builder().url(baseUrl + "/php/account.php?request=status").build();
         try(Response response = getHttpClient().execute(req)) {
             if(response.isSuccessful()) {
                 String content = response.body().string();
@@ -74,7 +75,7 @@ public class MyFreeCams extends AbstractSite {
 
     @Override
     public String getBuyTokensLink() {
-        return BASE_URI + "/php/purchase.php?request=tokens";
+        return baseUrl + "/php/purchase.php?request=tokens";
     }
 
     @Override

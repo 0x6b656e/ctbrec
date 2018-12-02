@@ -132,7 +132,7 @@ public class MyFreeCamsModel extends AbstractModel {
 
     @Override
     public void receiveTip(int tokens) throws IOException {
-        String tipUrl = MyFreeCams.BASE_URI + "/php/tip.php";
+        String tipUrl = MyFreeCams.baseUrl + "/php/tip.php";
         String initUrl = tipUrl + "?request=tip&username="+getName()+"&broadcaster_id="+getUid();
         Request req = new Request.Builder().url(initUrl).build();
         try(Response resp = site.getHttpClient().execute(req)) {

@@ -1,7 +1,7 @@
 1.13.0
 ========================
 * Added  possibility to open small live previews of online models
-  int the Recording tab
+  in the Recording tab
 * Added setting to toggle "Player Starting" message
 * Added possibility to add models by their URL
 * Added pause / resume all buttons

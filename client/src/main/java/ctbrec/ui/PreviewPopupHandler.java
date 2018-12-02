@@ -242,6 +242,7 @@ public class PreviewPopupHandler implements EventHandler<MouseEvent> {
         if(videoPlayer.getError().getCause() != null) {
             LOG.error("Error while starting preview stream root cause:", videoPlayer.getError().getCause());
         }
+        videoPlayer.dispose();
         Platform.runLater(() -> {
             showTestImage();
         });
@@ -277,6 +278,9 @@ public class PreviewPopupHandler implements EventHandler<MouseEvent> {
     }
 
     private void hidePopup() {
+        if(future != null && !future.isDone()) {
+            future.cancel(true);
+        }
         Platform.runLater(() -> {
             popup.setX(-1000);
             popup.setY(-1000);

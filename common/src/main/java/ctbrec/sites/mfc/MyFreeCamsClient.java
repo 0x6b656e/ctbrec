@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -86,8 +87,13 @@ public class MyFreeCamsClient {
     public void start() throws IOException {
         running = true;
         serverConfig = new ServerConfig(mfc);
-        List<String> websocketServers = new ArrayList<String>(serverConfig.wsServers.keySet());
-        String server = websocketServers.get((int) (Math.random()*websocketServers.size()));
+        List<String> websocketServers = new ArrayList<String>(serverConfig.wsServers.size());
+        for (Entry<String, String> entry : serverConfig.wsServers.entrySet()) {
+            if (entry.getValue().equals("rfc6455")) {
+                websocketServers.add(entry.getKey());
+            }
+        }
+        String server = websocketServers.get((int) (Math.random() * websocketServers.size() - 1));
         String wsUrl = "ws://" + server + ".myfreecams.com:8080/fcsl";
         LOG.debug("Connecting to random websocket server {}", wsUrl);
 

@@ -85,10 +85,11 @@ public class MyFreeCamsClient {
 
     public void start() throws IOException {
         running = true;
-        serverConfig = new ServerConfig(mfc.getHttpClient());
+        serverConfig = new ServerConfig(mfc);
         List<String> websocketServers = new ArrayList<String>(serverConfig.wsServers.keySet());
         String server = websocketServers.get((int) (Math.random()*websocketServers.size()));
         String wsUrl = "ws://" + server + ".myfreecams.com:8080/fcsl";
+        LOG.debug("Connecting to random websocket server {}", wsUrl);
 
         Thread watchDog = new Thread(() -> {
             while(running) {

@@ -48,6 +48,7 @@ public class Settings {
     public String bongaPassword = "";
     public String mfcUsername = "";
     public String mfcPassword = "";
+    public String mfcBaseUrl = "https://www.myfreecams.com";
     public String camsodaUsername = "";
     public String camsodaPassword = "";
     public String cam4Username;

@@ -197,4 +197,14 @@ public class JavaFxModel implements Model {
         delegate.setSuspended(suspended);
         pausedProperty.set(suspended);
     }
+
+    @Override
+    public String getDisplayName() {
+        return delegate.getDisplayName();
+    }
+
+    @Override
+    public void setDisplayName(String name) {
+        delegate.setDisplayName(name);
+    }
 }

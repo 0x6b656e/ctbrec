@@ -252,9 +252,8 @@ public class CamrecApplication extends Application {
             LOG.error("Couldn't load settings", e);
             Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
             alert.setTitle("Whoopsie");
-            alert.setContentText("Couldn't load settings.");
+            alert.setContentText("Couldn't load settings. Falling back to defaults. A backup of your settings has been created.");
             alert.showAndWait();
-            System.exit(1);
         }
         config = Config.getInstance();
     }

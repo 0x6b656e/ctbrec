@@ -72,6 +72,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private CheckBox chooseStreamQuality = new CheckBox();
     private CheckBox multiplePlayers = new CheckBox();
     private CheckBox updateThumbnails = new CheckBox();
+    private CheckBox showPlayerStarting = new CheckBox();
     private RadioButton recordLocal;
     private RadioButton recordRemote;
     private ToggleGroup recordLocation;
@@ -408,6 +409,18 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         GridPane.setMargin(l, new Insets(3, 0, 0, 0));
         GridPane.setMargin(multiplePlayers, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(multiplePlayers, 1, row++);
+
+        l = new Label("Show \"Player Starting\" Message");
+        layout.add(l, 0, row);
+        showPlayerStarting.setSelected(Config.getInstance().getSettings().showPlayerStarting);
+        showPlayerStarting.setOnAction((e) -> {
+            Config.getInstance().getSettings().showPlayerStarting = showPlayerStarting.isSelected();
+            saveConfig();
+        });
+        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+        GridPane.setMargin(showPlayerStarting, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
+        layout.add(showPlayerStarting, 1, row++);
+
 
         l = new Label("Display stream resolution in overview");
         layout.add(l, 0, row);

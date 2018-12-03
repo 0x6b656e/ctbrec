@@ -5,6 +5,8 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -138,6 +140,9 @@ public class Camsoda extends AbstractSite {
                         if(thumb != null) {
                             model.setPreview("https:" + thumb);
                         }
+                        if(result.has("display_name")) {
+                            model.setDisplayName(result.getString("display_name"));
+                        }
                         models.add(model);
                     }
                     return models;
@@ -160,5 +165,16 @@ public class Camsoda extends AbstractSite {
     public boolean credentialsAvailable() {
         String username = Config.getInstance().getSettings().camsodaUsername;
         return username != null && !username.trim().isEmpty();
+    }
+
+    @Override
+    public Model createModelFromUrl(String url) {
+        Matcher m = Pattern.compile("https?://(?:www\\.)?camsoda.com/([^/]*?)/?").matcher(url);
+        if(m.matches()) {
+            String modelName = m.group(1);
+            return createModel(modelName);
+        } else {
+            return super.createModelFromUrl(url);
+        }
     }
 }

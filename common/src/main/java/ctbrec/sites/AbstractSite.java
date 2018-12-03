@@ -46,4 +46,9 @@ public abstract class AbstractSite implements Site {
     public boolean searchRequiresLogin() {
         return false;
     }
+
+    @Override
+    public Model createModelFromUrl(String url) {
+        return null;
+    }
 }

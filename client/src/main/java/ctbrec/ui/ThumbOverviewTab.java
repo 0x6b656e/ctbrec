@@ -752,6 +752,8 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
             String[] tokens = filter.split(" ");
             StringBuilder searchTextBuilder = new StringBuilder(m.getName());
             searchTextBuilder.append(' ');
+            searchTextBuilder.append(m.getDisplayName());
+            searchTextBuilder.append(' ');
             for (String tag : m.getTags()) {
                 searchTextBuilder.append(tag).append(' ');
             }

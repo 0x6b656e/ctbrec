@@ -54,7 +54,7 @@ public class ChaturbateHttpClient extends HttpClient {
 
         try {
             Request login = new Request.Builder()
-                    .url(Chaturbate.BASE_URI + "/auth/login/")
+                    .url(Chaturbate.baseUrl + "/auth/login/")
                     .build();
             Response response = client.newCall(login).execute();
             String content = response.body().string();
@@ -68,8 +68,8 @@ public class ChaturbateHttpClient extends HttpClient {
                     .add("csrfmiddlewaretoken", token)
                     .build();
             login = new Request.Builder()
-                    .url(Chaturbate.BASE_URI + "/auth/login/")
-                    .header("Referer", Chaturbate.BASE_URI + "/auth/login/")
+                    .url(Chaturbate.baseUrl + "/auth/login/")
+                    .header("Referer", Chaturbate.baseUrl + "/auth/login/")
                     .post(body)
                     .build();
 

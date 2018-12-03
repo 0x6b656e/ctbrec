@@ -9,12 +9,15 @@ import java.util.Objects;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import ctbrec.io.HttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
 public class ServerConfig {
+
+    private static final transient Logger LOG = LoggerFactory.getLogger(ServerConfig.class);
 
     List<String> ajaxServers;
     List<String> videoServers;
@@ -24,9 +27,11 @@ public class ServerConfig {
     Map<String, String> wzobsServers;
     Map<String, String> ngVideoServers;
 
-    public ServerConfig(HttpClient client) throws IOException {
-        Request req = new Request.Builder().url("http://www.myfreecams.com/_js/serverconfig.js").build();
-        Response resp = client.execute(req);
+    public ServerConfig(MyFreeCams mfc) throws IOException {
+        String url = mfc.getBaseUrl() + "/_js/serverconfig.js";
+        LOG.debug("Loading server config from {}", url);
+        Request req = new Request.Builder().url(url).build();
+        Response resp = mfc.getHttpClient().execute(req);
         String json = resp.body().string();
 
         JSONObject serverConfig = new JSONObject(json);

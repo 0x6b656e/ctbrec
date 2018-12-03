@@ -1,3 +1,17 @@
+1.13.0
+========================
+* Added  possibility to open small live previews of online models
+  in the Recording tab
+* Added setting to toggle "Player Starting" message
+* Added possibility to add models by their URL
+* Added pause / resume all buttons
+* Setting to define the base URL for MFC and CTB
+* The paused checkbox are now clickable
+* Implemented multi-selection for Recording and Recordings tab
+* Fix: Don't throw exceptions for unknown attributes in PlaylistParser
+* Fix: Don't do space check, if minimum is set to 0
+* Fix: Player not starting when path contains spaces
+
 1.12.1
 ========================
 * Fixed downloads in client / server mode

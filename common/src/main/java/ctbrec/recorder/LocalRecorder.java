@@ -431,7 +431,8 @@ public class LocalRecorder implements Recorder {
             running = true;
             while (running) {
                 Instant begin = Instant.now();
-                for (Model model : getModelsRecording()) {
+                List<Model> models = getModelsRecording();
+                for (Model model : models) {
                     try {
                         boolean isOnline = model.isOnline(IGNORE_CACHE);
                         LOG.trace("Checking online state for {}: {}", model, (isOnline ? "online" : "offline"));
@@ -450,6 +451,7 @@ public class LocalRecorder implements Recorder {
                 }
                 Instant end = Instant.now();
                 Duration timeCheckTook = Duration.between(begin, end);
+                LOG.trace("Online check for {} models took {} seconds", models.size(), timeCheckTook.getSeconds());
 
                 long sleepTime = Config.getInstance().getSettings().onlineCheckIntervalInSecs;
                 if(timeCheckTook.getSeconds() < sleepTime) {
@@ -710,13 +712,20 @@ public class LocalRecorder implements Recorder {
 
     @Override
     public void switchStreamSource(Model model) throws IOException, InvalidKeyException, NoSuchAlgorithmException, IllegalStateException {
-        LOG.debug("Switching stream source to index {} for model {}", model.getStreamUrlIndex(), model.getName());
-        Download download = recordingProcesses.get(model);
-        if(download != null) {
-            stopRecordingProcess(model);
+        if (models.contains(model)) {
+            int index = models.indexOf(model);
+            models.get(index).setStreamUrlIndex(model.getStreamUrlIndex());
+            config.save();
+            LOG.debug("Switching stream source to index {} for model {}", model.getStreamUrlIndex(), model.getName());
+            Download download = recordingProcesses.get(model);
+            if(download != null) {
+                stopRecordingProcess(model);
+            }
+            tryRestartRecording(model);
+        } else {
+            LOG.warn("Couldn't switch stream source for model {}. Not found in list", model.getName());
+            return;
         }
-        tryRestartRecording(model);
-        config.save();
     }
 
     @Override
@@ -752,13 +761,17 @@ public class LocalRecorder implements Recorder {
                 int index = models.indexOf(model);
                 Model m = models.get(index);
                 m.setSuspended(false);
-                startRecordingProcess(m);
+                if(m.isOnline()) {
+                    startRecordingProcess(m);
+                }
                 model.setSuspended(false);
                 config.save();
             } else {
                 LOG.warn("Couldn't resume model {}. Not found in list", model.getName());
                 return;
             }
+        } catch (ExecutionException | InterruptedException e) {
+            LOG.error("Couldn't check, if model {} is online", model.getName());
         } finally {
             lock.unlock();
         }
@@ -787,6 +800,10 @@ public class LocalRecorder implements Recorder {
 
     private boolean enoughSpaceForRecording() throws IOException {
         long minimum = config.getSettings().minimumSpaceLeftInBytes;
-        return getFreeSpaceBytes() > minimum;
+        if(minimum == 0) { // 0 means don't check
+            return true;
+        } else {
+            return getFreeSpaceBytes() > minimum;
+        }
     }
 }

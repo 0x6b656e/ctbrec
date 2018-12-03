@@ -79,7 +79,7 @@ public class ThumbCell extends StackPane {
     private ObservableList<Node> thumbCellList;
     private boolean mouseHovering = false;
     private boolean recording = false;
-    private static ExecutorService imageLoadingThreadPool = Executors.newFixedThreadPool(10);
+    private static ExecutorService imageLoadingThreadPool = Executors.newFixedThreadPool(30);
 
     public ThumbCell(ThumbOverviewTab parent, Model model, Recorder recorder) {
         this.thumbCellList = parent.grid.getChildren();
@@ -116,7 +116,7 @@ public class ThumbCell extends StackPane {
         StackPane.setMargin(resolutionBackground, new Insets(2));
         getChildren().add(resolutionBackground);
 
-        name = new Text(model.getName());
+        name = new Text(model.getDisplayName());
         name.setFill(Color.WHITE);
         name.setFont(new Font("Sansserif", 16));
         name.setTextAlignment(TextAlignment.CENTER);
@@ -331,7 +331,7 @@ public class ThumbCell extends StackPane {
             boolean started = Player.play(model);
             Platform.runLater(() -> {
                 setCursor(Cursor.DEFAULT);
-                if (started) {
+                if (started && Config.getInstance().getSettings().showPlayerStarting) {
                     Toast.makeText(getScene(), "Starting Player", 2000, 500, 500);
                 }
             });

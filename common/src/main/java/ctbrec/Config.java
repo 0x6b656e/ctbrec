@@ -7,6 +7,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -46,7 +47,6 @@ public class Config {
         } else {
             filename = "settings.json";
         }
-        load();
     }
 
     private void load() throws FileNotFoundException, IOException {
@@ -61,6 +61,13 @@ public class Config {
                 BufferedSource source =  buffer.readFrom(fin);
                 settings = adapter.fromJson(source);
                 settings.httpTimeout = Math.max(settings.httpTimeout, 10_000);
+            } catch(Throwable e) {
+                settings = OS.getDefaultSettings();
+                for (Site site : sites) {
+                    site.setEnabled(!settings.disabledSites.contains(site.getName()));
+                }
+                makeBackup(configFile);
+                throw e;
             }
         } else {
             LOG.error("Config file does not exist. Falling back to default values.");
@@ -71,9 +78,22 @@ public class Config {
         }
     }
 
+    private void makeBackup(File source) {
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+            String timestamp = sdf.format(new Date());
+            String backup = source.getName() + '.' + timestamp;
+            File target = new File(source.getParentFile(), backup);
+            Files.copy(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch(Throwable e) {
+            LOG.error("Couldn't create backup of settings file", e);
+        }
+    }
+
     public static synchronized void init(List<Site> sites) throws FileNotFoundException, IOException {
         if(instance == null) {
             instance = new Config(sites);
+            instance.load();
         }
     }
 

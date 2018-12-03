@@ -2,6 +2,8 @@ package ctbrec.sites.mfc;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.jsoup.select.Elements;
 
@@ -15,13 +17,14 @@ import okhttp3.Response;
 
 public class MyFreeCams extends AbstractSite {
 
-    public static final String BASE_URI = "https://www.myfreecams.com";
+    static String baseUrl = "https://www.myfreecams.com";
 
     private MyFreeCamsClient client;
     private MyFreeCamsHttpClient httpClient;
 
     @Override
     public void init() throws IOException {
+        baseUrl = Config.getInstance().getSettings().mfcBaseUrl;
         client = MyFreeCamsClient.getInstance();
         client.setSite(this);
         client.start();
@@ -39,12 +42,12 @@ public class MyFreeCams extends AbstractSite {
 
     @Override
     public String getBaseUrl() {
-        return BASE_URI;
+        return baseUrl;
     }
 
     @Override
     public String getAffiliateLink() {
-        return BASE_URI + "/?baf=8127165";
+        return baseUrl + "/?baf=8127165";
     }
 
     @Override
@@ -57,7 +60,7 @@ public class MyFreeCams extends AbstractSite {
 
     @Override
     public Integer getTokenBalance() throws IOException {
-        Request req = new Request.Builder().url(BASE_URI + "/php/account.php?request=status").build();
+        Request req = new Request.Builder().url(baseUrl + "/php/account.php?request=status").build();
         try(Response response = getHttpClient().execute(req)) {
             if(response.isSuccessful()) {
                 String content = response.body().string();
@@ -72,7 +75,7 @@ public class MyFreeCams extends AbstractSite {
 
     @Override
     public String getBuyTokensLink() {
-        return BASE_URI + "/php/purchase.php?request=tokens";
+        return baseUrl + "/php/purchase.php?request=tokens";
     }
 
     @Override
@@ -121,5 +124,21 @@ public class MyFreeCams extends AbstractSite {
     public boolean credentialsAvailable() {
         String username = Config.getInstance().getSettings().mfcUsername;
         return username != null && !username.trim().isEmpty();
+    }
+
+    @Override
+    public Model createModelFromUrl(String url) {
+        String[] patterns = new String[] {
+                "https?://profiles.myfreecams.com/([^/]*?)",
+                "https?://(?:www.)?myfreecams.com/#(.*)"
+        };
+        for (String pattern : patterns) {
+            Matcher m = Pattern.compile(pattern).matcher(url);
+            if(m.matches()) {
+                String modelName = m.group(1);
+                return createModel(modelName);
+            }
+        }
+        return super.createModelFromUrl(url);
     }
 }

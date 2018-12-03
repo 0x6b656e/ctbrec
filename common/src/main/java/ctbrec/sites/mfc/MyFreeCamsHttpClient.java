@@ -53,8 +53,8 @@ public class MyFreeCamsHttpClient extends HttpClient {
                 .add("submit_login", "97")
                 .build();
         Request req = new Request.Builder()
-                .url(MyFreeCams.BASE_URI + "/php/login.php")
-                .header("Referer", MyFreeCams.BASE_URI)
+                .url(MyFreeCams.baseUrl + "/php/login.php")
+                .header("Referer", MyFreeCams.baseUrl)
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .post(body)
                 .build();
@@ -75,7 +75,7 @@ public class MyFreeCamsHttpClient extends HttpClient {
     }
 
     private boolean checkLogin() throws IOException {
-        Request req = new Request.Builder().url(MyFreeCams.BASE_URI + "/php/account.php?request=status").build();
+        Request req = new Request.Builder().url(MyFreeCams.baseUrl + "/php/account.php?request=status").build();
         try(Response response = execute(req)) {
             if(response.isSuccessful()) {
                 String content = response.body().string();
@@ -99,7 +99,7 @@ public class MyFreeCamsHttpClient extends HttpClient {
 
     public Cookie getCookie(String name) {
         CookieJar jar = client.cookieJar();
-        HttpUrl url = HttpUrl.parse(MyFreeCams.BASE_URI);
+        HttpUrl url = HttpUrl.parse(MyFreeCams.baseUrl);
         List<Cookie> cookies = jar.loadForRequest(url);
         for (Cookie cookie : cookies) {
             if(Objects.equals(cookie.name(), name)) {

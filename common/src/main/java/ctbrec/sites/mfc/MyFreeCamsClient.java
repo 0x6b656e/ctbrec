@@ -314,7 +314,7 @@ public class MyFreeCamsClient {
                     long opts = json.getInt("opts");
                     long serv = json.getInt("serv");
                     long type = json.getInt("type");
-                    String base = "http://www.myfreecams.com/php/FcwExtResp.php";
+                    String base = mfc.getBaseUrl() + "/php/FcwExtResp.php";
                     String url = base + "?respkey="+respkey+"&opts="+opts+"&serv="+serv+"&type="+type;
                     Request req = new Request.Builder().url(url).build();
                     LOG.trace("Requesting EXTDATA {}", url);

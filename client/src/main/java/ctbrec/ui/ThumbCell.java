@@ -492,7 +492,7 @@ public class ThumbCell extends StackPane {
         this.model.setPreview(model.getPreview());
         this.model.setTags(model.getTags());
         this.model.setUrl(model.getUrl());
-        this.model.setSuspended(model.isSuspended());
+        this.model.setSuspended(recorder.isSuspended(model));
         update();
     }
 

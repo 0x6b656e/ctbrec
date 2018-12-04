@@ -7,11 +7,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.iheartradio.m3u8.ParseException;
 
 import ctbrec.Config;
@@ -80,6 +83,10 @@ public class ThumbCell extends StackPane {
     private boolean mouseHovering = false;
     private boolean recording = false;
     private static ExecutorService imageLoadingThreadPool = Executors.newFixedThreadPool(30);
+    private static Cache<Model, int[]> resolutionCache = CacheBuilder.newBuilder()
+            .expireAfterAccess(4, TimeUnit.HOURS)
+            .maximumSize(1000)
+            .build();
 
     public ThumbCell(ThumbOverviewTab parent, Model model, Recorder recorder) {
         this.thumbCellList = parent.grid.getChildren();
@@ -212,35 +219,45 @@ public class ThumbCell extends StackPane {
             return;
         }
 
-        ThumbOverviewTab.threadPool.submit(() -> {
+        int[] resolution = resolutionCache.getIfPresent(model);
+        if(resolution != null) {
             try {
-                ThumbOverviewTab.resolutionProcessing.add(model);
-                int[] resolution = model.getStreamResolution(false);
                 updateResolutionTag(resolution);
-
-                // the model is online, but the resolution is 0. probably something went wrong
-                // when we first requested the stream info, so we remove this invalid value from the "cache"
-                // so that it is requested again
-                if (model.isOnline() && resolution[1] == 0) {
-                    LOG.trace("Removing invalid resolution value for {}", model.getName());
-                    model.invalidateCacheEntries();
-                }
-
-                Thread.sleep(500);
-            } catch (IOException | InterruptedException e1) {
-                LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e1);
-            } catch(ExecutionException e) {
-                if(e.getCause() instanceof EOFException) {
-                    LOG.warn("Couldn't update resolution tag for model {}. Playlist empty", model.getName());
-                } else if(e.getCause() instanceof ParseException) {
-                    LOG.warn("Couldn't update resolution tag for model {} - {}", model.getName(), e.getMessage());
-                } else {
-                    LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e);
-                }
-            } finally {
-                ThumbOverviewTab.resolutionProcessing.remove(model);
+            } catch(Exception e) {
+                LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e);
             }
-        });
+        } else {
+            ThumbOverviewTab.threadPool.submit(() -> {
+                try {
+                    ThumbOverviewTab.resolutionProcessing.add(model);
+                    int[] _resolution = model.getStreamResolution(false);
+                    resolutionCache.put(model, _resolution);
+                    updateResolutionTag(_resolution);
+
+                    // the model is online, but the resolution is 0. probably something went wrong
+                    // when we first requested the stream info, so we remove this invalid value from the "cache"
+                    // so that it is requested again
+                    if (model.isOnline() && _resolution[1] == 0) {
+                        LOG.trace("Removing invalid resolution value for {}", model.getName());
+                        model.invalidateCacheEntries();
+                    }
+
+                    Thread.sleep(100);
+                } catch (IOException | InterruptedException e1) {
+                    LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e1);
+                } catch(ExecutionException e) {
+                    if(e.getCause() instanceof EOFException) {
+                        LOG.warn("Couldn't update resolution tag for model {}. Playlist empty", model.getName());
+                    } else if(e.getCause() instanceof ParseException) {
+                        LOG.warn("Couldn't update resolution tag for model {} - {}", model.getName(), e.getMessage());
+                    } else {
+                        LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e);
+                    }
+                } finally {
+                    ThumbOverviewTab.resolutionProcessing.remove(model);
+                }
+            });
+        }
     }
 
     private void updateResolutionTag(int[] resolution) throws IOException, ExecutionException, InterruptedException {

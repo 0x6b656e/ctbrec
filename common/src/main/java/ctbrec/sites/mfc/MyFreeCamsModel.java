@@ -71,7 +71,11 @@ public class MyFreeCamsModel extends AbstractModel {
 
     @Override
     public STATUS getOnlineState(boolean failFast) throws IOException, ExecutionException {
-        switch(this.state) {
+        if(state == null) {
+            return STATUS.UNKNOWN;
+        }
+
+        switch(state) {
         case ONLINE:
         case RECORDING:
             return ctbrec.Model.STATUS.ONLINE;

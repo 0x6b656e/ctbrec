@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
 import ctbrec.recorder.LocalRecorder;
+import ctbrec.recorder.OnlineMonitor;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
 import ctbrec.sites.bonga.BongaCams;
@@ -30,6 +31,7 @@ public class HttpServer {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(HttpServer.class);
     private Recorder recorder;
+    private OnlineMonitor onlineMonitor;
     private Config config;
     private Server server = new Server();
     private List<Site> sites = new ArrayList<>();
@@ -54,6 +56,8 @@ public class HttpServer {
             LOG.info("HMAC authentication is enabled");
         }
         recorder = new LocalRecorder(config);
+        OnlineMonitor monitor = new OnlineMonitor(recorder);
+        monitor.start();
         for (Site site : sites) {
             if(site.isEnabled()) {
                 site.init();
@@ -75,6 +79,9 @@ public class HttpServer {
             @Override
             public void run() {
                 LOG.info("Shutting down");
+                if(onlineMonitor != null) {
+                    onlineMonitor.shutdown();
+                }
                 if(recorder != null) {
                     recorder.shutdown();
                 }

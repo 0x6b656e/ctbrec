@@ -7,13 +7,11 @@ import static ctbrec.Recording.STATUS.*;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.net.SocketTimeoutException;
 import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
@@ -34,6 +33,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.eventbus.Subscribe;
 import com.iheartradio.m3u8.ParseException;
 import com.iheartradio.m3u8.PlaylistException;
 
@@ -44,7 +44,6 @@ import ctbrec.OS;
 import ctbrec.Recording;
 import ctbrec.Recording.STATUS;
 import ctbrec.io.HttpClient;
-import ctbrec.io.HttpException;
 import ctbrec.io.StreamRedirectThread;
 import ctbrec.recorder.PlaylistGenerator.InvalidPlaylistException;
 import ctbrec.recorder.download.Download;
@@ -62,7 +61,6 @@ public class LocalRecorder implements Recorder {
     private Map<File, PlaylistGenerator> playlistGenerators = new HashMap<>();
     private Config config;
     private ProcessMonitor processMonitor;
-    private OnlineMonitor onlineMonitor;
     private PostProcessingTrigger postProcessingTrigger;
     private volatile boolean recording = true;
     private List<File> deleteInProgress = Collections.synchronizedList(new ArrayList<>());
@@ -83,17 +81,35 @@ public class LocalRecorder implements Recorder {
         recording = true;
         processMonitor = new ProcessMonitor();
         processMonitor.start();
-        onlineMonitor = new OnlineMonitor();
-        onlineMonitor.start();
 
         postProcessingTrigger = new PostProcessingTrigger();
         if(Config.isServerMode()) {
             postProcessingTrigger.start();
         }
 
+        registerEventBusListener();
+
         LOG.debug("Recorder initialized");
         LOG.info("Models to record: {}", models);
         LOG.info("Saving recordings in {}", config.getSettings().recordingsDir);
+    }
+
+    private void registerEventBusListener() {
+        EventBusHolder.BUS.register(new Object() {
+            @Subscribe
+            public void modelEvent(Map<String, Object> e) {
+                try {
+                    if (Objects.equals(e.get(EVENT), MODEL_ONLINE)) {
+                        Model model = (Model) e.get(MODEL);
+                        if(!isSuspended(model) && !recordingProcesses.containsKey(model)) {
+                            startRecordingProcess(model);
+                        }
+                    }
+                } catch (Exception e1) {
+                    LOG.error("Error while handling model state changed event", e);
+                }
+            }
+        });
     }
 
     @Override
@@ -288,7 +304,6 @@ public class LocalRecorder implements Recorder {
         LOG.info("Shutting down");
         recording = false;
         LOG.debug("Stopping monitor threads");
-        onlineMonitor.running = false;
         processMonitor.running = false;
         postProcessingTrigger.running = false;
         LOG.debug("Stopping all recording processes");
@@ -422,67 +437,6 @@ public class LocalRecorder implements Recorder {
         } finally {
             playlistGenerators.remove(recDir);
         }
-    }
-
-    private class OnlineMonitor extends Thread {
-        private volatile boolean running = false;
-
-        public OnlineMonitor() {
-            setName("OnlineMonitor");
-            setDaemon(true);
-        }
-
-        @Override
-        public void run() {
-            running = true;
-            while (running) {
-                Instant begin = Instant.now();
-                List<Model> models = getModelsRecording();
-                for (Model model : models) {
-                    try {
-                        boolean isOnline = model.isOnline(IGNORE_CACHE);
-                        LOG.trace("Checking online state for {}: {}", model, (isOnline ? "online" : "offline"));
-                        if (isOnline && !isSuspended(model) && !recordingProcesses.containsKey(model)) {
-                            LOG.info("Model {}'s room back to public", model);
-                            startRecordingProcess(model);
-                        }
-                    } catch (HttpException e) {
-                        LOG.error("Couldn't check if model {} is online. HTTP Response: {} - {}",
-                                model.getName(), e.getResponseCode(), e.getResponseMessage());
-                    } catch (SocketTimeoutException e) {
-                        LOG.error("Couldn't check if model {} is online. Request timed out", model.getName());
-                    } catch (Exception e) {
-                        LOG.error("Couldn't check if model {} is online", model.getName(), e);
-                    }
-                }
-                Instant end = Instant.now();
-                Duration timeCheckTook = Duration.between(begin, end);
-                LOG.trace("Online check for {} models took {} seconds", models.size(), timeCheckTook.getSeconds());
-
-                long sleepTime = Config.getInstance().getSettings().onlineCheckIntervalInSecs;
-                if(timeCheckTook.getSeconds() < sleepTime) {
-                    try {
-                        if (running) {
-                            long millis = TimeUnit.SECONDS.toMillis(sleepTime - timeCheckTook.getSeconds());
-                            LOG.trace("Sleeping {}ms", millis);
-                            Thread.sleep(millis);
-                        }
-                    } catch (InterruptedException e) {
-                        LOG.trace("Sleep interrupted");
-                    }
-                }
-            }
-            LOG.debug(getName() + " terminated");
-        }
-    }
-
-    private void fireModelOnlineStateChanged(Model model, Model.STATUS status) {
-        Map<String, Object> evt = new HashMap<>();
-        evt.put(EVENT, MODEL_STATUS_CHANGED);
-        evt.put(STATUS, status);
-        evt.put(MODEL, model);
-        EventBusHolder.BUS.post(evt);
-        LOG.debug("Event fired {}", evt);
     }
 
     private void fireRecordingStateChanged(Model model, Recording.STATUS status) {

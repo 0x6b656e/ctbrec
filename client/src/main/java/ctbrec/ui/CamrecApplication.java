@@ -2,6 +2,7 @@ package ctbrec.ui;
 
 import static ctbrec.EventBusHolder.*;
 import static ctbrec.EventBusHolder.EVENT_TYPE.*;
+import static ctbrec.Model.STATUS.*;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -32,6 +33,7 @@ import ctbrec.StringUtil;
 import ctbrec.Version;
 import ctbrec.io.HttpClient;
 import ctbrec.recorder.LocalRecorder;
+import ctbrec.recorder.OnlineMonitor;
 import ctbrec.recorder.Recorder;
 import ctbrec.recorder.RemoteRecorder;
 import ctbrec.sites.Site;
@@ -62,11 +64,13 @@ public class CamrecApplication extends Application {
     private Stage primaryStage;
     private Config config;
     private Recorder recorder;
+    private OnlineMonitor onlineMonitor;
     static HostServices hostServices;
     private SettingsTab settingsTab;
     private TabPane rootPane = new TabPane();
     private List<Site> sites = new ArrayList<>();
     public static HttpClient httpClient;
+
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -82,6 +86,8 @@ public class CamrecApplication extends Application {
         createHttpClient();
         hostServices = getHostServices();
         createRecorder();
+        onlineMonitor = new OnlineMonitor(recorder);
+        onlineMonitor.start();
         for (Site site : sites) {
             if(site.isEnabled()) {
                 try {
@@ -165,6 +171,7 @@ public class CamrecApplication extends Application {
                     modelsTab.saveState();
                     recordingsTab.saveState();
                     settingsTab.saveConfig();
+                    onlineMonitor.shutdown();
                     recorder.shutdown();
                     for (Site site : sites) {
                         if(site.isEnabled()) {
@@ -219,12 +226,12 @@ public class CamrecApplication extends Application {
                 EventBusHolder.BUS.register(new Object() {
                     @Subscribe
                     public void modelEvent(Map<String, Object> e) {
-                        LOG.debug("Alert: {}", e);
                         try {
                             if (Objects.equals(e.get(EVENT), MODEL_STATUS_CHANGED)) {
+                                LOG.debug("Alert: {}", e);
                                 Model.STATUS status = (Model.STATUS) e.get(STATUS);
                                 Model model = (Model) e.get(MODEL);
-                                if (Objects.equals(Model.STATUS.ONLINE, status)) {
+                                if (status == ONLINE) {
                                     Platform.runLater(() -> {
                                         String header = "Model Online";
                                         String msg = model.getDisplayName() + " is now online";

@@ -549,7 +549,8 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
                 showErrorDialog(e, "Couldn't stop recording", "Stopping recording of " + m.getName() + " failed"));
             }
         };
-        massEdit(new ArrayList<JavaFxModel>(selectedModels), action);
+        List<Model> models = selectedModels.stream().map(jfxm -> jfxm.getDelegate()).collect(Collectors.toList());
+        massEdit(models, action);
     };
 
     private void pauseRecording(List<JavaFxModel> selectedModels) {
@@ -562,7 +563,8 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
                 showErrorDialog(e, "Couldn't pause recording of model", "Pausing recording of " + m.getName() + " failed"));
             }
         };
-        massEdit(new ArrayList<JavaFxModel>(selectedModels), action);
+        List<Model> models = selectedModels.stream().map(jfxm -> jfxm.getDelegate()).collect(Collectors.toList());
+        massEdit(models, action);
     };
 
     private void resumeRecording(List<JavaFxModel> selectedModels) {
@@ -575,7 +577,8 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
                 showErrorDialog(e, "Couldn't resume recording of model", "Resuming recording of " + m.getName() + " failed"));
             }
         };
-        massEdit(new ArrayList<JavaFxModel>(selectedModels), action);
+        List<Model> models = selectedModels.stream().map(jfxm -> jfxm.getDelegate()).collect(Collectors.toList());
+        massEdit(models, action);
     }
 
     public void saveState() {

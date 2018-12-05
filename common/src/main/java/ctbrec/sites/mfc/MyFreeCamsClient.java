@@ -13,8 +13,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -53,7 +51,6 @@ public class MyFreeCamsClient {
     private Cache<Integer, SessionState> sessionStates = CacheBuilder.newBuilder().maximumSize(4000).build();
     private Cache<Integer, MyFreeCamsModel> models = CacheBuilder.newBuilder().maximumSize(4000).build();
     private Lock lock = new ReentrantLock();
-    private ExecutorService executor = Executors.newSingleThreadExecutor();
     private ServerConfig serverConfig;
     @SuppressWarnings("unused")
     private String tkx;
@@ -572,10 +569,6 @@ public class MyFreeCamsClient {
 
     public MyFreeCamsModel getModel(int uid) {
         return models.getIfPresent(uid);
-    }
-
-    public void execute(Runnable r) {
-        executor.execute(r);
     }
 
     public void getSessionState(ctbrec.Model model) {

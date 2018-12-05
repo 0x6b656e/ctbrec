@@ -45,7 +45,7 @@ public class MyFreeCamsModel extends AbstractModel {
     private double camScore;
     private int viewerCount;
     private State state;
-    private int resolution[];
+    private int resolution[] = new int[2];
 
     /**
      * This constructor exists only for deserialization. Please don't call it directly
@@ -174,26 +174,19 @@ public class MyFreeCamsModel extends AbstractModel {
 
     @Override
     public int[] getStreamResolution(boolean failFast) throws ExecutionException {
-        if(resolution == null) {
-            if(failFast || hlsUrl == null) {
-                return new int[2];
+        if (!failFast && hlsUrl != null) {
+            try {
+                List<StreamSource> streamSources = getStreamSources();
+                Collections.sort(streamSources);
+                StreamSource best = streamSources.get(streamSources.size() - 1);
+                resolution = new int[] { best.width, best.height };
+            } catch (ParseException | PlaylistException e) {
+                LOG.warn("Couldn't determine stream resolution - {}", e.getMessage());
+            } catch (ExecutionException | IOException e) {
+                LOG.error("Couldn't determine stream resolution", e);
             }
-            MyFreeCamsClient.getInstance().execute(()->{
-                try {
-                    List<StreamSource> streamSources = getStreamSources();
-                    Collections.sort(streamSources);
-                    StreamSource best = streamSources.get(streamSources.size()-1);
-                    resolution = new int[] {best.width, best.height};
-                } catch (ParseException | PlaylistException e) {
-                    LOG.warn("Couldn't determine stream resolution - {}", e.getMessage());
-                } catch (ExecutionException | IOException e) {
-                    LOG.error("Couldn't determine stream resolution", e);
-                }
-            });
-            return new int[2];
-        } else {
-            return resolution;
         }
+        return resolution;
     }
 
     public void setStreamUrl(String hlsUrl) {

@@ -25,6 +25,7 @@ import okhttp3.Response;
 public class ChaturbateModel extends AbstractModel {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(ChaturbateModel.class);
+    private int[] resolution = new int[2];
 
     /**
      * This constructor exists only for deserialization. Please don't call it directly
@@ -52,16 +53,16 @@ public class ChaturbateModel extends AbstractModel {
 
     @Override
     public int[] getStreamResolution(boolean failFast) throws ExecutionException {
-        int[] resolution = getChaturbate().streamResolutionCache.getIfPresent(getName());
-        if(resolution != null) {
-            return getChaturbate().getResolution(getName());
-        } else {
-            if(failFast) {
-                return new int[2];
-            } else {
-                return getChaturbate().getResolution(getName());
-            }
+        if(failFast) {
+            return resolution;
         }
+
+        try {
+            resolution = getChaturbate().getResolution(getName());
+        } catch(Exception e) {
+            throw new ExecutionException(e);
+        }
+        return resolution;
     }
 
     /**
@@ -71,7 +72,6 @@ public class ChaturbateModel extends AbstractModel {
     @Override
     public void invalidateCacheEntries() {
         getChaturbate().streamInfoCache.invalidate(getName());
-        getChaturbate().streamResolutionCache.invalidate(getName());
     }
 
     public String getOnlineState() throws IOException, ExecutionException {

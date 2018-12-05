@@ -25,7 +25,8 @@ public class StreamSourceSelectionDialog {
             List<StreamSource> sources;
             try {
                 sources = selectStreamSource.get();
-                ChoiceDialog<StreamSource> choiceDialog = new ChoiceDialog<StreamSource>(sources.get(sources.size()-1), sources);
+                int selectedIndex = model.getStreamUrlIndex() > -1 ? Math.min(model.getStreamUrlIndex(), sources.size()-1) : sources.size()-1;
+                ChoiceDialog<StreamSource> choiceDialog = new ChoiceDialog<StreamSource>(sources.get(selectedIndex), sources);
                 choiceDialog.setTitle("Stream Quality");
                 choiceDialog.setHeaderText("Select your preferred stream quality");
                 choiceDialog.setResizable(true);

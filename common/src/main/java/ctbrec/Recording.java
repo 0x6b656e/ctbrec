@@ -10,16 +10,18 @@ public class Recording {
     private Instant startDate;
     private String path;
     private boolean hasPlaylist;
-    private STATUS status;
+    private STATUS status = STATUS.UNKNOWN;
     private int progress = -1;
     private long sizeInByte;
 
     public static enum STATUS {
         RECORDING,
         GENERATING_PLAYLIST,
+        STOPPED,
         FINISHED,
         DOWNLOADING,
-        MERGING
+        POST_PROCESSING,
+        UNKNOWN
     }
 
     public Recording() {}

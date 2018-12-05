@@ -67,8 +67,14 @@ public class JavaFxRecording extends Recording {
         case DOWNLOADING:
             statusProperty.set("downloading");
             break;
-        case MERGING:
-            statusProperty.set("merging");
+        case POST_PROCESSING:
+            statusProperty.set("post-processing");
+            break;
+        case STOPPED:
+            statusProperty.set("stopped");
+            break;
+        case UNKNOWN:
+            statusProperty.set("unknown");
             break;
         }
     }

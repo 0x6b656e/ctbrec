@@ -1,5 +1,8 @@
 package ctbrec.ui;
 
+import static ctbrec.EventBusHolder.*;
+import static ctbrec.EventBusHolder.EVENT_TYPE.*;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -69,6 +72,7 @@ public class CamrecApplication extends Application {
     public void start(Stage primaryStage) throws Exception {
         this.primaryStage = primaryStage;
         logEnvironment();
+        registerAlertSystem();
         sites.add(new BongaCams());
         sites.add(new Cam4());
         sites.add(new Camsoda());
@@ -91,7 +95,6 @@ public class CamrecApplication extends Application {
         createGui(primaryStage);
         checkForUpdates();
 
-        registerAlertSystem();
     }
 
     private void logEnvironment() {
@@ -203,15 +206,14 @@ public class CamrecApplication extends Application {
 
     private void registerAlertSystem() {
         new Thread(() -> {
-            try {
-                // don't register before 1 minute has passed, because directly after
-                // the start of ctbrec, an event for every online model would be fired,
-                // which is annoying as f
-                //Thread.sleep(TimeUnit.MINUTES.toMillis(1));
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            //            try {
+            //                // don't register before 1 minute has passed, because directly after
+            //                // the start of ctbrec, an event for every online model would be fired,
+            //                // which is annoying as f
+            //                Thread.sleep(TimeUnit.MINUTES.toMillis(1));
+            //            } catch (InterruptedException e) {
+            //                e.printStackTrace();
+            //            }
             LOG.debug("Alert System registered");
             Platform.runLater(() -> {
                 EventBusHolder.BUS.register(new Object() {
@@ -219,10 +221,10 @@ public class CamrecApplication extends Application {
                     public void modelEvent(Map<String, Object> e) {
                         LOG.debug("Alert: {}", e);
                         try {
-                            if (Objects.equals("model.status", e.get("event"))) {
-                                String status = (String) e.get("status");
-                                Model model = (Model) e.get("model");
-                                if (Objects.equals("online", status)) {
+                            if (Objects.equals(e.get(EVENT), MODEL_STATUS_CHANGED)) {
+                                Model.STATUS status = (Model.STATUS) e.get(STATUS);
+                                Model model = (Model) e.get(MODEL);
+                                if (Objects.equals(Model.STATUS.ONLINE, status)) {
                                     Platform.runLater(() -> {
                                         String header = "Model Online";
                                         String msg = model.getDisplayName() + " is now online";

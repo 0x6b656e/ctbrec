@@ -44,11 +44,6 @@ public class Cam4Model extends AbstractModel {
     private boolean privateRoom = false;
 
     @Override
-    public boolean isOnline() throws IOException, ExecutionException, InterruptedException {
-        return isOnline(false);
-    }
-
-    @Override
     public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException {
         if(ignoreCache || onlineState == null) {
             try {

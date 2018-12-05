@@ -1,5 +1,7 @@
 package ctbrec.recorder;
 
+import static ctbrec.EventBusHolder.*;
+import static ctbrec.EventBusHolder.EVENT_TYPE.*;
 import static ctbrec.Recording.STATUS.*;
 
 import java.io.File;
@@ -180,7 +182,7 @@ public class LocalRecorder implements Recorder {
                 }
             }
         }.start();
-        fireRecordingStateChanged(model, true);
+        fireRecordingStateChanged(model, RECORDING);
     }
 
     private void stopRecordingProcess(Model model)  {
@@ -190,7 +192,7 @@ public class LocalRecorder implements Recorder {
         if(!Config.isServerMode()) {
             postprocess(download);
         }
-        fireRecordingStateChanged(model, false);
+        fireRecordingStateChanged(model, FINISHED);
     }
 
     private void postprocess(Download download) {
@@ -371,7 +373,7 @@ public class LocalRecorder implements Recorder {
                         } else {
                             postprocess(d);
                         }
-                        fireRecordingStateChanged(m, false);
+                        fireRecordingStateChanged(m, FINISHED); // TODO fire all the events
                     }
                 }
                 for (Model m : restart) {
@@ -438,11 +440,7 @@ public class LocalRecorder implements Recorder {
                 List<Model> models = getModelsRecording();
                 for (Model model : models) {
                     try {
-                        boolean wasOnline = model.isOnline();
                         boolean isOnline = model.isOnline(IGNORE_CACHE);
-                        if(wasOnline != isOnline) {
-                            fireModelOnlineStateChanged(model, isOnline);
-                        }
                         LOG.trace("Checking online state for {}: {}", model, (isOnline ? "online" : "offline"));
                         if (isOnline && !isSuspended(model) && !recordingProcesses.containsKey(model)) {
                             LOG.info("Model {}'s room back to public", model);
@@ -476,23 +474,22 @@ public class LocalRecorder implements Recorder {
             }
             LOG.debug(getName() + " terminated");
         }
-
     }
 
-    private void fireModelOnlineStateChanged(Model model, boolean online) {
+    private void fireModelOnlineStateChanged(Model model, Model.STATUS status) {
         Map<String, Object> evt = new HashMap<>();
-        evt.put("event", "model.status");
-        evt.put("status", online ? "online" : "offline");
-        evt.put("model", model);
+        evt.put(EVENT, MODEL_STATUS_CHANGED);
+        evt.put(STATUS, status);
+        evt.put(MODEL, model);
         EventBusHolder.BUS.post(evt);
         LOG.debug("Event fired {}", evt);
     }
 
-    private void fireRecordingStateChanged(Model model, boolean recording) {
+    private void fireRecordingStateChanged(Model model, Recording.STATUS status) {
         Map<String, Object> evt = new HashMap<>();
-        evt.put("event", "recording.status");
-        evt.put("status", recording ? "started" : "stopped");
-        evt.put("model", model);
+        evt.put(EVENT, RECORDING_STATUS_CHANGED);
+        evt.put(STATUS, status);
+        evt.put(MODEL, model);
         EventBusHolder.BUS.post(evt);
         LOG.debug("Event fired {}", evt);
     }

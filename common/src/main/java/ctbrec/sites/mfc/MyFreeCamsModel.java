@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import org.jsoup.nodes.Element;
 import org.slf4j.Logger;
@@ -28,6 +29,7 @@ import com.squareup.moshi.JsonReader;
 import com.squareup.moshi.JsonWriter;
 
 import ctbrec.AbstractModel;
+import ctbrec.Config;
 import ctbrec.io.HtmlParser;
 import ctbrec.io.HttpException;
 import ctbrec.recorder.download.StreamSource;
@@ -95,7 +97,13 @@ public class MyFreeCamsModel extends AbstractModel {
                 sources.add(src);
             }
         }
-        return sources;
+        if(Config.getInstance().getSettings().mfcIgnoreUpscaled) {
+            return sources.stream()
+                    .filter(src -> src.height != 960)
+                    .collect(Collectors.toList());
+        } else {
+            return sources;
+        }
     }
 
     private MasterPlaylist getMasterPlaylist() throws IOException, ParseException, PlaylistException {

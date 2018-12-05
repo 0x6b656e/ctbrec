@@ -132,7 +132,7 @@ public class RemoteRecorder implements Recorder {
 
     @Override
     public List<Model> getModelsRecording() {
-        if(lastSync.isBefore(Instant.now().minusSeconds(60))) {
+        if(!lastSync.equals(Instant.EPOCH) && lastSync.isBefore(Instant.now().minusSeconds(60))) {
             throw new RuntimeException("Last sync was over a minute ago");
         }
         return models;

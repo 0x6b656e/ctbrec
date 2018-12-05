@@ -1,5 +1,7 @@
 package ctbrec.sites.bonga;
 
+import static ctbrec.Model.STATUS.*;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -84,9 +86,17 @@ public class BongaCamsModel extends AbstractModel {
 
     @Override
     public STATUS getOnlineState(boolean failFast) throws IOException, ExecutionException {
-        return onlineState;
+        if(failFast) {
+            return onlineState;
+        } else {
+            if(onlineState == UNKNOWN) {
+                return online ? ONLINE : OFFLINE;
+            }
+            return onlineState;
+        }
     }
 
+    @Override
     public void setOnlineState(STATUS onlineState) {
         this.onlineState = onlineState;
     }

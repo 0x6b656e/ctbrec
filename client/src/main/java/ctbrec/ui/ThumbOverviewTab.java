@@ -340,7 +340,6 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         }
         List<Model> models = updateService.getValue();
         updateGrid(models);
-
     }
 
     protected void updateGrid(List<? extends Model> models) {

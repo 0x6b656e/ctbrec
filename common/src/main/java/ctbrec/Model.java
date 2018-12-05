@@ -65,7 +65,7 @@ public interface Model {
 
     public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException;
 
-    public String getOnlineState(boolean failFast) throws IOException, ExecutionException;
+    public STATUS getOnlineState(boolean failFast) throws IOException, ExecutionException;
 
     public List<StreamSource> getStreamSources() throws IOException, ExecutionException, ParseException, PlaylistException;
 
@@ -100,5 +100,7 @@ public interface Model {
     public boolean isSuspended();
 
     public void setSuspended(boolean suspended);
+
+
 
 }

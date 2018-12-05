@@ -68,7 +68,7 @@ public class Cam4FollowedUpdateService extends PaginatedScheduledService {
                             String modelName = path.substring(1);
                             Cam4Model model = (Cam4Model) site.createModel(modelName);
                             model.setPreview("https://snapshots.xcdnpro.com/thumbnails/"+model.getName()+"?s=" + System.currentTimeMillis());
-                            model.setOnlineState(parseOnlineState(cellHtml));
+                            model.setOnlineStateByShowType(parseOnlineState(cellHtml));
                             models.add(model);
                         }
                         return models.stream()

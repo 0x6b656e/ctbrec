@@ -89,7 +89,7 @@ public class CamsodaUpdateService extends PaginatedScheduledService {
                                             model.setSortOrder(result.getFloat("sort_value"));
                                             models.add(model);
                                             if(result.has("status")) {
-                                                model.setOnlineState(result.getString("status"));
+                                                model.setOnlineStateByStatus(result.getString("status"));
                                             }
 
                                             if(result.has("display_name")) {

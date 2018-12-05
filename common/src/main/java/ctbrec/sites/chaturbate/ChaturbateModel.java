@@ -1,5 +1,7 @@
 package ctbrec.sites.chaturbate;
 
+import static ctbrec.Model.STATUS.*;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -74,14 +76,46 @@ public class ChaturbateModel extends AbstractModel {
         getChaturbate().streamInfoCache.invalidate(getName());
     }
 
-    public String getOnlineState() throws IOException, ExecutionException {
+    public STATUS getOnlineState() throws IOException, ExecutionException {
         return getOnlineState(false);
     }
 
     @Override
-    public String getOnlineState(boolean failFast) throws IOException, ExecutionException {
-        StreamInfo info = getChaturbate().streamInfoCache.getIfPresent(getName());
-        return info != null ? info.room_status : "n/a";
+    public STATUS getOnlineState(boolean failFast) throws IOException, ExecutionException {
+        if(failFast) {
+            StreamInfo info = getChaturbate().streamInfoCache.getIfPresent(getName());
+            setOnlineStateByRoomStatus(info.room_status);
+        } else {
+            StreamInfo info = getChaturbate().streamInfoCache.get(getName());
+            setOnlineStateByRoomStatus(info.room_status);
+        }
+        return onlineState;
+    }
+
+    private void setOnlineStateByRoomStatus(String room_status) {
+        if(room_status != null) {
+            switch(room_status) {
+            case "public":
+                onlineState = ONLINE;
+                break;
+            case "offline":
+                onlineState = OFFLINE;
+                break;
+            case "private":
+            case "hidden":
+                onlineState = PRIVATE;
+                break;
+            case "away":
+                onlineState = AWAY;
+                break;
+            case "group":
+                onlineState = STATUS.GROUP;
+                break;
+            default:
+                LOG.debug("Unknown show type {}", room_status);
+                onlineState = STATUS.UNKNOWN;
+            }
+        }
     }
 
     public StreamInfo getStreamInfo() throws IOException, ExecutionException {

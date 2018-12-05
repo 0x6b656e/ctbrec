@@ -68,27 +68,25 @@ public class MyFreeCamsModel extends AbstractModel {
     }
 
     @Override
-    public String getOnlineState(boolean failFast) throws IOException, ExecutionException {
-        return state != null ? state.toString() : "offline";
+    public STATUS getOnlineState(boolean failFast) throws IOException, ExecutionException {
+        switch(this.state) {
+        case ONLINE:
+        case RECORDING:
+            return ctbrec.Model.STATUS.ONLINE;
+        case AWAY:
+            return ctbrec.Model.STATUS.AWAY;
+        case PRIVATE:
+            return ctbrec.Model.STATUS.PRIVATE;
+        case GROUP_SHOW:
+            return ctbrec.Model.STATUS.GROUP;
+        case OFFLINE:
+        case CAMOFF:
+            return ctbrec.Model.STATUS.OFFLINE;
+        default:
+            LOG.debug("State {} is not mapped", this.state);
+            return ctbrec.Model.STATUS.UNKNOWN;
+        }
     }
-
-    //    @Override
-    //    public STATUS getOnlineState() {
-    //        switch(this.state) {
-    //        case ONLINE:
-    //        case RECORDING:
-    //            return ctbrec.Model.STATUS.ONLINE;
-    //        case AWAY:
-    //            return ctbrec.Model.STATUS.AWAY;
-    //        case PRIVATE:
-    //            return ctbrec.Model.STATUS.PRIVATE;
-    //        case GROUP_SHOW:
-    //            return ctbrec.Model.STATUS.GROUP;
-    //        default:
-    //            LOG.debug("State {} is not mapped", this.state);
-    //            return ctbrec.Model.STATUS.UNKNOWN;
-    //        }
-    //    }
 
     @Override
     public List<StreamSource> getStreamSources() throws IOException, ExecutionException, ParseException, PlaylistException {

@@ -36,7 +36,6 @@ public class BongaCamsModel extends AbstractModel {
     private static final transient Logger LOG = LoggerFactory.getLogger(BongaCamsModel.class);
 
     private int userId;
-    private String onlineState = "n/a";
     private boolean online = false;
     private List<StreamSource> streamSources = new ArrayList<>();
     private int[] resolution;
@@ -84,11 +83,11 @@ public class BongaCamsModel extends AbstractModel {
     }
 
     @Override
-    public String getOnlineState(boolean failFast) throws IOException, ExecutionException {
+    public STATUS getOnlineState(boolean failFast) throws IOException, ExecutionException {
         return onlineState;
     }
 
-    public void setOnlineState(String onlineState) {
+    public void setOnlineState(STATUS onlineState) {
         this.onlineState = onlineState;
     }
 

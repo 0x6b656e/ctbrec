@@ -192,10 +192,6 @@ public class ThumbCell extends StackPane {
         setThumbWidth(Config.getInstance().getSettings().thumbWidth);
 
         setRecording(recording);
-        if(Config.getInstance().getSettings().determineResolution) {
-            determineResolution();
-        }
-
         update();
     }
 
@@ -221,11 +217,13 @@ public class ThumbCell extends StackPane {
 
         int[] resolution = resolutionCache.getIfPresent(model);
         if(resolution != null) {
-            try {
-                updateResolutionTag(resolution);
-            } catch(Exception e) {
-                LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e);
-            }
+            ThumbOverviewTab.threadPool.submit(() -> {
+                try {
+                    updateResolutionTag(resolution);
+                } catch(Exception e) {
+                    LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e);
+                }
+            });
         } else {
             ThumbOverviewTab.threadPool.submit(() -> {
                 try {
@@ -263,14 +261,14 @@ public class ThumbCell extends StackPane {
     private void updateResolutionTag(int[] resolution) throws IOException, ExecutionException, InterruptedException {
         String _res = "n/a";
         Paint resolutionBackgroundColor = resolutionOnlineColor;
-        String state = model.getOnlineState(false);
+        String state = model.getOnlineState(false).toString();
         if (model.isOnline()) {
             LOG.trace("Model resolution {} {}x{}", model.getName(), resolution[0], resolution[1]);
             LOG.trace("Resolution queue size: {}", ThumbOverviewTab.queue.size());
             final int w = resolution[1];
             _res = w > 0 ? w != Integer.MAX_VALUE ? Integer.toString(w) : "HD" : state;
         } else {
-            _res = model.getOnlineState(false);
+            _res = model.getOnlineState(false).toString();
             resolutionBackgroundColor = resolutionOfflineColor;
         }
         final String resText = _res;

@@ -16,7 +16,7 @@ public class ChaturbateSiteUi implements SiteUI {
     public ChaturbateSiteUi(Chaturbate chaturbate) {
         this.chaturbate = chaturbate;
         tabProvider = new ChaturbateTabProvider(chaturbate);
-        configUi = new ChaturbateConfigUi();
+        configUi = new ChaturbateConfigUi(chaturbate);
     }
 
     @Override

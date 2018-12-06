@@ -1,6 +1,7 @@
 package ctbrec.ui.sites.myfreecams;
 
 import ctbrec.Config;
+import ctbrec.Settings;
 import ctbrec.sites.mfc.MyFreeCams;
 import ctbrec.ui.DesktopIntegration;
 import ctbrec.ui.SettingsTab;
@@ -26,6 +27,23 @@ public class MyFreeCamsConfigUI extends AbstractConfigUI {
     public Parent createConfigPanel() {
         int row = 0;
         GridPane layout = SettingsTab.createGridLayout();
+        Settings settings = Config.getInstance().getSettings();
+
+        Label l = new Label("Active");
+        layout.add(l, 0, row);
+        CheckBox enabled = new CheckBox();
+        enabled.setSelected(!settings.disabledSites.contains(myFreeCams.getName()));
+        enabled.setOnAction((e) -> {
+            if(enabled.isSelected()) {
+                settings.disabledSites.remove(myFreeCams.getName());
+            } else {
+                settings.disabledSites.add(myFreeCams.getName());
+            }
+            save();
+        });
+        GridPane.setMargin(enabled, new Insets(0, 0, 0, SettingsTab.CHECKBOX_MARGIN));
+        layout.add(enabled, 1, row++);
+
         layout.add(new Label("MyFreeCams User"), 0, row);
         TextField username = new TextField(Config.getInstance().getSettings().mfcUsername);
         username.setPrefWidth(300);

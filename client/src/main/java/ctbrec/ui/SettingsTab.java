@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
 import ctbrec.Hmac;
-import ctbrec.Settings;
 import ctbrec.Settings.DirectoryStructure;
 import ctbrec.StringUtil;
 import ctbrec.sites.ConfigUI;
@@ -83,7 +82,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private ComboBox<String> startTab;
     private List<Site> sites;
     private Label restartLabel;
-    private Accordion credentialsAccordion = new Accordion();
+    private Accordion siteConfigAccordion = new Accordion();
 
     public SettingsTab(List<Site> sites) {
         this.sites = sites;
@@ -127,8 +126,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         leftSide.getChildren().add(createRecordLocationPanel());
 
         //right side
-        rightSide.getChildren().add(createSiteSelectionPanel());
-        rightSide.getChildren().add(credentialsAccordion);
+        rightSide.getChildren().add(siteConfigAccordion);
         proxySettingsPane = new ProxySettingsPane(this);
         rightSide.getChildren().add(proxySettingsPane);
         for (int i = 0; i < sites.size(); i++) {
@@ -136,39 +134,10 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             ConfigUI siteConfig = SiteUiFactory.getUi(site).getConfigUI();
             if(siteConfig != null) {
                 TitledPane pane = new TitledPane(site.getName(), siteConfig.createConfigPanel());
-                credentialsAccordion.getPanes().add(pane);
+                siteConfigAccordion.getPanes().add(pane);
             }
         }
-        credentialsAccordion.setExpandedPane(credentialsAccordion.getPanes().get(0));
-    }
-
-    private Node createSiteSelectionPanel() {
-        Settings settings = Config.getInstance().getSettings();
-        GridPane layout = createGridLayout();
-
-        int row = 0;
-        for (Site site : sites) {
-            Label l = new Label(site.getName());
-            layout.add(l, 0, row);
-            CheckBox enabled = new CheckBox();
-            enabled.setSelected(!settings.disabledSites.contains(site.getName()));
-            enabled.setOnAction((e) -> {
-                if(enabled.isSelected()) {
-                    settings.disabledSites.remove(site.getName());
-                } else {
-                    settings.disabledSites.add(site.getName());
-                }
-                saveConfig();
-                showRestartRequired();
-            });
-            GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
-            GridPane.setMargin(enabled, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
-            layout.add(enabled, 1, row++);
-        }
-
-        TitledPane siteSelection = new TitledPane("Enabled Sites", layout);
-        siteSelection.setCollapsible(false);
-        return siteSelection;
+        siteConfigAccordion.setExpandedPane(siteConfigAccordion.getPanes().get(0));
     }
 
     private Node createRecordLocationPanel() {

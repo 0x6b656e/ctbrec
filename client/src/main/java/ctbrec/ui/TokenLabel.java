@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.eventbus.Subscribe;
 
-import ctbrec.EventBusHolder;
+import ctbrec.event.EventBusHolder;
 import ctbrec.sites.Site;
 import javafx.application.Platform;
 import javafx.concurrent.Task;

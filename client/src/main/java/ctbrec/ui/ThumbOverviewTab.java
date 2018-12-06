@@ -25,8 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
-import ctbrec.EventBusHolder;
 import ctbrec.Model;
+import ctbrec.event.EventBusHolder;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
 import ctbrec.sites.mfc.MyFreeCamsClient;

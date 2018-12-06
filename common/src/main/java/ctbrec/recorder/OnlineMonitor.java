@@ -1,8 +1,6 @@
 package ctbrec.recorder;
 
-import static ctbrec.EventBusHolder.*;
-import static ctbrec.EventBusHolder.EVENT_TYPE.*;
-import static ctbrec.Model.STATUS.*;
+import static ctbrec.Model.State.*;
 
 import java.io.InterruptedIOException;
 import java.net.SocketTimeoutException;
@@ -18,9 +16,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
-import ctbrec.EventBusHolder;
 import ctbrec.Model;
-import ctbrec.Model.STATUS;
+import ctbrec.event.EventBusHolder;
+import ctbrec.event.ModelIsOnlineEvent;
+import ctbrec.event.ModelStateChangedEvent;
 import ctbrec.io.HttpException;
 
 public class OnlineMonitor extends Thread {
@@ -30,7 +29,7 @@ public class OnlineMonitor extends Thread {
     private volatile boolean running = false;
     private Recorder recorder;
 
-    private Map<Model, STATUS> states = new HashMap<>();
+    private Map<Model, Model.State> states = new HashMap<>();
 
     public OnlineMonitor(Recorder recorder) {
         this.recorder = recorder;
@@ -57,13 +56,13 @@ public class OnlineMonitor extends Thread {
             for (Model model : models) {
                 try {
                     if(model.isOnline(IGNORE_CACHE)) {
-                        fireModelOnline(model);
+                        EventBusHolder.BUS.post(new ModelIsOnlineEvent(model));
                     }
-                    STATUS state = model.getOnlineState(false);
-                    STATUS oldState = states.getOrDefault(model, UNKNOWN);
+                    Model.State state = model.getOnlineState(false);
+                    Model.State oldState = states.getOrDefault(model, UNKNOWN);
                     states.put(model, state);
                     if(state != oldState) {
-                        fireModelOnlineStateChanged(model, oldState, state);
+                        EventBusHolder.BUS.post(new ModelStateChangedEvent(model, oldState, state));
                     }
                 } catch (HttpException e) {
                     LOG.error("Couldn't check if model {} is online. HTTP Response: {} - {}",
@@ -96,22 +95,6 @@ public class OnlineMonitor extends Thread {
             }
         }
         LOG.debug(getName() + " terminated");
-    }
-
-    private void fireModelOnline(Model model) {
-        Map<String, Object> evt = new HashMap<>();
-        evt.put(EVENT, MODEL_ONLINE);
-        evt.put(MODEL, model);
-        EventBusHolder.BUS.post(evt);
-    }
-
-    private void fireModelOnlineStateChanged(Model model, STATUS oldStatus, STATUS newStatus) {
-        Map<String, Object> evt = new HashMap<>();
-        evt.put(EVENT, MODEL_STATUS_CHANGED);
-        evt.put(STATUS, newStatus);
-        evt.put(OLD, oldStatus);
-        evt.put(MODEL, model);
-        EventBusHolder.BUS.post(evt);
     }
 
     public void shutdown() {

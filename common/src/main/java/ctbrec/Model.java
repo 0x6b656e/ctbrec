@@ -14,7 +14,7 @@ import ctbrec.sites.Site;
 
 public interface Model {
 
-    public static enum STATUS {
+    public static enum State {
         ONLINE("online"),
         OFFLINE("offline"),
         AWAY("away"),
@@ -23,7 +23,7 @@ public interface Model {
         UNKNOWN("unknown");
 
         String display;
-        STATUS(String display) {
+        State(String display) {
             this.display = display;
         }
 
@@ -65,7 +65,7 @@ public interface Model {
 
     public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException;
 
-    public STATUS getOnlineState(boolean failFast) throws IOException, ExecutionException;
+    public State getOnlineState(boolean failFast) throws IOException, ExecutionException;
 
     public List<StreamSource> getStreamSources() throws IOException, ExecutionException, ParseException, PlaylistException;
 

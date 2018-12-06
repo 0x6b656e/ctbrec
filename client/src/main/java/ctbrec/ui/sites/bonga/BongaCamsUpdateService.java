@@ -1,6 +1,6 @@
 package ctbrec.ui.sites.bonga;
 
-import static ctbrec.Model.STATUS.*;
+import static ctbrec.Model.State.*;
 
 import java.io.IOException;
 import java.util.ArrayList;

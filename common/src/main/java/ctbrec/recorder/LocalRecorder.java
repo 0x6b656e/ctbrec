@@ -1,8 +1,7 @@
 package ctbrec.recorder;
 
-import static ctbrec.EventBusHolder.*;
-import static ctbrec.EventBusHolder.EVENT_TYPE.*;
-import static ctbrec.Recording.STATUS.*;
+import static ctbrec.Recording.State.*;
+import static ctbrec.event.Event.Type.*;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -24,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
@@ -38,11 +36,14 @@ import com.iheartradio.m3u8.ParseException;
 import com.iheartradio.m3u8.PlaylistException;
 
 import ctbrec.Config;
-import ctbrec.EventBusHolder;
 import ctbrec.Model;
 import ctbrec.OS;
 import ctbrec.Recording;
-import ctbrec.Recording.STATUS;
+import ctbrec.Recording.State;
+import ctbrec.event.Event;
+import ctbrec.event.EventBusHolder;
+import ctbrec.event.ModelIsOnlineEvent;
+import ctbrec.event.RecordingStateChangedEvent;
 import ctbrec.io.HttpClient;
 import ctbrec.io.StreamRedirectThread;
 import ctbrec.recorder.PlaylistGenerator.InvalidPlaylistException;
@@ -97,10 +98,11 @@ public class LocalRecorder implements Recorder {
     private void registerEventBusListener() {
         EventBusHolder.BUS.register(new Object() {
             @Subscribe
-            public void modelEvent(Map<String, Object> e) {
+            public void modelEvent(Event e) {
                 try {
-                    if (Objects.equals(e.get(EVENT), MODEL_ONLINE)) {
-                        Model model = (Model) e.get(MODEL);
+                    if (e.getType() == MODEL_ONLINE) {
+                        ModelIsOnlineEvent evt = (ModelIsOnlineEvent) e;
+                        Model model = evt.getModel();
                         if(!isSuspended(model) && !recordingProcesses.containsKey(model)) {
                             startRecordingProcess(model);
                         }
@@ -198,7 +200,6 @@ public class LocalRecorder implements Recorder {
                 }
             }
         }.start();
-        fireRecordingStateChanged(model, RECORDING);
     }
 
     private void stopRecordingProcess(Model model)  {
@@ -208,7 +209,7 @@ public class LocalRecorder implements Recorder {
         if(!Config.isServerMode()) {
             postprocess(download);
         }
-        fireRecordingStateChanged(model, FINISHED);
+        fireRecordingStateChanged(download.getTarget(), FINISHED, model, download.getStartTime());
     }
 
     private void postprocess(Download download) {
@@ -388,7 +389,7 @@ public class LocalRecorder implements Recorder {
                         } else {
                             postprocess(d);
                         }
-                        fireRecordingStateChanged(m, FINISHED); // TODO fire all the events
+                        fireRecordingStateChanged(d.getTarget(), FINISHED, m, d.getStartTime()); // TODO fire all the events
                     }
                 }
                 for (Model m : restart) {
@@ -439,13 +440,9 @@ public class LocalRecorder implements Recorder {
         }
     }
 
-    private void fireRecordingStateChanged(Model model, Recording.STATUS status) {
-        Map<String, Object> evt = new HashMap<>();
-        evt.put(EVENT, RECORDING_STATUS_CHANGED);
-        evt.put(STATUS, status);
-        evt.put(MODEL, model);
+    private void fireRecordingStateChanged(File path, Recording.State newState, Model model, Instant startTime) {
+        RecordingStateChangedEvent evt = new RecordingStateChangedEvent(path, newState, model, startTime);
         EventBusHolder.BUS.post(evt);
-        LOG.debug("Event fired {}", evt);
     }
 
     private class PostProcessingTrigger extends Thread {
@@ -532,7 +529,7 @@ public class LocalRecorder implements Recorder {
         return recordings;
     }
 
-    private STATUS getStatus(Recording recording) {
+    private State getStatus(Recording recording) {
         File absolutePath = new File(Config.getInstance().getSettings().recordingsDir, recording.getPath());
 
         PlaylistGenerator playlistGenerator = playlistGenerators.get(absolutePath);

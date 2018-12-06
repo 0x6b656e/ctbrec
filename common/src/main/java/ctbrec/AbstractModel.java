@@ -21,7 +21,7 @@ public abstract class AbstractModel implements Model {
     private int streamUrlIndex = -1;
     private boolean suspended = false;
     protected Site site;
-    protected STATUS onlineState = STATUS.UNKNOWN;
+    protected State onlineState = State.UNKNOWN;
 
     @Override
     public boolean isOnline() throws IOException, ExecutionException, InterruptedException {
@@ -123,11 +123,11 @@ public abstract class AbstractModel implements Model {
     }
 
     @Override
-    public STATUS getOnlineState(boolean failFast) throws IOException, ExecutionException {
+    public State getOnlineState(boolean failFast) throws IOException, ExecutionException {
         return onlineState;
     }
 
-    public void setOnlineState(STATUS status) {
+    public void setOnlineState(State status) {
         this.onlineState = status;
     }
 

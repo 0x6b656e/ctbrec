@@ -10,11 +10,11 @@ public class Recording {
     private Instant startDate;
     private String path;
     private boolean hasPlaylist;
-    private STATUS status = STATUS.UNKNOWN;
+    private State status = State.UNKNOWN;
     private int progress = -1;
     private long sizeInByte;
 
-    public static enum STATUS {
+    public static enum State {
         RECORDING,
         GENERATING_PLAYLIST,
         STOPPED,
@@ -50,11 +50,11 @@ public class Recording {
         this.startDate = startDate;
     }
 
-    public STATUS getStatus() {
+    public State getStatus() {
         return status;
     }
 
-    public void setStatus(STATUS status) {
+    public void setStatus(State status) {
         this.status = status;
     }
 

@@ -1,6 +1,6 @@
 package ctbrec.sites.camsoda;
 
-import static ctbrec.Model.STATUS.*;
+import static ctbrec.Model.State.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -102,7 +102,7 @@ public class CamsodaModel extends AbstractModel {
     }
 
     @Override
-    public STATUS getOnlineState(boolean failFast) throws IOException, ExecutionException {
+    public State getOnlineState(boolean failFast) throws IOException, ExecutionException {
         if(failFast) {
             return onlineState;
         } else {

@@ -18,10 +18,10 @@ import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 
 import ctbrec.Config;
-import ctbrec.EventBusHolder;
 import ctbrec.Hmac;
 import ctbrec.Model;
 import ctbrec.Recording;
+import ctbrec.event.EventBusHolder;
 import ctbrec.io.HttpClient;
 import ctbrec.io.HttpException;
 import ctbrec.io.InstantJsonAdapter;

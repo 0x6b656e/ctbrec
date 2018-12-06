@@ -601,7 +601,7 @@ public class MyFreeCamsClient {
                 String name = json.getString("nm");
                 MyFreeCamsModel model = mfc.createModel(name);
                 model.setUid(json.getInt("uid"));
-                model.setState(State.of(json.getInt("vs")));
+                model.setMfcState(State.of(json.getInt("vs")));
                 String uid = Integer.toString(model.getUid());
                 String uidStart = uid.substring(0, 3);
                 String previewUrl = "https://img.mfcimg.com/photos2/"+uidStart+'/'+uid+"/avatar.90x90.jpg";

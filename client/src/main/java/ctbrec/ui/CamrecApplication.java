@@ -1,8 +1,8 @@
 package ctbrec.ui;
 
-import static ctbrec.EventBusHolder.*;
-import static ctbrec.EventBusHolder.EVENT_TYPE.*;
-import static ctbrec.Model.STATUS.*;
+
+import static ctbrec.Model.State.*;
+import static ctbrec.event.Event.Type.*;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -14,7 +14,6 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 import org.slf4j.Logger;
@@ -26,11 +25,14 @@ import com.squareup.moshi.Moshi;
 import com.squareup.moshi.Types;
 
 import ctbrec.Config;
-import ctbrec.EventBusHolder;
 import ctbrec.Model;
 import ctbrec.OS;
 import ctbrec.StringUtil;
 import ctbrec.Version;
+import ctbrec.event.Event;
+import ctbrec.event.EventBusHolder;
+import ctbrec.event.LogReaction;
+import ctbrec.event.ModelStateChangedEvent;
 import ctbrec.io.HttpClient;
 import ctbrec.recorder.LocalRecorder;
 import ctbrec.recorder.OnlineMonitor;
@@ -42,6 +44,7 @@ import ctbrec.sites.cam4.Cam4;
 import ctbrec.sites.camsoda.Camsoda;
 import ctbrec.sites.chaturbate.Chaturbate;
 import ctbrec.sites.mfc.MyFreeCams;
+import ctbrec.ui.settings.SettingsTab;
 import javafx.application.Application;
 import javafx.application.HostServices;
 import javafx.application.Platform;
@@ -143,7 +146,7 @@ public class CamrecApplication extends Application {
             loadStyleSheet(primaryStage, "color.css");
         }
         loadStyleSheet(primaryStage, "style.css");
-        primaryStage.getScene().getStylesheets().add("/ctbrec/ui/ColorSettingsPane.css");
+        primaryStage.getScene().getStylesheets().add("/ctbrec/ui/settings/ColorSettingsPane.css");
         primaryStage.getScene().getStylesheets().add("/ctbrec/ui/ThumbCell.css");
         primaryStage.getScene().getStylesheets().add("/ctbrec/ui/controls/SearchBox.css");
         primaryStage.getScene().getStylesheets().add("/ctbrec/ui/controls/Popover.css");
@@ -212,40 +215,43 @@ public class CamrecApplication extends Application {
     }
 
     private void registerAlertSystem() {
-        new Thread(() -> {
-            //            try {
-            //                // don't register before 1 minute has passed, because directly after
-            //                // the start of ctbrec, an event for every online model would be fired,
-            //                // which is annoying as f
-            //                Thread.sleep(TimeUnit.MINUTES.toMillis(1));
-            //            } catch (InterruptedException e) {
-            //                e.printStackTrace();
-            //            }
-            LOG.debug("Alert System registered");
-            Platform.runLater(() -> {
-                EventBusHolder.BUS.register(new Object() {
-                    @Subscribe
-                    public void modelEvent(Map<String, Object> e) {
-                        try {
-                            if (Objects.equals(e.get(EVENT), MODEL_STATUS_CHANGED)) {
-                                LOG.debug("Alert: {}", e);
-                                Model.STATUS status = (Model.STATUS) e.get(STATUS);
-                                Model model = (Model) e.get(MODEL);
-                                if (status == ONLINE) {
-                                    Platform.runLater(() -> {
-                                        String header = "Model Online";
-                                        String msg = model.getDisplayName() + " is now online";
-                                        OS.notification(primaryStage.getTitle(), header, msg);
-                                    });
-                                }
-                            }
-                        } catch (Exception e1) {
-                            e1.printStackTrace();
+        //            try {
+        //                // don't register before 1 minute has passed, because directly after
+        //                // the start of ctbrec, an event for every online model would be fired,
+        //                // which is annoying as f
+        //                Thread.sleep(TimeUnit.MINUTES.toMillis(1));
+        //            } catch (InterruptedException e) {
+        //                e.printStackTrace();
+        //            }
+        EventBusHolder.BUS.register(new Object() {
+            @Subscribe
+            public void modelEvent(Event e) {
+                try {
+                    if (e.getType() == MODEL_STATUS_CHANGED) {
+                        ModelStateChangedEvent evt = (ModelStateChangedEvent) e;
+                        Model model = evt.getModel();
+                        if (evt.getNewState() == ONLINE) {
+                            String header = "Model Online";
+                            String msg = model.getDisplayName() + " is now online";
+                            OS.notification(primaryStage.getTitle(), header, msg);
                         }
                     }
-                });
-            });
-        }).start();
+                } catch (Exception e1) {
+                    LOG.error("Couldn't show notification", e1);
+                }
+            }
+        });
+
+        EventBusHolder.BUS.register(new Object() {
+            LogReaction reaction = new LogReaction();
+            @Subscribe
+            public void modelEvent(Event e) {
+                reaction.reactToEvent(e);
+            }
+        });
+
+
+        LOG.debug("Alert System registered");
     }
 
     private void writeColorSchemeStyleSheet(Stage primaryStage) {

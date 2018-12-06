@@ -369,7 +369,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
                                 .map(m -> new JavaFxModel(m))
                                 .peek(fxm -> {
                                     for (Recording recording : recordings) {
-                                        if(recording.getStatus() == Recording.STATUS.RECORDING &&
+                                        if(recording.getStatus() == Recording.State.RECORDING &&
                                                 recording.getModelName().equals(fxm.getName()))
                                         {
                                             fxm.getRecordingProperty().set(true);

@@ -1,5 +1,7 @@
 package ctbrec.recorder.download;
 
+import static ctbrec.Recording.State.*;
+
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -24,6 +26,8 @@ import com.iheartradio.m3u8.PlaylistException;
 
 import ctbrec.Config;
 import ctbrec.Model;
+import ctbrec.event.EventBusHolder;
+import ctbrec.event.RecordingStateChangedEvent;
 import ctbrec.io.HttpClient;
 import ctbrec.io.HttpException;
 import okhttp3.Request;
@@ -53,6 +57,10 @@ public class HlsDownload extends AbstractHlsDownload {
             if(!model.isOnline()) {
                 throw new IOException(model.getName() +"'s room is not public");
             }
+
+            // let the world know, that we are recording now
+            RecordingStateChangedEvent evt = new RecordingStateChangedEvent(getTarget(), RECORDING, model, getStartTime());
+            EventBusHolder.BUS.post(evt);
 
             String segments = getSegmentPlaylistUrl(model);
             if(segments != null) {

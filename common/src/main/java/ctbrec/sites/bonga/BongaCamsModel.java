@@ -1,6 +1,6 @@
 package ctbrec.sites.bonga;
 
-import static ctbrec.Model.STATUS.*;
+import static ctbrec.Model.State.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -85,7 +85,7 @@ public class BongaCamsModel extends AbstractModel {
     }
 
     @Override
-    public STATUS getOnlineState(boolean failFast) throws IOException, ExecutionException {
+    public State getOnlineState(boolean failFast) throws IOException, ExecutionException {
         if(failFast) {
             return onlineState;
         } else {
@@ -97,7 +97,7 @@ public class BongaCamsModel extends AbstractModel {
     }
 
     @Override
-    public void setOnlineState(STATUS onlineState) {
+    public void setOnlineState(State onlineState) {
         this.onlineState = onlineState;
     }
 

@@ -1,5 +1,6 @@
 package ctbrec.recorder.download;
 
+import static ctbrec.Recording.State.*;
 import static java.nio.file.StandardOpenOption.*;
 
 import java.io.ByteArrayInputStream;
@@ -44,6 +45,8 @@ import com.iheartradio.m3u8.PlaylistException;
 import ctbrec.Config;
 import ctbrec.Hmac;
 import ctbrec.Model;
+import ctbrec.event.EventBusHolder;
+import ctbrec.event.RecordingStateChangedEvent;
 import ctbrec.io.HttpClient;
 import ctbrec.io.HttpException;
 import ctbrec.recorder.ProgressListener;
@@ -126,6 +129,11 @@ public class MergedHlsDownload extends AbstractHlsDownload {
             splitRecStartTime = ZonedDateTime.now();
             super.model = model;
             targetFile = Config.getInstance().getFileForRecording(model);
+
+            // let the world know, that we are recording now
+            RecordingStateChangedEvent evt = new RecordingStateChangedEvent(getTarget(), RECORDING, model, getStartTime());
+            EventBusHolder.BUS.post(evt);
+
             String segments = getSegmentPlaylistUrl(model);
             mergeThread = createMergeThread(targetFile, null, true);
             mergeThread.start();

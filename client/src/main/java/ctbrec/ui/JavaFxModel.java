@@ -110,7 +110,7 @@ public class JavaFxModel implements Model {
     }
 
     @Override
-    public STATUS getOnlineState(boolean failFast) throws IOException, ExecutionException {
+    public State getOnlineState(boolean failFast) throws IOException, ExecutionException {
         return delegate.getOnlineState(failFast);
     }
 

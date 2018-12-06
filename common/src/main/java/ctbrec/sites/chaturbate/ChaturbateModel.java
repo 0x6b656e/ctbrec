@@ -1,6 +1,6 @@
 package ctbrec.sites.chaturbate;
 
-import static ctbrec.Model.STATUS.*;
+import static ctbrec.Model.State.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -76,12 +76,12 @@ public class ChaturbateModel extends AbstractModel {
         getChaturbate().streamInfoCache.invalidate(getName());
     }
 
-    public STATUS getOnlineState() throws IOException, ExecutionException {
+    public State getOnlineState() throws IOException, ExecutionException {
         return getOnlineState(false);
     }
 
     @Override
-    public STATUS getOnlineState(boolean failFast) throws IOException, ExecutionException {
+    public State getOnlineState(boolean failFast) throws IOException, ExecutionException {
         if(failFast) {
             StreamInfo info = getChaturbate().streamInfoCache.getIfPresent(getName());
             setOnlineStateByRoomStatus(info.room_status);
@@ -109,11 +109,11 @@ public class ChaturbateModel extends AbstractModel {
                 onlineState = AWAY;
                 break;
             case "group":
-                onlineState = STATUS.GROUP;
+                onlineState = State.GROUP;
                 break;
             default:
                 LOG.debug("Unknown show type {}", room_status);
-                onlineState = STATUS.UNKNOWN;
+                onlineState = State.UNKNOWN;
             }
         }
     }

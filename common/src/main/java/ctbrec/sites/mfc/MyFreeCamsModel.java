@@ -46,7 +46,7 @@ public class MyFreeCamsModel extends AbstractModel {
     private String hlsUrl;
     private double camScore;
     private int viewerCount;
-    private State state;
+    private ctbrec.sites.mfc.State state;
     private int resolution[] = new int[2];
 
     /**
@@ -61,7 +61,7 @@ public class MyFreeCamsModel extends AbstractModel {
     @Override
     public boolean isOnline() throws IOException, ExecutionException, InterruptedException {
         MyFreeCamsClient.getInstance().update(this);
-        return state == State.ONLINE;
+        return state == ctbrec.sites.mfc.State.ONLINE;
     }
 
     @Override
@@ -70,27 +70,27 @@ public class MyFreeCamsModel extends AbstractModel {
     }
 
     @Override
-    public STATUS getOnlineState(boolean failFast) throws IOException, ExecutionException {
+    public State getOnlineState(boolean failFast) throws IOException, ExecutionException {
         if(state == null) {
-            return STATUS.UNKNOWN;
+            return State.UNKNOWN;
         }
 
         switch(state) {
         case ONLINE:
         case RECORDING:
-            return ctbrec.Model.STATUS.ONLINE;
+            return ctbrec.Model.State.ONLINE;
         case AWAY:
-            return ctbrec.Model.STATUS.AWAY;
+            return ctbrec.Model.State.AWAY;
         case PRIVATE:
-            return ctbrec.Model.STATUS.PRIVATE;
+            return ctbrec.Model.State.PRIVATE;
         case GROUP_SHOW:
-            return ctbrec.Model.STATUS.GROUP;
+            return ctbrec.Model.State.GROUP;
         case OFFLINE:
         case CAMOFF:
-            return ctbrec.Model.STATUS.OFFLINE;
+            return ctbrec.Model.State.OFFLINE;
         default:
             LOG.debug("State {} is not mapped", this.state);
-            return ctbrec.Model.STATUS.UNKNOWN;
+            return ctbrec.Model.State.UNKNOWN;
         }
     }
 
@@ -233,7 +233,7 @@ public class MyFreeCamsModel extends AbstractModel {
         this.camScore = camScore;
     }
 
-    public void setState(State state) {
+    public void setMfcState(ctbrec.sites.mfc.State state) {
         this.state = state;
     }
 
@@ -249,7 +249,7 @@ public class MyFreeCamsModel extends AbstractModel {
     public void update(SessionState state, String streamUrl) {
         uid = Integer.parseInt(state.getUid().toString());
         setName(state.getNm());
-        setState(State.of(state.getVs()));
+        setMfcState(ctbrec.sites.mfc.State.of(state.getVs()));
         setStreamUrl(streamUrl);
         Optional<Double> camScore = Optional.ofNullable(state.getM()).map(m -> m.getCamscore());
         setCamScore(camScore.orElse(0.0));
@@ -258,7 +258,7 @@ public class MyFreeCamsModel extends AbstractModel {
         String uid = state.getUid().toString();
         String uidStart = uid.substring(0, 3);
         String previewUrl = "https://img.mfcimg.com/photos2/"+uidStart+'/'+uid+"/avatar.300x300.jpg";
-        if(MyFreeCamsModel.this.state == State.ONLINE) {
+        if(MyFreeCamsModel.this.state == ctbrec.sites.mfc.State.ONLINE) {
             try {
                 previewUrl = getLivePreviewUrl(state);
             } catch(Exception e) {

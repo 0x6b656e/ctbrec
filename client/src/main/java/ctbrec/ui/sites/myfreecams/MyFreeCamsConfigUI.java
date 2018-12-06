@@ -4,7 +4,7 @@ import ctbrec.Config;
 import ctbrec.Settings;
 import ctbrec.sites.mfc.MyFreeCams;
 import ctbrec.ui.DesktopIntegration;
-import ctbrec.ui.SettingsTab;
+import ctbrec.ui.settings.SettingsTab;
 import ctbrec.ui.sites.AbstractConfigUI;
 import javafx.geometry.Insets;
 import javafx.scene.Parent;

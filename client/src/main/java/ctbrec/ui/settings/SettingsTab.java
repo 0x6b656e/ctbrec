@@ -1,4 +1,4 @@
-package ctbrec.ui;
+package ctbrec.ui.settings;
 
 import static ctbrec.Settings.DirectoryStructure.*;
 
@@ -17,6 +17,9 @@ import ctbrec.Settings.DirectoryStructure;
 import ctbrec.StringUtil;
 import ctbrec.sites.ConfigUI;
 import ctbrec.sites.Site;
+import ctbrec.ui.AutosizeAlert;
+import ctbrec.ui.SiteUiFactory;
+import ctbrec.ui.TabSelectionListener;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -127,6 +130,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
 
         //right side
         rightSide.getChildren().add(siteConfigAccordion);
+        rightSide.getChildren().add(new ActionSettingsPanel(this));
         proxySettingsPane = new ProxySettingsPane(this);
         rightSide.getChildren().add(proxySettingsPane);
         for (int i = 0; i < sites.size(); i++) {
@@ -390,7 +394,6 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         GridPane.setMargin(showPlayerStarting, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(showPlayerStarting, 1, row++);
 
-
         l = new Label("Display stream resolution in overview");
         layout.add(l, 0, row);
         loadResolution = new CheckBox();
@@ -398,14 +401,10 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         loadResolution.setOnAction((e) -> {
             Config.getInstance().getSettings().determineResolution = loadResolution.isSelected();
             saveConfig();
-            if(!loadResolution.isSelected()) {
-                ThumbOverviewTab.queue.clear();
-            }
         });
         GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
         GridPane.setMargin(loadResolution, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(loadResolution, 1, row++);
-
 
         l = new Label("Manually select stream quality");
         layout.add(l, 0, row);

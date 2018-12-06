@@ -1,4 +1,4 @@
-package ctbrec.ui;
+package ctbrec.ui.settings;
 
 import ctbrec.Config;
 import javafx.scene.control.Button;

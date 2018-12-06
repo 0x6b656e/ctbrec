@@ -4,6 +4,7 @@ import static ctbrec.EventBusHolder.*;
 import static ctbrec.EventBusHolder.EVENT_TYPE.*;
 import static ctbrec.Model.STATUS.*;
 
+import java.io.InterruptedIOException;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.time.Instant;
@@ -69,6 +70,10 @@ public class OnlineMonitor extends Thread {
                             model.getName(), e.getResponseCode(), e.getResponseMessage());
                 } catch (SocketTimeoutException e) {
                     LOG.error("Couldn't check if model {} is online. Request timed out", model.getName());
+                } catch (InterruptedException | InterruptedIOException e) {
+                    if(running) {
+                        LOG.error("Couldn't check if model {} is online", model.getName(), e);
+                    }
                 } catch (Exception e) {
                     LOG.error("Couldn't check if model {} is online", model.getName(), e);
                 }
@@ -107,7 +112,6 @@ public class OnlineMonitor extends Thread {
         evt.put(OLD, oldStatus);
         evt.put(MODEL, model);
         EventBusHolder.BUS.post(evt);
-        LOG.debug("Event fired {}", evt);
     }
 
     public void shutdown() {

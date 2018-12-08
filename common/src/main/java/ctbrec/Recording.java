@@ -15,13 +15,24 @@ public class Recording {
     private long sizeInByte;
 
     public static enum State {
-        RECORDING,
-        GENERATING_PLAYLIST,
-        STOPPED,
-        FINISHED,
-        DOWNLOADING,
-        POST_PROCESSING,
-        UNKNOWN
+        RECORDING("recording"),
+        STOPPED("stopped"),
+        GENERATING_PLAYLIST("generating playlist"),
+        POST_PROCESSING("post-processing"),
+        FINISHED("finished"),
+        DOWNLOADING("downloading"),
+        UNKNOWN("unknown");
+
+        private String desc;
+
+        State(String desc) {
+            this.desc = desc;
+        }
+
+        @Override
+        public String toString() {
+            return desc;
+        }
     }
 
     public Recording() {}

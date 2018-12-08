@@ -2,11 +2,11 @@ package ctbrec.ui.settings;
 
 import static ctbrec.Settings.DirectoryStructure.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,18 +17,15 @@ import ctbrec.Settings.DirectoryStructure;
 import ctbrec.StringUtil;
 import ctbrec.sites.ConfigUI;
 import ctbrec.sites.Site;
-import ctbrec.ui.AutosizeAlert;
 import ctbrec.ui.SiteUiFactory;
 import ctbrec.ui.TabSelectionListener;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
+import ctbrec.ui.controls.DirectorySelectionBox;
+import ctbrec.ui.controls.ProgramSelectionBox;
 import javafx.collections.FXCollections;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Accordion;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -40,19 +37,12 @@ import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.TitledPane;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
-import javafx.scene.layout.Border;
-import javafx.scene.layout.BorderStroke;
-import javafx.scene.layout.BorderStrokeStyle;
-import javafx.scene.layout.BorderWidths;
 import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.stage.DirectoryChooser;
-import javafx.stage.FileChooser;;
+import javafx.scene.text.Font;;
 
 public class SettingsTab extends Tab implements TabSelectionListener {
 
@@ -60,11 +50,8 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private static final int ONE_GiB_IN_BYTES = 1024 * 1024 * 1024;
 
     public static final int CHECKBOX_MARGIN = 6;
-    private TextField recordingsDirectory;
-    private Button recordingsDirectoryButton;
-    private Button postProcessingDirectoryButton;
-    private TextField mediaPlayer;
-    private TextField postProcessing;
+    private DirectorySelectionBox recordingsDirectory;
+    private ProgramSelectionBox mediaPlayer;
     private TextField server;
     private TextField port;
     private TextField onlineCheckIntervalInSecs;
@@ -232,28 +219,22 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private Node createRecorderPanel() {
         int row = 0;
         GridPane layout = createGridLayout();
-        layout.add(new Label("Post-Processing"), 0, row);
-        postProcessing = new TextField(Config.getInstance().getSettings().postProcessing);
-        postProcessing.focusedProperty().addListener(createPostProcessingFocusListener());
-        GridPane.setFillWidth(postProcessing, true);
-        GridPane.setHgrow(postProcessing, Priority.ALWAYS);
-        GridPane.setColumnSpan(postProcessing, 2);
-        GridPane.setMargin(postProcessing, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        layout.add(postProcessing, 1, row);
-        postProcessingDirectoryButton = createPostProcessingBrowseButton();
-        layout.add(postProcessingDirectoryButton, 3, row++);
 
         layout.add(new Label("Recordings Directory"), 0, row);
-        recordingsDirectory = new TextField(Config.getInstance().getSettings().recordingsDir);
-        recordingsDirectory.focusedProperty().addListener(createRecordingsDirectoryFocusListener());
+        recordingsDirectory = new DirectorySelectionBox(Config.getInstance().getSettings().recordingsDir);
         recordingsDirectory.setPrefWidth(400);
+        recordingsDirectory.fileProperty().addListener((obs, o, n) -> {
+            String path = n.getAbsolutePath();
+            if(!Objects.equals(path, Config.getInstance().getSettings().recordingsDir)) {
+                Config.getInstance().getSettings().recordingsDir = path;
+                saveConfig();
+            }
+        });
         GridPane.setFillWidth(recordingsDirectory, true);
         GridPane.setHgrow(recordingsDirectory, Priority.ALWAYS);
         GridPane.setColumnSpan(recordingsDirectory, 2);
         GridPane.setMargin(recordingsDirectory, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        layout.add(recordingsDirectory, 1, row);
-        recordingsDirectoryButton = createRecordingsBrowseButton();
-        layout.add(recordingsDirectoryButton, 3, row++);
+        layout.add(recordingsDirectory, 1, row++);
 
         layout.add(new Label("Directory Structure"), 0, row);
         List<DirectoryStructure> options = new ArrayList<>();
@@ -363,14 +344,19 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         int row = 0;
 
         layout.add(new Label("Player"), 0, row);
-        mediaPlayer = new TextField(Config.getInstance().getSettings().mediaPlayer);
-        mediaPlayer.focusedProperty().addListener(createMpvFocusListener());
+        mediaPlayer = new ProgramSelectionBox(Config.getInstance().getSettings().mediaPlayer);
+        mediaPlayer.fileProperty().addListener((obs, o, n) -> {
+            String path = n.getAbsolutePath();
+            if (!Objects.equals(path, Config.getInstance().getSettings().mediaPlayer)) {
+                Config.getInstance().getSettings().mediaPlayer = path;
+                saveConfig();
+            }
+        });
         GridPane.setFillWidth(mediaPlayer, true);
         GridPane.setHgrow(mediaPlayer, Priority.ALWAYS);
         GridPane.setColumnSpan(mediaPlayer, 2);
         GridPane.setMargin(mediaPlayer, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        layout.add(mediaPlayer, 1, row);
-        layout.add(createMpvBrowseButton(), 3, row++);
+        layout.add(mediaPlayer, 1, row++);
 
         Label l = new Label("Allow multiple players");
         layout.add(l, 0, row);
@@ -486,182 +472,11 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         port.setDisable(local);
         secureCommunication.setDisable(local);
         recordingsDirectory.setDisable(!local);
-        recordingsDirectoryButton.setDisable(!local);
         splitAfter.setDisable(!local);
         maxResolution.setDisable(!local);
-        postProcessing.setDisable(!local);
-        postProcessingDirectoryButton.setDisable(!local);
         directoryStructure.setDisable(!local);
         onlineCheckIntervalInSecs.setDisable(!local);
         leaveSpaceOnDevice.setDisable(!local);
-    }
-
-    private ChangeListener<? super Boolean> createRecordingsDirectoryFocusListener() {
-        return new ChangeListener<Boolean>() {
-            @Override
-            public void changed(ObservableValue<? extends Boolean> arg0, Boolean oldPropertyValue, Boolean newPropertyValue) {
-                if (newPropertyValue) {
-                    recordingsDirectory.setBorder(Border.EMPTY);
-                    recordingsDirectory.setTooltip(null);
-                } else {
-                    String input = recordingsDirectory.getText();
-                    File newDir = new File(input);
-                    setRecordingsDir(newDir);
-                }
-            }
-        };
-    }
-
-    private ChangeListener<? super Boolean> createMpvFocusListener() {
-        return new ChangeListener<Boolean>() {
-            @Override
-            public void changed(ObservableValue<? extends Boolean> arg0, Boolean oldPropertyValue, Boolean newPropertyValue) {
-                if (newPropertyValue) {
-                    mediaPlayer.setBorder(Border.EMPTY);
-                    mediaPlayer.setTooltip(null);
-                } else {
-                    String input = mediaPlayer.getText();
-                    File program = new File(input);
-                    setMpv(program);
-                }
-            }
-        };
-    }
-
-    private ChangeListener<? super Boolean> createPostProcessingFocusListener() {
-        return new ChangeListener<Boolean>() {
-            @Override
-            public void changed(ObservableValue<? extends Boolean> arg0, Boolean oldPropertyValue, Boolean newPropertyValue) {
-                if (newPropertyValue) {
-                    postProcessing.setBorder(Border.EMPTY);
-                    postProcessing.setTooltip(null);
-                } else {
-                    String input = postProcessing.getText();
-                    if(!input.trim().isEmpty()) {
-                        File program = new File(input);
-                        setPostProcessing(program);
-                    } else {
-                        Config.getInstance().getSettings().postProcessing = "";
-                        saveConfig();
-                    }
-                }
-            }
-        };
-    }
-
-    private void setMpv(File program) {
-        String msg = validateProgram(program);
-        if (msg != null) {
-            mediaPlayer.setBorder(new Border(new BorderStroke(Color.RED, BorderStrokeStyle.DASHED, new CornerRadii(2), new BorderWidths(2))));
-            mediaPlayer.setTooltip(new Tooltip(msg));
-        } else {
-            Config.getInstance().getSettings().mediaPlayer = mediaPlayer.getText();
-            saveConfig();
-        }
-    }
-
-    private void setPostProcessing(File program) {
-        String msg = validateProgram(program);
-        if (msg != null) {
-            postProcessing.setBorder(new Border(new BorderStroke(Color.RED, BorderStrokeStyle.DASHED, new CornerRadii(2), new BorderWidths(2))));
-            postProcessing.setTooltip(new Tooltip(msg));
-        } else {
-            Config.getInstance().getSettings().postProcessing = postProcessing.getText();
-            saveConfig();
-        }
-    }
-
-    private String validateProgram(File program) {
-        if (program == null || !program.exists()) {
-            return "File does not exist";
-        } else if (!program.isFile() || !program.canExecute()) {
-            return "This is not an executable application";
-        }
-        return null;
-    }
-
-    private Button createRecordingsBrowseButton() {
-        Button button = new Button("Select");
-        button.setOnAction((e) -> {
-            DirectoryChooser chooser = new DirectoryChooser();
-            File currentDir = new File(Config.getInstance().getSettings().recordingsDir);
-            if (currentDir.exists() && currentDir.isDirectory()) {
-                chooser.setInitialDirectory(currentDir);
-            }
-            File selectedDir = chooser.showDialog(null);
-            if(selectedDir != null) {
-                setRecordingsDir(selectedDir);
-            }
-        });
-        return button;
-    }
-
-    private Node createMpvBrowseButton() {
-        Button button = new Button("Select");
-        button.setOnAction((e) -> {
-            FileChooser chooser = new FileChooser();
-            File program = chooser.showOpenDialog(null);
-            if(program != null) {
-                try {
-                    mediaPlayer.setText(program.getCanonicalPath());
-                } catch (IOException e1) {
-                    LOG.error("Couldn't determine path", e1);
-                    Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
-                    alert.setTitle("Whoopsie");
-                    alert.setContentText("Couldn't determine path");
-                    alert.showAndWait();
-                }
-                setMpv(program);
-            }
-        });
-        return button;
-    }
-
-    private Button createPostProcessingBrowseButton() {
-        Button button = new Button("Select");
-        button.setOnAction((e) -> {
-            FileChooser chooser = new FileChooser();
-            File program = chooser.showOpenDialog(null);
-            if(program != null) {
-                try {
-                    postProcessing.setText(program.getCanonicalPath());
-                } catch (IOException e1) {
-                    LOG.error("Couldn't determine path", e1);
-                    Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
-                    alert.setTitle("Whoopsie");
-                    alert.setContentText("Couldn't determine path");
-                    alert.showAndWait();
-                }
-                setPostProcessing(program);
-            }
-        });
-        return button;
-    }
-
-    private void setRecordingsDir(File dir) {
-        if (dir != null && dir.isDirectory()) {
-            try {
-                String path = dir.getCanonicalPath();
-                Config.getInstance().getSettings().recordingsDir = path;
-                recordingsDirectory.setText(path);
-                saveConfig();
-            } catch (IOException e1) {
-                LOG.error("Couldn't determine directory path", e1);
-                Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
-                alert.setTitle("Whoopsie");
-                alert.setContentText("Couldn't determine directory path");
-                alert.showAndWait();
-            }
-        } else {
-            recordingsDirectory.setBorder(new Border(new BorderStroke(Color.RED, BorderStrokeStyle.DASHED, new CornerRadii(2), new BorderWidths(2))));
-            if (!dir.isDirectory()) {
-                recordingsDirectory.setTooltip(new Tooltip("This is not a directory"));
-            }
-            if (!dir.exists()) {
-                recordingsDirectory.setTooltip(new Tooltip("Directory does not exist"));
-            }
-
-        }
     }
 
     @Override

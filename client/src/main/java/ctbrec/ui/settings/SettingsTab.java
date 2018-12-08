@@ -91,18 +91,26 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         ColumnConstraints cc = new ColumnConstraints();
         cc.setPercentWidth(50);
         mainLayout.getColumnConstraints().setAll(cc, cc);
-        setContent(new ScrollPane(mainLayout));
+        ScrollPane scrollPane = new ScrollPane(mainLayout);
+        setContent(scrollPane);
+        GridPane.setFillHeight(scrollPane, true);
+        GridPane.setFillWidth(scrollPane, true);
+        GridPane.setHgrow(scrollPane, Priority.ALWAYS);
+        GridPane.setVgrow(scrollPane, Priority.ALWAYS);
         VBox leftSide = new VBox(15);
+        leftSide.setFillWidth(true);
         VBox rightSide = new VBox(15);
+        rightSide.setFillWidth(true);
         GridPane.setHgrow(leftSide, Priority.ALWAYS);
         GridPane.setHgrow(rightSide, Priority.ALWAYS);
         GridPane.setFillWidth(leftSide, true);
         GridPane.setFillWidth(rightSide, true);
         mainLayout.add(leftSide, 0, 1);
         mainLayout.add(rightSide, 1, 1);
+        mainLayout.prefWidthProperty().bind(scrollPane.widthProperty());
 
         // restart info label
-        restartLabel = new Label("A restart is required to apply changes you made!");
+        restartLabel = new Label("A restart is required to apply the changes you made!");
         restartLabel.setVisible(false);
         restartLabel.setFont(Font.font(24));
         restartLabel.setTextFill(Color.RED);
@@ -222,7 +230,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
 
         layout.add(new Label("Recordings Directory"), 0, row);
         recordingsDirectory = new DirectorySelectionBox(Config.getInstance().getSettings().recordingsDir);
-        recordingsDirectory.setPrefWidth(400);
+        recordingsDirectory.prefWidth(400);
         recordingsDirectory.fileProperty().addListener((obs, o, n) -> {
             String path = n.getAbsolutePath();
             if(!Objects.equals(path, Config.getInstance().getSettings().recordingsDir)) {
@@ -232,7 +240,6 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         });
         GridPane.setFillWidth(recordingsDirectory, true);
         GridPane.setHgrow(recordingsDirectory, Priority.ALWAYS);
-        GridPane.setColumnSpan(recordingsDirectory, 2);
         GridPane.setMargin(recordingsDirectory, new Insets(0, 0, 0, CHECKBOX_MARGIN));
         layout.add(recordingsDirectory, 1, row++);
 
@@ -247,9 +254,9 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             Config.getInstance().getSettings().recordingsDirStructure = directoryStructure.getValue();
             saveConfig();
         });
-        GridPane.setColumnSpan(directoryStructure, 2);
         GridPane.setMargin(directoryStructure, new Insets(0, 0, 0, CHECKBOX_MARGIN));
         layout.add(directoryStructure, 1, row++);
+        recordingsDirectory.prefWidthProperty().bind(directoryStructure.widthProperty());
 
         Label l = new Label("Maximum resolution (0 = unlimited)");
         layout.add(l, 0, row);
@@ -354,7 +361,6 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         });
         GridPane.setFillWidth(mediaPlayer, true);
         GridPane.setHgrow(mediaPlayer, Priority.ALWAYS);
-        GridPane.setColumnSpan(mediaPlayer, 2);
         GridPane.setMargin(mediaPlayer, new Insets(0, 0, 0, CHECKBOX_MARGIN));
         layout.add(mediaPlayer, 1, row++);
 
@@ -417,15 +423,15 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         l = new Label("Start Tab");
         layout.add(l, 0, row);
         startTab = new ComboBox<>();
-        layout.add(startTab, 1, row++);
         startTab.setOnAction((e) -> {
             Config.getInstance().getSettings().startTab = startTab.getSelectionModel().getSelectedItem();
             saveConfig();
         });
+        layout.add(startTab, 1, row++);
         GridPane.setMargin(l, new Insets(0, 0, 0, 0));
         GridPane.setMargin(startTab, new Insets(0, 0, 0, CHECKBOX_MARGIN));
 
-        l = new Label("Colors");
+        l = new Label("Colors (Base / Accent)");
         layout.add(l, 0, row);
         ColorSettingsPane colorSettingsPane = new ColorSettingsPane(this);
         layout.add(colorSettingsPane, 1, row++);

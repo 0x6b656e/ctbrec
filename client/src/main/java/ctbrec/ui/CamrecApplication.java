@@ -26,12 +26,10 @@ import com.squareup.moshi.Types;
 
 import ctbrec.Config;
 import ctbrec.Model;
-import ctbrec.OS;
 import ctbrec.StringUtil;
 import ctbrec.Version;
 import ctbrec.event.Event;
 import ctbrec.event.EventBusHolder;
-import ctbrec.event.LogReaction;
 import ctbrec.event.ModelStateChangedEvent;
 import ctbrec.io.HttpClient;
 import ctbrec.recorder.LocalRecorder;
@@ -73,7 +71,7 @@ public class CamrecApplication extends Application {
     private TabPane rootPane = new TabPane();
     private List<Site> sites = new ArrayList<>();
     public static HttpClient httpClient;
-
+    public static String title;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -114,7 +112,8 @@ public class CamrecApplication extends Application {
 
     private void createGui(Stage primaryStage) throws IOException {
         LOG.debug("Creating GUI");
-        primaryStage.setTitle("CTB Recorder " + getVersion());
+        CamrecApplication.title = "CTB Recorder " + getVersion();
+        primaryStage.setTitle(title);
         InputStream icon = getClass().getResourceAsStream("/icon.png");
         primaryStage.getIcons().add(new Image(icon));
         int windowWidth = Config.getInstance().getSettings().windowWidth;
@@ -230,10 +229,11 @@ public class CamrecApplication extends Application {
                     if (e.getType() == MODEL_STATUS_CHANGED) {
                         ModelStateChangedEvent evt = (ModelStateChangedEvent) e;
                         Model model = evt.getModel();
-                        if (evt.getNewState() == ONLINE) {
+                        if (evt.getNewState() == ONLINE && primaryStage != null && primaryStage.getTitle() != null) {
                             String header = "Model Online";
                             String msg = model.getDisplayName() + " is now online";
-                            OS.notification(primaryStage.getTitle(), header, msg);
+                            LOG.debug(msg);
+                            //OS.notification(primaryStage.getTitle(), header, msg);
                         }
                     }
                 } catch (Exception e1) {
@@ -242,13 +242,16 @@ public class CamrecApplication extends Application {
             }
         });
 
-        EventBusHolder.BUS.register(new Object() {
-            LogReaction reaction = new LogReaction();
-            @Subscribe
-            public void modelEvent(Event e) {
-                reaction.reactToEvent(e);
-            }
-        });
+        //        EventBusHolder.BUS.register(new Object() {
+        //            URL url = CamrecApplication.class.getResource("/Oxygen-Im-Highlight-Msg.mp3");
+        //            PlaySound playSound = new PlaySound(url);
+        //            EventHandler reaction = new EventHandler(playSound);
+        //            //            LogReaction reaction = new LogReaction();
+        //            @Subscribe
+        //            public void modelEvent(Event e) {
+        //                reaction.reactToEvent(e);
+        //            }
+        //        });
 
 
         LOG.debug("Alert System registered");

@@ -7,18 +7,29 @@ public abstract class Event {
          * This event is fired every time the OnlineMonitor sees a model online
          * It is also fired, if the model was online before. You can see it as a "still online ping".
          */
-        MODEL_ONLINE,
+        MODEL_ONLINE("Model is online"),
 
         /**
          * This event is fired whenever the model's online state (Model.STATUS) changes.
          */
-        MODEL_STATUS_CHANGED,
+        MODEL_STATUS_CHANGED("Model status changed"),
 
 
         /**
          * This event is fired whenever the state of a recording changes.
          */
-        RECORDING_STATUS_CHANGED
+        RECORDING_STATUS_CHANGED("Recording status changed");
+
+        private String desc;
+
+        Type(String desc) {
+            this.desc = desc;
+        }
+
+        @Override
+        public String toString() {
+            return desc;
+        }
     }
 
     public abstract Type getType();

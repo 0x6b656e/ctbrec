@@ -1,18 +1,24 @@
 package ctbrec.event;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-public class EventReaction {
+public class EventHandler {
 
     private List<Predicate<Event>> predicates = new ArrayList<>();
-    private Consumer<Event> action;
+    private List<Consumer<Event>> actions;
 
     @SafeVarargs
-    public EventReaction(Consumer<Event> action, Predicate<Event>... predicates) {
-        this.action = action;
+    public EventHandler(Consumer<Event> action, Predicate<Event>... predicates) {
+        this(Collections.singletonList(action), predicates);
+    }
+
+    @SafeVarargs
+    public EventHandler(List<Consumer<Event>> actions, Predicate<Event>... predicates) {
+        this.actions = actions;
         for (Predicate<Event> predicate : predicates) {
             this.predicates.add(predicate);
         }
@@ -26,7 +32,9 @@ public class EventReaction {
             }
         }
         if(matches) {
-            action.accept(evt);
+            for (Consumer<Event> action : actions) {
+                action.accept(evt);
+            }
         }
     }
 }

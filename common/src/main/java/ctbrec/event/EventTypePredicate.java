@@ -4,11 +4,11 @@ import java.util.function.Predicate;
 
 import ctbrec.event.Event.Type;
 
-public class TypePredicate implements Predicate<Event> {
+public class EventTypePredicate implements Predicate<Event> {
 
     private Type type;
 
-    private TypePredicate(Type type) {
+    private EventTypePredicate(Type type) {
         this.type = type;
     }
 
@@ -17,7 +17,7 @@ public class TypePredicate implements Predicate<Event> {
         return evt.getType() == type;
     }
 
-    public static TypePredicate of(Type type) {
-        return new TypePredicate(type);
+    public static EventTypePredicate of(Type type) {
+        return new EventTypePredicate(type);
     }
 }

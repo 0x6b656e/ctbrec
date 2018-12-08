@@ -130,7 +130,8 @@ public class SettingsTab extends Tab implements TabSelectionListener {
 
         //right side
         rightSide.getChildren().add(siteConfigAccordion);
-        rightSide.getChildren().add(new ActionSettingsPanel(this));
+        ActionSettingsPanel actions = new ActionSettingsPanel(this);
+        rightSide.getChildren().add(actions);
         proxySettingsPane = new ProxySettingsPane(this);
         rightSide.getChildren().add(proxySettingsPane);
         for (int i = 0; i < sites.size(); i++) {
@@ -141,7 +142,6 @@ public class SettingsTab extends Tab implements TabSelectionListener {
                 siteConfigAccordion.getPanes().add(pane);
             }
         }
-        siteConfigAccordion.setExpandedPane(siteConfigAccordion.getPanes().get(0));
     }
 
     private Node createRecordLocationPanel() {

@@ -3,6 +3,13 @@ package ctbrec.ui.controls;
 import java.io.File;
 
 public class FileSelectionBox extends AbstractFileSelectionBox {
+    public FileSelectionBox() {
+    }
+
+    public FileSelectionBox(String initialValue) {
+        super(initialValue);
+    }
+
     @Override
     protected String validate(File file) {
         String msg = super.validate(file);

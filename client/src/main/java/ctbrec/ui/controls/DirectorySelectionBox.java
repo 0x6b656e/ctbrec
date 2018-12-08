@@ -2,7 +2,27 @@ package ctbrec.ui.controls;
 
 import java.io.File;
 
+import javafx.stage.DirectoryChooser;
+
 public class DirectorySelectionBox extends AbstractFileSelectionBox {
+    public DirectorySelectionBox(String dir) {
+        super(dir);
+    }
+
+    @Override
+    protected void choose() {
+        DirectoryChooser chooser = new DirectoryChooser();
+        File currentDir = fileProperty().get();
+        if (currentDir.exists() && currentDir.isDirectory()) {
+            chooser.setInitialDirectory(currentDir);
+        }
+        File selectedDir = chooser.showDialog(null);
+        if(selectedDir != null) {
+            fileInput.setText(selectedDir.getAbsolutePath());
+            setFile(selectedDir);
+        }
+    }
+
     @Override
     protected String validate(File file) {
         String msg = super.validate(file);

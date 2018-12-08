@@ -39,7 +39,7 @@ public abstract class AbstractFileSelectionBox extends HBox {
             return "file";
         }
     };
-    private TextField fileInput;
+    protected TextField fileInput;
     private Tooltip validationError = new Tooltip();
 
     public AbstractFileSelectionBox() {
@@ -57,16 +57,21 @@ public abstract class AbstractFileSelectionBox extends HBox {
         browse.disableProperty().bind(disableProperty());
     }
 
+    public AbstractFileSelectionBox(String initialValue) {
+        this();
+        fileInput.setText(initialValue);
+    }
+
     private ChangeListener<? super String> textListener() {
         return (obs, o, n) -> {
             String input = fileInput.getText();
             File program = new File(input);
-            setProgram(program);
+            setFile(program);
         };
     }
 
-    private void setProgram(File program) {
-        String msg = validate(program);
+    protected void setFile(File file) {
+        String msg = validate(file);
         if (msg != null) {
             fileInput.setBorder(new Border(new BorderStroke(Color.RED, BorderStrokeStyle.DASHED, new CornerRadii(2), new BorderWidths(2))));
             validationError.setText(msg);
@@ -78,7 +83,7 @@ public abstract class AbstractFileSelectionBox extends HBox {
         } else {
             fileInput.setBorder(Border.EMPTY);
             fileInput.setTooltip(null);
-            fileProperty.set(program);
+            fileProperty.set(file);
             validationError.hide();
         }
     }
@@ -94,21 +99,29 @@ public abstract class AbstractFileSelectionBox extends HBox {
     private Button createBrowseButton() {
         Button button = new Button("Select");
         button.setOnAction((e) -> {
-            FileChooser chooser = new FileChooser();
-            File program = chooser.showOpenDialog(null);
-            if(program != null) {
-                try {
-                    fileInput.setText(program.getCanonicalPath());
-                } catch (IOException e1) {
-                    LOG.error("Couldn't determine path", e1);
-                    Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
-                    alert.setTitle("Whoopsie");
-                    alert.setContentText("Couldn't determine path");
-                    alert.showAndWait();
-                }
-                setProgram(program);
-            }
+            choose();
         });
         return button;
+    }
+
+    protected void choose() {
+        FileChooser chooser = new FileChooser();
+        File program = chooser.showOpenDialog(null);
+        if(program != null) {
+            try {
+                fileInput.setText(program.getCanonicalPath());
+            } catch (IOException e1) {
+                LOG.error("Couldn't determine path", e1);
+                Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
+                alert.setTitle("Whoopsie");
+                alert.setContentText("Couldn't determine path");
+                alert.showAndWait();
+            }
+            setFile(program);
+        }
+    }
+
+    public ObjectProperty<File> fileProperty() {
+        return fileProperty;
     }
 }

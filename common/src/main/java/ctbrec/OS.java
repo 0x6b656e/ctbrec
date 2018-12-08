@@ -16,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.io.StreamRedirectThread;
-import javafx.scene.media.AudioClip;
 
 public class OS {
 
@@ -115,8 +114,6 @@ public class OS {
             });
             new Thread(new StreamRedirectThread(p.getInputStream(), System.out)).start();
             new Thread(new StreamRedirectThread(p.getErrorStream(), System.err)).start();
-            AudioClip clip = new AudioClip(OS.class.getResource("/Oxygen-Im-Highlight-Msg.mp3").toString());
-            clip.play();
         } catch (IOException e1) {
             LOG.error("Notification failed", e1);
         }

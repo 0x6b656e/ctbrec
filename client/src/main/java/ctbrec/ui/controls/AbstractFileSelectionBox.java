@@ -22,6 +22,7 @@ import javafx.scene.layout.BorderStrokeStyle;
 import javafx.scene.layout.BorderWidths;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 
@@ -55,6 +56,7 @@ public abstract class AbstractFileSelectionBox extends HBox {
         getChildren().addAll(fileInput, browse);
         fileInput.disableProperty().bind(disableProperty());
         browse.disableProperty().bind(disableProperty());
+        HBox.setHgrow(fileInput, Priority.ALWAYS);
     }
 
     public AbstractFileSelectionBox(String initialValue) {

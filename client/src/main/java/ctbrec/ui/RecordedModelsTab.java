@@ -3,6 +3,7 @@ package ctbrec.ui;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -296,13 +297,13 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         massEdit(models, action);
     }
 
-    private void massEdit(List<Model> models, Consumer<Model> action) {
-        getTabPane().setCursor(Cursor.WAIT);
+    private void massEdit(List<? extends Model> models, Consumer<Model> action) {
+        table.setCursor(Cursor.WAIT);
         threadPool.submit(() -> {
             for (Model model : models) {
                 action.accept(model);
             }
-            Platform.runLater(() -> getTabPane().setCursor(Cursor.DEFAULT));
+            Platform.runLater(() -> table.setCursor(Cursor.DEFAULT));
         });
     }
 
@@ -443,6 +444,8 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         openInPlayer.setOnAction((e) -> openInPlayer(selectedModels.get(0)));
         MenuItem switchStreamSource = new MenuItem("Switch resolution");
         switchStreamSource.setOnAction((e) -> switchStreamSource(selectedModels.get(0)));
+        MenuItem follow = new MenuItem("Follow");
+        follow.setOnAction((e) -> follow(selectedModels));
 
         ContextMenu menu = new ContextMenu(stop);
         if (selectedModels.size() == 1) {
@@ -450,7 +453,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         } else {
             menu.getItems().addAll(resumeRecording, pauseRecording);
         }
-        menu.getItems().addAll(copyUrl, openInPlayer, openInBrowser, switchStreamSource);
+        menu.getItems().addAll(copyUrl, openInPlayer, openInBrowser, switchStreamSource, follow);
 
         if (selectedModels.size() > 1) {
             copyUrl.setDisable(true);
@@ -460,6 +463,19 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         }
 
         return menu;
+    }
+
+    private void follow(ObservableList<JavaFxModel> selectedModels) {
+        Consumer<Model> action = (m) -> {
+            try {
+                m.follow();
+            } catch(Throwable e) {
+                LOG.error("Couldn't follow model {}", m, e);
+                Platform.runLater(() ->
+                showErrorDialog(e, "Couldn't follow model", "Following " + m.getName() + " failed: " + e.getMessage()));
+            }
+        };
+        massEdit(new ArrayList<JavaFxModel>(selectedModels), action);
     }
 
     private void openInPlayer(JavaFxModel selectedModel) {

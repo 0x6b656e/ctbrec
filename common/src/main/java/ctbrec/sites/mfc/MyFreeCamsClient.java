@@ -10,10 +10,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -52,7 +51,6 @@ public class MyFreeCamsClient {
     private Cache<Integer, SessionState> sessionStates = CacheBuilder.newBuilder().maximumSize(4000).build();
     private Cache<Integer, MyFreeCamsModel> models = CacheBuilder.newBuilder().maximumSize(4000).build();
     private Lock lock = new ReentrantLock();
-    private ExecutorService executor = Executors.newSingleThreadExecutor();
     private ServerConfig serverConfig;
     @SuppressWarnings("unused")
     private String tkx;
@@ -86,9 +84,15 @@ public class MyFreeCamsClient {
     public void start() throws IOException {
         running = true;
         serverConfig = new ServerConfig(mfc);
-        List<String> websocketServers = new ArrayList<String>(serverConfig.wsServers.keySet());
-        String server = websocketServers.get((int) (Math.random()*websocketServers.size()));
+        List<String> websocketServers = new ArrayList<String>(serverConfig.wsServers.size());
+        for (Entry<String, String> entry : serverConfig.wsServers.entrySet()) {
+            if (entry.getValue().equals("rfc6455")) {
+                websocketServers.add(entry.getKey());
+            }
+        }
+        String server = websocketServers.get((int) (Math.random() * websocketServers.size() - 1));
         String wsUrl = "ws://" + server + ".myfreecams.com:8080/fcsl";
+        LOG.debug("Connecting to random websocket server {}", wsUrl);
 
         Thread watchDog = new Thread(() -> {
             while(running) {
@@ -307,7 +311,7 @@ public class MyFreeCamsClient {
                     long opts = json.getInt("opts");
                     long serv = json.getInt("serv");
                     long type = json.getInt("type");
-                    String base = "http://www.myfreecams.com/php/FcwExtResp.php";
+                    String base = mfc.getBaseUrl() + "/php/FcwExtResp.php";
                     String url = base + "?respkey="+respkey+"&opts="+opts+"&serv="+serv+"&type="+type;
                     Request req = new Request.Builder().url(url).build();
                     LOG.trace("Requesting EXTDATA {}", url);
@@ -565,10 +569,6 @@ public class MyFreeCamsClient {
 
     public MyFreeCamsModel getModel(int uid) {
         return models.getIfPresent(uid);
-    }
-
-    public void execute(Runnable r) {
-        executor.execute(r);
     }
 
     public void getSessionState(ctbrec.Model model) {

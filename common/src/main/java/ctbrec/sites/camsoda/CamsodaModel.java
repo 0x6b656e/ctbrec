@@ -6,14 +6,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.iheartradio.m3u8.Encoding;
 import com.iheartradio.m3u8.Format;
 import com.iheartradio.m3u8.ParseException;
@@ -41,12 +38,7 @@ public class CamsodaModel extends AbstractModel {
     private List<StreamSource> streamSources = null;
     private String status = "n/a";
     private float sortOrder = 0;
-
-    private static Cache<String, int[]> streamResolutionCache = CacheBuilder.newBuilder()
-            .initialCapacity(10_000)
-            .maximumSize(10_000)
-            .expireAfterWrite(30, TimeUnit.MINUTES)
-            .build();
+    int[] resolution = new int[2];
 
     public String getStreamUrl() throws IOException {
         if(streamUrl == null) {
@@ -139,13 +131,11 @@ public class CamsodaModel extends AbstractModel {
     @Override
     public void invalidateCacheEntries() {
         streamSources = null;
-        streamResolutionCache.invalidate(getName());
     }
 
     @Override
     public int[] getStreamResolution(boolean failFast) throws ExecutionException {
-        int[] resolution = streamResolutionCache.getIfPresent(getName());
-        if(resolution != null) {
+        if(failFast) {
             return resolution;
         } else {
             if(failFast) {
@@ -158,7 +148,6 @@ public class CamsodaModel extends AbstractModel {
                     } else {
                         StreamSource src = streamSources.get(0);
                         resolution = new int[] {src.width, src.height};
-                        streamResolutionCache.put(getName(), resolution);
                         return resolution;
                     }
                 } catch (IOException | ParseException | PlaylistException e) {

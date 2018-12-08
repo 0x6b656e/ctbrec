@@ -44,7 +44,11 @@ public class StreamSource implements Comparable<StreamSource> {
     public String toString() {
         DecimalFormat df = new DecimalFormat("0.00");
         float mbit = bandwidth / 1024.0f / 1024.0f;
-        return height + "p (" + df.format(mbit) + " Mbit/s)";
+        if(height == Integer.MAX_VALUE) {
+            return "unknown resolution (" + df.format(mbit) + " Mbit/s)";
+        } else {
+            return height + "p (" + df.format(mbit) + " Mbit/s)";
+        }
     }
 
     /**

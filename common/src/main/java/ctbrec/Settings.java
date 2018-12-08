@@ -49,6 +49,7 @@ public class Settings {
     public String mfcUsername = "";
     public String mfcPassword = "";
     public String mfcBaseUrl = "https://www.myfreecams.com";
+    public boolean mfcIgnoreUpscaled = false;
     public String camsodaUsername = "";
     public String camsodaPassword = "";
     public String cam4Username;

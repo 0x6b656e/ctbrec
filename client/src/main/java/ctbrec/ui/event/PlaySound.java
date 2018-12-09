@@ -12,11 +12,13 @@ public class PlaySound extends Action {
 
     private URL url;
 
-    public PlaySound() {}
+    public PlaySound() {
+        name = "play sound";
+    }
 
     public PlaySound(URL url) {
+        this();
         this.url = url;
-        name = "play sound";
     }
 
     @Override

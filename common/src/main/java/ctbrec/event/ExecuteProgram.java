@@ -1,5 +1,7 @@
 package ctbrec.event;
 
+import java.util.Arrays;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,11 +15,13 @@ public class ExecuteProgram extends Action {
 
     private String executable;
 
-    public ExecuteProgram() {}
+    public ExecuteProgram() {
+        name = "execute program";
+    }
 
     public ExecuteProgram(String executable) {
+        this();
         this.executable = executable;
-        name = "execute program";
     }
 
     @Override
@@ -25,8 +29,12 @@ public class ExecuteProgram extends Action {
         Runtime rt = Runtime.getRuntime();
         Process process = null;
         try {
-            String[] args = {executable}; // TODO fill args array
-            process = rt.exec(args, OS.getEnvironment());
+            String[] args = evt.getExecutionParams();
+            String[] cmd = new String[args.length+1];
+            cmd[0] = executable;
+            System.arraycopy(args, 0, cmd, 1, args.length);
+            LOG.debug("Executing {}", Arrays.toString(cmd));
+            process = rt.exec(cmd, OS.getEnvironment());
 
             // create threads, which read stdout and stderr of the player process. these are needed,
             // because otherwise the internal buffer for these streams fill up and block the process
@@ -40,7 +48,7 @@ public class ExecuteProgram extends Action {
             err.start();
 
             process.waitFor();
-            LOG.debug("{} finished", name);
+            LOG.debug("executing {} finished", executable);
         } catch (Exception e) {
             LOG.error("Error while processing {}", e);
         }
@@ -49,5 +57,10 @@ public class ExecuteProgram extends Action {
     @Override
     public void configure(ActionConfiguration config) {
         executable = (String) config.getConfiguration().get("file");
+    }
+
+    @Override
+    public String toString() {
+        return "execute " + executable;
     }
 }

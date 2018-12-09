@@ -37,9 +37,9 @@ public class RecordingStateChangedEvent extends AbstractModelEvent {
     @Override
     public String[] getExecutionParams() {
         return new String[] {
-                getType().toString(),
+                getType().name(),
                 path.getAbsolutePath(),
-                newState.toString(),
+                newState.name(),
                 model.getDisplayName(),
                 model.getSite().getName(),
                 model.getUrl(),

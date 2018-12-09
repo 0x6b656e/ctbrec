@@ -32,12 +32,12 @@ public class ModelStateChangedEvent extends AbstractModelEvent {
     @Override
     public String[] getExecutionParams() {
         return new String[] {
-                getType().toString(),
+                getType().name(),
                 model.getDisplayName(),
                 model.getUrl(),
                 model.getSite().getName(),
-                oldState.toString(),
-                newState.toString()
+                oldState.name(),
+                newState.name()
         };
     }
 

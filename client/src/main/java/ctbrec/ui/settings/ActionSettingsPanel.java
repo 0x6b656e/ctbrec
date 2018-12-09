@@ -16,6 +16,7 @@ import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.OS;
 import ctbrec.Recording;
+import ctbrec.StringUtil;
 import ctbrec.event.Event;
 import ctbrec.event.EventBusHolder;
 import ctbrec.event.EventHandler;
@@ -128,7 +129,7 @@ public class ActionSettingsPanel extends TitledPane {
         dialog.setTitle("New Action");
         InputStream icon = getClass().getResourceAsStream("/icon.png");
         dialog.getIcons().add(new Image(icon));
-        Wizard root = new Wizard(dialog, actionPane);
+        Wizard root = new Wizard(dialog, this::validateSettings, actionPane);
         Scene scene = new Scene(root, 800, 540);
         scene.getStylesheets().addAll(getScene().getStylesheets());
         dialog.setScene(scene);
@@ -191,6 +192,21 @@ public class ActionSettingsPanel extends TitledPane {
         Config.getInstance().getSettings().eventHandlers.add(config);
         actionTable.getItems().add(config);
         LOG.debug("Registered event handler for {} {}", config.getEvent(), config.getName());
+    }
+
+    private void validateSettings() {
+        if(StringUtil.isBlank(name.getText())) {
+            throw new IllegalStateException("Name cannot be empty");
+        }
+        if(event.getValue() == Event.Type.MODEL_STATUS_CHANGED && modelState.getValue() == null) {
+            throw new IllegalStateException("Select a state");
+        }
+        if(modelSelectionPane.getSelectedItems().isEmpty() && !modelSelectionPane.isAllSelected()) {
+            throw new IllegalStateException("Select one or more models or tick off \"all\"");
+        }
+        if(!(showNotification.isSelected() || playSound.isSelected() || executeProgram.isSelected())) {
+            throw new IllegalStateException("No action selected");
+        }
     }
 
     private void delete(ActionEvent evt) {

@@ -23,9 +23,11 @@ public class Wizard extends BorderPane {
     private Button prev;
     private Button finish;
     private boolean cancelled = true;
+    private Runnable validator;
 
-    public Wizard(Stage stage, Pane... pages) {
+    public Wizard(Stage stage, Runnable validator, Pane... pages) {
         this.stage = stage;
+        this.validator = validator;
         this.pages = pages;
 
         if (pages.length == 0) {
@@ -49,6 +51,14 @@ public class Wizard extends BorderPane {
         cancel.setOnAction(evt -> stage.close());
         finish = new Button("Finish");
         finish.setOnAction(evt -> {
+            if(validator != null) {
+                try {
+                    validator.run();
+                } catch(IllegalStateException e) {
+                    Dialogs.showError("Settings invalid", e.getMessage(), null);
+                    return;
+                }
+            }
             cancelled = false;
             stage.close();
         });

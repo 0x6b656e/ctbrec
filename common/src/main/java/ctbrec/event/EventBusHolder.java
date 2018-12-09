@@ -14,7 +14,7 @@ public class EventBusHolder {
     private static final transient Logger LOG = LoggerFactory.getLogger(EventBusHolder.class);
     private static Map<String, EventHandler> handlers = new HashMap<>();
 
-    public static final EventBus BUS = new AsyncEventBus(Executors.newSingleThreadExecutor());
+    public static final EventBus BUS = new AsyncEventBus(Executors.newFixedThreadPool(10));
 
     public static void register(EventHandler handler) {
         if(handlers.containsKey(handler.getId())) {

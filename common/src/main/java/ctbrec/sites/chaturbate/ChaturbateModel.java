@@ -103,6 +103,7 @@ public class ChaturbateModel extends AbstractModel {
                 break;
             case "private":
             case "hidden":
+            case "password protected":
                 onlineState = PRIVATE;
                 break;
             case "away":

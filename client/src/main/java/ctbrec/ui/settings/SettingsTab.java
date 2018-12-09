@@ -53,6 +53,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     public static final int CHECKBOX_MARGIN = 6;
     private DirectorySelectionBox recordingsDirectory;
     private ProgramSelectionBox mediaPlayer;
+    private ProgramSelectionBox postProcessing;
     private TextField server;
     private TextField port;
     private TextField onlineCheckIntervalInSecs;
@@ -304,6 +305,20 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         splitAfter.prefWidthProperty().bind(directoryStructure.widthProperty());
         GridPane.setMargin(l, new Insets(0, 0, 0, 0));
         GridPane.setMargin(splitAfter, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+
+        layout.add(new Label("Post-Processing"), 0, row);
+        postProcessing = new ProgramSelectionBox(Config.getInstance().getSettings().postProcessing);
+        postProcessing.fileProperty().addListener((obs, o, n) -> {
+            String path = n.getAbsolutePath();
+            if(!Objects.equals(path, Config.getInstance().getSettings().postProcessing)) {
+                Config.getInstance().getSettings().postProcessing = path;
+                saveConfig();
+            }
+        });
+        GridPane.setFillWidth(postProcessing, true);
+        GridPane.setHgrow(postProcessing, Priority.ALWAYS);
+        GridPane.setMargin(postProcessing, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        layout.add(postProcessing, 1, row++);
 
         Tooltip tt = new Tooltip("Check every x seconds, if a model came online");
         l = new Label("Check online state every (seconds)");

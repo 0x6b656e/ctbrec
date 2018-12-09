@@ -1,5 +1,6 @@
 package ctbrec.ui;
 
+import static ctbrec.ui.controls.Dialogs.*;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
@@ -819,26 +820,6 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     private void removeSelection() {
         while(selectedThumbCells.size() > 0) {
             selectedThumbCells.get(0).setSelected(false);
-        }
-    }
-
-    private void showError(String header, String text, Exception e) {
-        Runnable r = () -> {
-            Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
-            alert.setTitle("Error");
-            alert.setHeaderText(header);
-            String content = text;
-            if(e != null) {
-                content += " " + e.getLocalizedMessage();
-            }
-            alert.setContentText(content);
-            alert.showAndWait();
-        };
-
-        if(Platform.isFxApplicationThread()) {
-            r.run();
-        } else {
-            Platform.runLater(r);
         }
     }
 }

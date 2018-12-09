@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import ctbrec.event.EventHandlerConfiguration;
+
 public class Settings {
 
     public enum ProxyType {
@@ -56,7 +58,8 @@ public class Settings {
     public String cam4Password;
     public String lastDownloadDir = "";
 
-    public List<Model> models = new ArrayList<Model>();
+    public List<Model> models = new ArrayList<>();
+    public List<EventHandlerConfiguration> eventHandlers = new ArrayList<>();
     public boolean determineResolution = false;
     public boolean requireAuthentication = false;
     public boolean chooseStreamQuality = false;

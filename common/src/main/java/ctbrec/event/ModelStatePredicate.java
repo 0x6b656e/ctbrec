@@ -1,20 +1,22 @@
 package ctbrec.event;
 
-import java.util.function.Predicate;
-
 import ctbrec.Model;
+import ctbrec.Model.State;
+import ctbrec.event.EventHandlerConfiguration.PredicateConfiguration;
 
-public class ModelStatePredicate implements Predicate<Event> {
+public class ModelStatePredicate extends EventPredicate {
 
     private Model.State state;
 
-    private ModelStatePredicate(Model.State state) {
+    public ModelStatePredicate() {}
+
+    public ModelStatePredicate(Model.State state) {
         this.state = state;
     }
 
     @Override
     public boolean test(Event evt) {
-        if(evt instanceof AbstractModelEvent) {
+        if(evt instanceof ModelStateChangedEvent) {
             ModelStateChangedEvent modelEvent = (ModelStateChangedEvent) evt;
             Model.State newState = modelEvent.getNewState();
             return newState == state;
@@ -23,7 +25,8 @@ public class ModelStatePredicate implements Predicate<Event> {
         }
     }
 
-    public static ModelStatePredicate of(Model.State state) {
-        return new ModelStatePredicate(state);
+    @Override
+    public void configure(PredicateConfiguration pc) {
+        state = State.valueOf((String) pc.getConfiguration().get("state"));
     }
 }

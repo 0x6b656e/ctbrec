@@ -12,7 +12,7 @@ import com.squareup.moshi.JsonWriter;
 import ctbrec.recorder.download.StreamSource;
 import ctbrec.sites.Site;
 
-public interface Model {
+public interface Model extends Comparable<Model> {
 
     public static enum State {
         ONLINE("online"),

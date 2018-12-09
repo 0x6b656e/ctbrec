@@ -207,4 +207,9 @@ public class JavaFxModel implements Model {
     public void setDisplayName(String name) {
         delegate.setDisplayName(name);
     }
+
+    @Override
+    public int compareTo(Model o) {
+        return delegate.compareTo(o);
+    }
 }

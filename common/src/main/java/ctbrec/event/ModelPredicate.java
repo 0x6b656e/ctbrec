@@ -1,30 +1,57 @@
 package ctbrec.event;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
 import ctbrec.Model;
+import ctbrec.event.EventHandlerConfiguration.PredicateConfiguration;
 
-public class ModelPredicate implements Predicate<Event> {
+public class ModelPredicate extends EventPredicate {
 
-    private Model model;
+    private Predicate<Event> internal;
 
-    private ModelPredicate(Model model) {
-        this.model = model;
+    public ModelPredicate() {}
+
+    public ModelPredicate(Model model) {
+        internal = createFor(model);
+    }
+
+    public ModelPredicate(List<Model> models) {
+        configure(models);
+    }
+
+    private void configure(List<Model> models) {
+        if(models.isEmpty()) {
+            throw new IllegalArgumentException("List has to contain at least one model");
+        }
+
+        Predicate<Event> predicate = createFor(models.get(0));
+        for (int i = 1; i < models.size(); i++) {
+            predicate = predicate.or(createFor(models.get(i)));
+        }
+        internal = predicate;
     }
 
     @Override
     public boolean test(Event evt) {
-        if(evt instanceof AbstractModelEvent) {
-            AbstractModelEvent modelEvent = (AbstractModelEvent) evt;
-            Model other = modelEvent.getModel();
-            return Objects.equals(model, other);
-        } else {
-            return false;
-        }
+        return internal.test(evt);
     }
 
-    public static ModelPredicate of(Model model) {
-        return new ModelPredicate(model);
+    private Predicate<Event> createFor(Model model) {
+        return evt -> {
+            if(evt instanceof AbstractModelEvent) {
+                AbstractModelEvent modelEvent = (AbstractModelEvent) evt;
+                Model other = modelEvent.getModel();
+                return Objects.equals(model, other);
+            } else {
+                return false;
+            }
+        };
+    }
+
+    @Override
+    public void configure(PredicateConfiguration pc) {
+        configure(pc.getModels());
     }
 }

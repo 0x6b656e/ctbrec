@@ -1,14 +1,16 @@
 package ctbrec.event;
 
-import java.util.function.Predicate;
-
 import ctbrec.event.Event.Type;
+import ctbrec.event.EventHandlerConfiguration.PredicateConfiguration;
 
-public class EventTypePredicate implements Predicate<Event> {
+public class EventTypePredicate extends EventPredicate {
 
     private Type type;
 
-    private EventTypePredicate(Type type) {
+    public EventTypePredicate() {
+    }
+
+    public EventTypePredicate(Type type) {
         this.type = type;
     }
 
@@ -17,7 +19,8 @@ public class EventTypePredicate implements Predicate<Event> {
         return evt.getType() == type;
     }
 
-    public static EventTypePredicate of(Type type) {
-        return new EventTypePredicate(type);
+    @Override
+    public void configure(PredicateConfiguration pc) {
+        type = Type.valueOf((String) pc.getConfiguration().get("type"));
     }
 }

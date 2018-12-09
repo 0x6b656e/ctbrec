@@ -1,9 +1,6 @@
 package ctbrec.ui;
 
 
-import static ctbrec.Model.State.*;
-import static ctbrec.event.Event.Type.*;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -19,18 +16,16 @@ import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.eventbus.Subscribe;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 import com.squareup.moshi.Types;
 
 import ctbrec.Config;
-import ctbrec.Model;
 import ctbrec.StringUtil;
 import ctbrec.Version;
-import ctbrec.event.Event;
 import ctbrec.event.EventBusHolder;
-import ctbrec.event.ModelStateChangedEvent;
+import ctbrec.event.EventHandler;
+import ctbrec.event.EventHandlerConfiguration;
 import ctbrec.io.HttpClient;
 import ctbrec.recorder.LocalRecorder;
 import ctbrec.recorder.OnlineMonitor;
@@ -62,7 +57,6 @@ public class CamrecApplication extends Application {
 
     static final transient Logger LOG = LoggerFactory.getLogger(CamrecApplication.class);
 
-    private Stage primaryStage;
     private Config config;
     private Recorder recorder;
     private OnlineMonitor onlineMonitor;
@@ -75,15 +69,14 @@ public class CamrecApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        this.primaryStage = primaryStage;
         logEnvironment();
-        registerAlertSystem();
         sites.add(new BongaCams());
         sites.add(new Cam4());
         sites.add(new Camsoda());
         sites.add(new Chaturbate());
         sites.add(new MyFreeCams());
         loadConfig();
+        registerAlertSystem();
         createHttpClient();
         hostServices = getHostServices();
         createRecorder();
@@ -101,7 +94,6 @@ public class CamrecApplication extends Application {
         }
         createGui(primaryStage);
         checkForUpdates();
-
     }
 
     private void logEnvironment() {
@@ -134,7 +126,7 @@ public class CamrecApplication extends Application {
         rootPane.getTabs().add(modelsTab);
         RecordingsTab recordingsTab = new RecordingsTab("Recordings", recorder, config, sites);
         rootPane.getTabs().add(recordingsTab);
-        settingsTab = new SettingsTab(sites);
+        settingsTab = new SettingsTab(sites, recorder);
         rootPane.getTabs().add(settingsTab);
         rootPane.getTabs().add(new DonateTabFx());
 
@@ -222,38 +214,11 @@ public class CamrecApplication extends Application {
         //            } catch (InterruptedException e) {
         //                e.printStackTrace();
         //            }
-        EventBusHolder.BUS.register(new Object() {
-            @Subscribe
-            public void modelEvent(Event e) {
-                try {
-                    if (e.getType() == MODEL_STATUS_CHANGED) {
-                        ModelStateChangedEvent evt = (ModelStateChangedEvent) e;
-                        Model model = evt.getModel();
-                        if (evt.getNewState() == ONLINE && primaryStage != null && primaryStage.getTitle() != null) {
-                            String header = "Model Online";
-                            String msg = model.getDisplayName() + " is now online";
-                            LOG.debug(msg);
-                            //OS.notification(primaryStage.getTitle(), header, msg);
-                        }
-                    }
-                } catch (Exception e1) {
-                    LOG.error("Couldn't show notification", e1);
-                }
-            }
-        });
-
-        //        EventBusHolder.BUS.register(new Object() {
-        //            URL url = CamrecApplication.class.getResource("/Oxygen-Im-Highlight-Msg.mp3");
-        //            PlaySound playSound = new PlaySound(url);
-        //            EventHandler reaction = new EventHandler(playSound);
-        //            //            LogReaction reaction = new LogReaction();
-        //            @Subscribe
-        //            public void modelEvent(Event e) {
-        //                reaction.reactToEvent(e);
-        //            }
-        //        });
-
-
+        for (EventHandlerConfiguration config : Config.getInstance().getSettings().eventHandlers) {
+            EventHandler handler = new EventHandler(config);
+            EventBusHolder.register(handler);
+            LOG.debug("Registered event handler for {} {}", config.getEvent(), config.getName());
+        }
         LOG.debug("Alert System registered");
     }
 

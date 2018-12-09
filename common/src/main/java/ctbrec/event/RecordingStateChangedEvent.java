@@ -47,6 +47,10 @@ public class RecordingStateChangedEvent extends AbstractModelEvent {
         };
     }
 
+    public State getState() {
+        return newState;
+    }
+
     @Override
     public String toString() {
         return "RecordingStateChanged[" + newState + "," + model.getDisplayName() + "," + path + "]";

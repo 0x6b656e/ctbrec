@@ -15,6 +15,7 @@ import ctbrec.Config;
 import ctbrec.Hmac;
 import ctbrec.Settings.DirectoryStructure;
 import ctbrec.StringUtil;
+import ctbrec.recorder.Recorder;
 import ctbrec.sites.ConfigUI;
 import ctbrec.sites.Site;
 import ctbrec.ui.SiteUiFactory;
@@ -73,9 +74,11 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private List<Site> sites;
     private Label restartLabel;
     private Accordion siteConfigAccordion = new Accordion();
+    private Recorder recorder;
 
-    public SettingsTab(List<Site> sites) {
+    public SettingsTab(List<Site> sites, Recorder recorder) {
         this.sites = sites;
+        this.recorder = recorder;
         setText("Settings");
         createGui();
         setClosable(false);
@@ -125,7 +128,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
 
         //right side
         rightSide.getChildren().add(siteConfigAccordion);
-        ActionSettingsPanel actions = new ActionSettingsPanel(this);
+        ActionSettingsPanel actions = new ActionSettingsPanel(this, recorder);
         rightSide.getChildren().add(actions);
         proxySettingsPane = new ProxySettingsPane(this);
         rightSide.getChildren().add(proxySettingsPane);

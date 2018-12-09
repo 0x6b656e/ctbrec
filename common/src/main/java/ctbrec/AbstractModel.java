@@ -3,6 +3,7 @@ package ctbrec;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 import com.squareup.moshi.JsonReader;
@@ -160,6 +161,13 @@ public abstract class AbstractModel implements Model {
         } else if (!getUrl().equals(other.getUrl()))
             return false;
         return true;
+    }
+
+    @Override
+    public int compareTo(Model o) {
+        String thisName = Optional.ofNullable(getDisplayName()).orElse("").toLowerCase();
+        String otherName = Optional.ofNullable(o).map(m -> m.getDisplayName()).orElse("").toLowerCase();
+        return thisName.compareTo(otherName);
     }
 
     @Override

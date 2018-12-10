@@ -48,8 +48,11 @@ public class MyFreeCamsConfigUI extends AbstractConfigUI {
         TextField username = new TextField(Config.getInstance().getSettings().mfcUsername);
         username.setPrefWidth(300);
         username.textProperty().addListener((ob, o, n) -> {
-            Config.getInstance().getSettings().mfcUsername = username.getText();
-            save();
+            if(!n.equals(Config.getInstance().getSettings().mfcUsername)) {
+                Config.getInstance().getSettings().mfcUsername = username.getText();
+                myFreeCams.getHttpClient().logout();
+                save();
+            }
         });
         GridPane.setFillWidth(username, true);
         GridPane.setHgrow(username, Priority.ALWAYS);
@@ -60,8 +63,11 @@ public class MyFreeCamsConfigUI extends AbstractConfigUI {
         PasswordField password = new PasswordField();
         password.setText(Config.getInstance().getSettings().mfcPassword);
         password.textProperty().addListener((ob, o, n) -> {
-            Config.getInstance().getSettings().mfcPassword = password.getText();
-            save();
+            if(!n.equals(Config.getInstance().getSettings().mfcPassword)) {
+                Config.getInstance().getSettings().mfcPassword = password.getText();
+                myFreeCams.getHttpClient().logout();
+                save();
+            }
         });
         GridPane.setFillWidth(password, true);
         GridPane.setHgrow(password, Priority.ALWAYS);

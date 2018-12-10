@@ -47,8 +47,11 @@ public class Cam4ConfigUI extends AbstractConfigUI {
         layout.add(new Label("Cam4 User"), 0, row);
         TextField username = new TextField(Config.getInstance().getSettings().cam4Username);
         username.textProperty().addListener((ob, o, n) -> {
-            Config.getInstance().getSettings().cam4Username = username.getText();
-            save();
+            if(!n.equals(Config.getInstance().getSettings().cam4Username)) {
+                Config.getInstance().getSettings().cam4Username = username.getText();
+                cam4.getHttpClient().logout();
+                save();
+            }
         });
         GridPane.setFillWidth(username, true);
         GridPane.setHgrow(username, Priority.ALWAYS);
@@ -58,9 +61,12 @@ public class Cam4ConfigUI extends AbstractConfigUI {
         layout.add(new Label("Cam4 Password"), 0, row);
         PasswordField password = new PasswordField();
         password.setText(Config.getInstance().getSettings().cam4Password);
-        password.focusedProperty().addListener((e) -> {
-            Config.getInstance().getSettings().cam4Password = password.getText();
-            save();
+        password.textProperty().addListener((ob, o, n) -> {
+            if(!n.equals(Config.getInstance().getSettings().cam4Password)) {
+                Config.getInstance().getSettings().cam4Password = password.getText();
+                cam4.getHttpClient().logout();
+                save();
+            }
         });
         GridPane.setFillWidth(password, true);
         GridPane.setHgrow(password, Priority.ALWAYS);

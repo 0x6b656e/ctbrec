@@ -47,8 +47,11 @@ public class ChaturbateConfigUi extends AbstractConfigUI {
         layout.add(new Label("Chaturbate User"), 0, row);
         TextField username = new TextField(Config.getInstance().getSettings().username);
         username.textProperty().addListener((ob, o, n) -> {
-            Config.getInstance().getSettings().username = username.getText();
-            save();
+            if(!n.equals(Config.getInstance().getSettings().username)) {
+                Config.getInstance().getSettings().username = n;
+                chaturbate.getHttpClient().logout();
+                save();
+            }
         });
         GridPane.setFillWidth(username, true);
         GridPane.setHgrow(username, Priority.ALWAYS);
@@ -59,8 +62,11 @@ public class ChaturbateConfigUi extends AbstractConfigUI {
         PasswordField password = new PasswordField();
         password.setText(Config.getInstance().getSettings().password);
         password.textProperty().addListener((ob, o, n) -> {
-            Config.getInstance().getSettings().password = password.getText();
-            save();
+            if(!n.equals(Config.getInstance().getSettings().password)) {
+                Config.getInstance().getSettings().password = n;
+                chaturbate.getHttpClient().logout();
+                save();
+            }
         });
         GridPane.setFillWidth(password, true);
         GridPane.setHgrow(password, Priority.ALWAYS);

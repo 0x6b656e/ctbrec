@@ -1,3 +1,15 @@
+1.14.0
+========================
+* Added setting for MFC to ignore the upscaled (960p) stream
+* Added event system. You can define to show a notification,
+  play a sound or execute a program, when the state of a model
+  or recording changes
+* Added "follow" menu entry on the Recording tab
+* Fix: Recordings change from suspended to recording by their own
+  when a thumbnail tab is opened and the model is showing
+* Fix: Linux scripts don't work on system where bash isn't the
+  default shell
+
 1.13.0
 ========================
 * Added  possibility to open small live previews of online models

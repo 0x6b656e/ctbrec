@@ -308,7 +308,7 @@ public class RemoteRecorder implements Recorder {
 
         private void sleep() {
             try {
-                Thread.sleep(10000);
+                Thread.sleep(2000);
             } catch (InterruptedException e) {
                 // interrupted, probably by stopThread
             }

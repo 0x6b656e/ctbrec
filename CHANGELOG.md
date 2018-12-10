@@ -6,9 +6,9 @@
 * Added "follow" menu entry on the Recording tab
 * Fix: Recordings change from suspended to recording by their own when a
   thumbnail tab is opened and the model is showing
-* Fix: Linux scripts don't work on system where bash isn't the default shell
+* Fix: Linux scripts don't work on systems where bash isn't the default shell
 * Improved loading and display of resolution tags. They are not re-loaded
-  everytime to switch between tabs
+  everytime you switch between tabs
 
 1.13.0
 ========================

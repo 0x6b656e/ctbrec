@@ -352,6 +352,8 @@ public class RemoteRecorder implements Recorder {
             if(response.isSuccessful()) {
                 if(!resp.status.equals("success")) {
                     throw new IOException("Couldn't delete recording: " + resp.msg);
+                } else {
+                    recordings.remove(recording);
                 }
             } else {
                 throw new IOException("Couldn't delete recording: " + resp.msg);

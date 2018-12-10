@@ -1,5 +1,6 @@
 package ctbrec.recorder;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
@@ -7,26 +8,31 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.iheartradio.m3u8.ParseException;
+import com.iheartradio.m3u8.PlaylistException;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 
+import ctbrec.AbstractModel;
 import ctbrec.Config;
 import ctbrec.Hmac;
 import ctbrec.Model;
 import ctbrec.Recording;
 import ctbrec.event.EventBusHolder;
+import ctbrec.event.RecordingStateChangedEvent;
 import ctbrec.io.HttpClient;
 import ctbrec.io.HttpException;
 import ctbrec.io.InstantJsonAdapter;
 import ctbrec.io.ModelJsonAdapter;
+import ctbrec.recorder.download.StreamSource;
 import ctbrec.sites.Site;
 import okhttp3.MediaType;
 import okhttp3.Request;
@@ -37,7 +43,6 @@ import okhttp3.Response;
 public class RemoteRecorder implements Recorder {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(RemoteRecorder.class);
-
     public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     private Moshi moshi = new Moshi.Builder()
             .add(Instant.class, new InstantJsonAdapter())
@@ -49,6 +54,7 @@ public class RemoteRecorder implements Recorder {
 
     private List<Model> models = Collections.emptyList();
     private List<Model> onlineModels = Collections.emptyList();
+    private List<Recording> recordings = Collections.emptyList();
     private List<Site> sites;
     private long spaceTotal = -1;
     private long spaceFree = -1;
@@ -159,6 +165,7 @@ public class RemoteRecorder implements Recorder {
                 syncModels();
                 syncOnlineModels();
                 syncSpace();
+                syncRecordings();
                 sleep();
             }
         }
@@ -236,7 +243,6 @@ public class RemoteRecorder implements Recorder {
                     if (response.isSuccessful()) {
                         ModelListResponse resp = modelListResponseAdapter.fromJson(json);
                         if (resp.status.equals("success")) {
-                            List<Model> previouslyOnline = onlineModels;
                             onlineModels = resp.models;
                             for (Model model : models) {
                                 for (Site site : sites) {
@@ -245,25 +251,49 @@ public class RemoteRecorder implements Recorder {
                                     }
                                 }
                             }
+                        } else {
+                            LOG.error("Server returned error: {} - {}", resp.status, resp.msg);
+                        }
+                    } else {
+                        LOG.error("Couldn't synchronize with server. HTTP status: {} - {}", response.code(), json);
+                    }
+                }
+            } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e) {
+                LOG.error("Couldn't synchronize with server", e);
+            }
+        }
 
-                            for (Model prev : previouslyOnline) {
-                                if(!onlineModels.contains(prev)) {
-                                    Map<String, Object> evt = new HashMap<>();
-                                    evt.put("event", "model.status");
-                                    evt.put("status", "offline");
-                                    evt.put("model", prev);
-                                    EventBusHolder.BUS.post(evt);
+        private void syncRecordings() {
+            try {
+                String msg = "{\"action\": \"recordings\"}";
+                RequestBody body = RequestBody.create(JSON, msg);
+                Request.Builder builder = new Request.Builder()
+                        .url("http://" + config.getSettings().httpServer + ":" + config.getSettings().httpPort + "/rec")
+                        .post(body);
+                addHmacIfNeeded(msg, builder);
+                Request request = builder.build();
+                try (Response response = client.execute(request)) {
+                    String json = response.body().string();
+                    if (response.isSuccessful()) {
+                        RecordingListResponse resp = recordingListResponseAdapter.fromJson(json);
+                        if (resp.status.equals("success")) {
+                            List<Recording> newRecordings = resp.recordings;
+                            // fire changed events
+                            for (Iterator<Recording> iterator = recordings.iterator(); iterator.hasNext();) {
+                                Recording recording = iterator.next();
+                                if(newRecordings.contains(recording)) {
+                                    int idx = newRecordings.indexOf(recording);
+                                    Recording newRecording = newRecordings.get(idx);
+                                    if(newRecording.getStatus() != recording.getStatus()) {
+                                        File file = new File(recording.getPath());
+                                        Model m = new UnknownModel();
+                                        m.setName(newRecording.getModelName());
+                                        RecordingStateChangedEvent evt = new RecordingStateChangedEvent(file, newRecording.getStatus(), m, recording.getStartDate());
+                                        EventBusHolder.BUS.post(evt);
+                                    }
                                 }
                             }
-                            for (Model model : onlineModels) {
-                                if(!previouslyOnline.contains(model)) {
-                                    Map<String, Object> evt = new HashMap<>();
-                                    evt.put("event", "model.status");
-                                    evt.put("status", "online");
-                                    evt.put("model", model);
-                                    EventBusHolder.BUS.post(evt);
-                                }
-                            }
+                            recordings = newRecordings;
                         } else {
                             LOG.error("Server returned error: {} - {}", resp.status, resp.msg);
                         }
@@ -304,28 +334,7 @@ public class RemoteRecorder implements Recorder {
 
     @Override
     public List<Recording> getRecordings() throws IOException, InvalidKeyException, NoSuchAlgorithmException, IllegalStateException {
-        String msg = "{\"action\": \"recordings\"}";
-        RequestBody body = RequestBody.create(JSON, msg);
-        Request.Builder builder = new Request.Builder()
-                .url("http://" + config.getSettings().httpServer + ":" + config.getSettings().httpPort + "/rec")
-                .post(body);
-        addHmacIfNeeded(msg, builder);
-        Request request = builder.build();
-        try(Response response = client.execute(request)) {
-            String json = response.body().string();
-            if(response.isSuccessful()) {
-                RecordingListResponse resp = recordingListResponseAdapter.fromJson(json);
-                if(resp.status.equals("success")) {
-                    List<Recording> recordings = resp.recordings;
-                    return recordings;
-                } else {
-                    LOG.error("Server returned error: {} - {}", resp.status, resp.msg);
-                }
-            } else {
-                LOG.error("Couldn't synchronize with server. HTTP status: {} - {}", response.code(), json);
-            }
-        }
-        return Collections.emptyList();
+        return recordings;
     }
 
     @Override
@@ -424,5 +433,152 @@ public class RemoteRecorder implements Recorder {
     @Override
     public long getFreeSpaceBytes() {
         return spaceFree;
+    }
+
+    private static class UnknownModel extends AbstractModel {
+        @Override
+        public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException {
+            return false;
+        }
+
+        @Override
+        public List<StreamSource> getStreamSources() throws IOException, ExecutionException, ParseException, PlaylistException {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public void invalidateCacheEntries() {
+        }
+
+        @Override
+        public void receiveTip(int tokens) throws IOException {
+        }
+
+        @Override
+        public int[] getStreamResolution(boolean failFast) throws ExecutionException {
+            return new int[2];
+        }
+
+        @Override
+        public boolean follow() throws IOException {
+            return false;
+        }
+
+        @Override
+        public boolean unfollow() throws IOException {
+            return false;
+        }
+
+        @Override
+        public Site getSite() {
+            return new Site() {
+
+                @Override
+                public boolean supportsTips() {
+                    return false;
+                }
+
+                @Override
+                public boolean supportsSearch() {
+                    return false;
+                }
+
+                @Override
+                public boolean supportsFollow() {
+                    return false;
+                }
+
+                @Override
+                public void shutdown() {
+                }
+
+                @Override
+                public void setRecorder(Recorder recorder) {
+                }
+
+                @Override
+                public void setEnabled(boolean enabled) {
+                }
+
+                @Override
+                public boolean searchRequiresLogin() {
+                    return false;
+                }
+
+                @Override
+                public List<Model> search(String q) throws IOException, InterruptedException {
+                    return Collections.emptyList();
+                }
+
+                @Override
+                public boolean login() throws IOException {
+                    return false;
+                }
+
+                @Override
+                public boolean isSiteForModel(Model m) {
+                    return false;
+                }
+
+                @Override
+                public boolean isEnabled() {
+                    return false;
+                }
+
+                @Override
+                public void init() throws IOException {
+                }
+
+                @Override
+                public Integer getTokenBalance() throws IOException {
+                    return 0;
+                }
+
+                @Override
+                public Recorder getRecorder() {
+                    return null;
+                }
+
+                @Override
+                public String getName() {
+                    return "unknown";
+                }
+
+                @Override
+                public HttpClient getHttpClient() {
+                    return null;
+                }
+
+                @Override
+                public String getBuyTokensLink() {
+                    return "";
+                }
+
+                @Override
+                public String getBaseUrl() {
+                    return "";
+                }
+
+                @Override
+                public String getAffiliateLink() {
+                    return "";
+                }
+
+                @Override
+                public boolean credentialsAvailable() {
+                    return false;
+                }
+
+                @Override
+                public Model createModelFromUrl(String url) {
+                    return null;
+                }
+
+                @Override
+                public Model createModel(String name) {
+                    return null;
+                }
+            };
+        }
     }
 }

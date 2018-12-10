@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -206,20 +207,21 @@ public class CamrecApplication extends Application {
     }
 
     private void registerAlertSystem() {
-        //            try {
-        //                // don't register before 1 minute has passed, because directly after
-        //                // the start of ctbrec, an event for every online model would be fired,
-        //                // which is annoying as f
-        //                Thread.sleep(TimeUnit.MINUTES.toMillis(1));
-        //            } catch (InterruptedException e) {
-        //                e.printStackTrace();
-        //            }
-        for (EventHandlerConfiguration config : Config.getInstance().getSettings().eventHandlers) {
-            EventHandler handler = new EventHandler(config);
-            EventBusHolder.register(handler);
-            LOG.debug("Registered event handler for {} {}", config.getEvent(), config.getName());
+        try {
+            // don't register before 1 minute has passed, because directly after
+            // the start of ctbrec, an event for every online model would be fired,
+            // which is annoying as f
+            Thread.sleep(TimeUnit.MINUTES.toMillis(1));
+
+            for (EventHandlerConfiguration config : Config.getInstance().getSettings().eventHandlers) {
+                EventHandler handler = new EventHandler(config);
+                EventBusHolder.register(handler);
+                LOG.debug("Registered event handler for {} {}", config.getEvent(), config.getName());
+            }
+            LOG.debug("Alert System registered");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
-        LOG.debug("Alert System registered");
     }
 
     private void writeColorSchemeStyleSheet(Stage primaryStage) {

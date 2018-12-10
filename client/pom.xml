@@ -8,7 +8,7 @@
 	<parent>
 		<groupId>ctbrec</groupId>
 		<artifactId>master</artifactId>
-		<version>1.13.0</version>
+		<version>1.14.0</version>
 		<relativePath>../master</relativePath>
 	</parent>
 

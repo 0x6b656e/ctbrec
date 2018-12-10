@@ -47,8 +47,11 @@ public class BongaCamsConfigUI extends AbstractConfigUI {
         layout.add(new Label("BongaCams User"), 0, row);
         TextField username = new TextField(settings.bongaUsername);
         username.textProperty().addListener((ob, o, n) -> {
-            settings.bongaUsername = username.getText();
-            save();
+            if(!n.equals(Config.getInstance().getSettings().bongaUsername)) {
+                Config.getInstance().getSettings().bongaUsername = username.getText();
+                bongaCams.getHttpClient().logout();
+                save();
+            }
         });
         GridPane.setFillWidth(username, true);
         GridPane.setHgrow(username, Priority.ALWAYS);
@@ -58,9 +61,12 @@ public class BongaCamsConfigUI extends AbstractConfigUI {
         layout.add(new Label("BongaCams Password"), 0, row);
         PasswordField password = new PasswordField();
         password.setText(settings.bongaPassword);
-        password.focusedProperty().addListener((e) -> {
-            settings.bongaPassword = password.getText();
-            save();
+        password.textProperty().addListener((ob, o, n) -> {
+            if(!n.equals(Config.getInstance().getSettings().bongaPassword)) {
+                Config.getInstance().getSettings().bongaPassword = password.getText();
+                bongaCams.getHttpClient().logout();
+                save();
+            }
         });
         GridPane.setFillWidth(password, true);
         GridPane.setHgrow(password, Priority.ALWAYS);

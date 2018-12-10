@@ -47,8 +47,11 @@ public class CamsodaConfigUI extends AbstractConfigUI {
         layout.add(new Label("CamSoda User"), 0, row);
         TextField username = new TextField(Config.getInstance().getSettings().camsodaUsername);
         username.textProperty().addListener((ob, o, n) -> {
-            Config.getInstance().getSettings().camsodaUsername = username.getText();
-            save();
+            if(!n.equals(Config.getInstance().getSettings().camsodaUsername)) {
+                Config.getInstance().getSettings().camsodaUsername = username.getText();
+                camsoda.getHttpClient().logout();
+                save();
+            }
         });
         GridPane.setFillWidth(username, true);
         GridPane.setHgrow(username, Priority.ALWAYS);
@@ -59,8 +62,11 @@ public class CamsodaConfigUI extends AbstractConfigUI {
         PasswordField password = new PasswordField();
         password.setText(Config.getInstance().getSettings().camsodaPassword);
         password.textProperty().addListener((ob, o, n) -> {
-            Config.getInstance().getSettings().camsodaPassword = password.getText();
-            save();
+            if(!n.equals(Config.getInstance().getSettings().camsodaPassword)) {
+                Config.getInstance().getSettings().camsodaPassword = password.getText();
+                camsoda.getHttpClient().logout();
+                save();
+            }
         });
         GridPane.setFillWidth(password, true);
         GridPane.setHgrow(password, Priority.ALWAYS);

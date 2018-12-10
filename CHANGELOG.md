@@ -1,3 +1,8 @@
+1.14.0
+========================
+* Improved loading and display of resolution tags. They are not re-loaded
+  everytime to switch between tabs
+
 1.13.0
 ========================
 * Added  possibility to open small live previews of online models

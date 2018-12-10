@@ -5,6 +5,7 @@ import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -135,7 +136,7 @@ public class RemoteRecorder implements Recorder {
         if(!lastSync.equals(Instant.EPOCH) && lastSync.isBefore(Instant.now().minusSeconds(60))) {
             throw new RuntimeException("Last sync was over a minute ago");
         }
-        return models;
+        return new ArrayList<Model>(models);
     }
 
     @Override

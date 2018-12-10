@@ -501,6 +501,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         directoryStructure.setDisable(!local);
         onlineCheckIntervalInSecs.setDisable(!local);
         leaveSpaceOnDevice.setDisable(!local);
+        postProcessing.setDisable(!local);
     }
 
     @Override

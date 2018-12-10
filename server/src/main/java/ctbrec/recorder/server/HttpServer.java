@@ -17,6 +17,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
+import ctbrec.event.EventBusHolder;
+import ctbrec.event.EventHandler;
+import ctbrec.event.EventHandlerConfiguration;
 import ctbrec.recorder.LocalRecorder;
 import ctbrec.recorder.OnlineMonitor;
 import ctbrec.recorder.Recorder;
@@ -50,6 +53,8 @@ public class HttpServer {
         }
 
         addShutdownHook(); // for graceful termination
+
+        registerAlertSystem();
 
         config = Config.getInstance();
         if(config.getSettings().key != null) {
@@ -131,6 +136,15 @@ public class HttpServer {
             LOG.error("Port {} is already in use", http.getPort(), e);
             System.exit(1);
         }
+    }
+
+    private void registerAlertSystem() {
+        for (EventHandlerConfiguration config : Config.getInstance().getSettings().eventHandlers) {
+            EventHandler handler = new EventHandler(config);
+            EventBusHolder.register(handler);
+            LOG.debug("Registered event handler for {} {}", config.getEvent(), config.getName());
+        }
+        LOG.debug("Alert System registered");
     }
 
     public static void main(String[] args) throws Exception {

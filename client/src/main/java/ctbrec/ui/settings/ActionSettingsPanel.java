@@ -241,8 +241,10 @@ public class ActionSettingsPanel extends TitledPane {
         layout.add(event, 1, row++);
 
         layout.add(new Label("State"), 0, row);
+        modelState.getItems().clear();
         modelState.getItems().addAll(Model.State.values());
         layout.add(modelState, 1, row);
+        recordingState.getItems().clear();
         recordingState.getItems().addAll(Recording.State.values());
         layout.add(recordingState, 1, row++);
         recordingState.visibleProperty().bind(modelState.visibleProperty().not());

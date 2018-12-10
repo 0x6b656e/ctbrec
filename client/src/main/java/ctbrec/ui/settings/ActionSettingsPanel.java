@@ -201,6 +201,9 @@ public class ActionSettingsPanel extends TitledPane {
         if(event.getValue() == Event.Type.MODEL_STATUS_CHANGED && modelState.getValue() == null) {
             throw new IllegalStateException("Select a state");
         }
+        if(event.getValue() == Event.Type.RECORDING_STATUS_CHANGED && recordingState.getValue() == null) {
+            throw new IllegalStateException("Select a state");
+        }
         if(modelSelectionPane.getSelectedItems().isEmpty() && !modelSelectionPane.isAllSelected()) {
             throw new IllegalStateException("Select one or more models or tick off \"all\"");
         }

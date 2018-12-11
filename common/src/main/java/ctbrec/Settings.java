@@ -51,6 +51,11 @@ public class Settings {
     public String mfcUsername = "";
     public String mfcPassword = "";
     public String mfcBaseUrl = "https://www.myfreecams.com";
+    public String mfcModelsTableSortColumn = "";
+    public String mfcModelsTableSortType = "";
+    public double[] mfcModelsTableColumnWidths = new double[0];
+    public String mfcModelsTableFilter = "";
+    public List<String> mfcDisabledModelsTableColumns = new ArrayList<>();
     public boolean mfcIgnoreUpscaled = false;
     public String camsodaUsername = "";
     public String camsodaPassword = "";

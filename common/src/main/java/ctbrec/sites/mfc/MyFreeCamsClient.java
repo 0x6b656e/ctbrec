@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -626,5 +628,9 @@ public class MyFreeCamsClient {
         }
 
         return result;
+    }
+
+    public Collection<SessionState> getSessionStates() {
+        return Collections.unmodifiableCollection(sessionStates.asMap().values());
     }
 }

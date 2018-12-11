@@ -782,7 +782,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                         tokensMissing = true;
                     }
                 } else if(token.equals("public")) {
-                    if(!m.getOnlineState(true).equals(token)) {
+                    if(!m.getOnlineState(true).toString().equals(token)) {
                         tokensMissing = true;
                     }
                 } else if(!searchText.toLowerCase().contains(token.toLowerCase())) {

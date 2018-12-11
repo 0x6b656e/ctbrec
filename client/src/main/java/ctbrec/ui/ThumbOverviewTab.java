@@ -143,7 +143,6 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                 + "Try \"1080\" or \">720\" or \"public\"");
         filterInput.setTooltip(filterTooltip);
         filterInput.getStyleClass().remove("search-box-icon");
-        BorderPane.setMargin(filterInput, new Insets(5));
 
         SearchBox searchInput = new SearchBox();
         searchInput.setPromptText("Search Model");
@@ -154,7 +153,6 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                 popover.hide();
             }
         });
-        BorderPane.setMargin(searchInput, new Insets(5));
 
         popover = new SearchPopover();
         popover.maxWidthProperty().bind(popover.minWidthProperty());
@@ -170,9 +168,19 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         HBox topBar = new HBox(5);
         HBox.setHgrow(filterInput, Priority.ALWAYS);
         topBar.getChildren().add(filterInput);
+        if (site.supportsTips() && site.credentialsAvailable()) {
+            Button buyTokens = new Button("Buy Tokens");
+            buyTokens.setOnAction((e) -> DesktopIntegration.open(site.getBuyTokensLink()));
+            TokenLabel tokenBalance = new TokenLabel(site);
+            tokenBalance.setAlignment(Pos.CENTER_RIGHT);
+            tokenBalance.prefHeightProperty().bind(buyTokens.heightProperty());
+            topBar.getChildren().addAll(tokenBalance, buyTokens);
+            tokenBalance.loadBalance();
+        }
         if(site.supportsSearch()) {
             topBar.getChildren().add(searchInput);
         }
+        BorderPane.setMargin(topBar, new Insets(0, 5, 0, 5));
 
         scrollPane.setContent(grid);
         scrollPane.setFitToHeight(true);

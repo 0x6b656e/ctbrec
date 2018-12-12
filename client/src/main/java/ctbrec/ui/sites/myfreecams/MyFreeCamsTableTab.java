@@ -262,7 +262,7 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
             clipboard.setContent(content);
         });
 
-        MenuItem startRecording = new MenuItem("Record");
+        MenuItem startRecording = new MenuItem("Start Recording");
         startRecording.setOnAction((e) -> startRecording(selectedModels));
         MenuItem openInBrowser = new MenuItem("Open in Browser");
         openInBrowser.setOnAction((e) -> DesktopIntegration.open(selectedModels.get(0).getUrl()));

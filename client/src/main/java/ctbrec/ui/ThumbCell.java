@@ -166,6 +166,8 @@ public class ThumbCell extends StackPane {
 
         selectionOverlay = new Rectangle();
         selectionOverlay.setOpacity(0);
+        selectionOverlay.widthProperty().bind(widthProperty());
+        selectionOverlay.heightProperty().bind(heightProperty());
         StackPane.setAlignment(selectionOverlay, Pos.TOP_LEFT);
         getChildren().add(selectionOverlay);
 
@@ -578,8 +580,6 @@ public class ThumbCell extends StackPane {
         int margin = 4;
         topic.maxWidth(w-margin*2);
         topic.setWrappingWidth(w-margin*2);
-        selectionOverlay.setWidth(w);
-        selectionOverlay.setHeight(getHeight());
 
         Rectangle clip = new Rectangle(w, h);
         clip.setArcWidth(10);

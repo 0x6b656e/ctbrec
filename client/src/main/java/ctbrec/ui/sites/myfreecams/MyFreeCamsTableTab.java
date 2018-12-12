@@ -24,11 +24,15 @@ import ctbrec.sites.mfc.SessionState;
 import ctbrec.ui.DesktopIntegration;
 import ctbrec.ui.Player;
 import ctbrec.ui.TabSelectionListener;
+import ctbrec.ui.action.FollowAction;
+import ctbrec.ui.action.StartRecordingAction;
 import ctbrec.ui.controls.SearchBox;
 import ctbrec.ui.controls.Toast;
 import javafx.application.Platform;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -45,6 +49,7 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.SortType;
@@ -61,15 +66,15 @@ import javafx.util.Duration;
 public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
     private static final transient Logger LOG = LoggerFactory.getLogger(MyFreeCamsTableTab.class);
     private ScrollPane scrollPane = new ScrollPane();
-    private TableView<SessionState> table = new TableView<SessionState>();
-    private ObservableList<SessionState> filteredModels = FXCollections.observableArrayList();
-    private ObservableList<SessionState> observableModels = FXCollections.observableArrayList();
+    private TableView<ModelTableRow> table = new TableView<ModelTableRow>();
+    private ObservableList<ModelTableRow> filteredModels = FXCollections.observableArrayList();
+    private ObservableList<ModelTableRow> observableModels = FXCollections.observableArrayList();
     private TableUpdateService updateService;
     private MyFreeCams mfc;
     private ReentrantLock lock = new ReentrantLock();
     private SearchBox filterInput;
     private Label count = new Label("models");
-    private List<TableColumn<SessionState, ?>> columns = new ArrayList<>();
+    private List<TableColumn<ModelTableRow, ?>> columns = new ArrayList<>();
     private ContextMenu popup;
 
     public MyFreeCamsTableTab(MyFreeCams mfc) {
@@ -100,17 +105,25 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
         lock.lock();
         try {
             for (SessionState updatedModel : sessionStates) {
-                int index = observableModels.indexOf(updatedModel);
+                ModelTableRow row = new ModelTableRow(updatedModel);
+                int index = observableModels.indexOf(row);
                 if (index == -1) {
-                    observableModels.add(updatedModel);
+                    observableModels.add(row);
                 } else {
-                    observableModels.set(index, updatedModel);
+                    observableModels.get(index).update(updatedModel);
                 }
             }
 
-            for (Iterator<SessionState> iterator = observableModels.iterator(); iterator.hasNext();) {
-                SessionState model = iterator.next();
-                if (!sessionStates.contains(model)) {
+            for (Iterator<ModelTableRow> iterator = observableModels.iterator(); iterator.hasNext();) {
+                ModelTableRow model = iterator.next();
+                boolean found = false;
+                for (SessionState sessionState : sessionStates) {
+                    if(Objects.equals(sessionState.getUid(), model.uid)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if(!found) {
                     iterator.remove();
                 }
             }
@@ -152,6 +165,7 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
         BorderPane.setMargin(topBar, new Insets(0, 0, 5, 0));
 
         table.setItems(observableModels);
+        table.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         table.getSortOrder().addListener(createSortOrderChangedListener());
         table.addEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> {
             popup = createContextMenu();
@@ -167,24 +181,16 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
         });
 
         int idx = 0;
-        TableColumn<SessionState, String> name = createTableColumn("Name", 200, idx++);
-        name.setCellValueFactory(cdf -> {
-            return new SimpleStringProperty(Optional.ofNullable(cdf.getValue().getNm()).orElse("n/a"));
-        });
+        TableColumn<ModelTableRow, String> name = createTableColumn("Name", 200, idx++);
+        name.setCellValueFactory(cdf -> cdf.getValue().nameProperty());
         addTableColumnIfEnabled(name);
 
-        TableColumn<SessionState, String> state = createTableColumn("State", 130, idx++);
-        state.setCellValueFactory(cdf -> {
-            String st = Optional.ofNullable(cdf.getValue().getVs()).map(vs -> ctbrec.sites.mfc.State.of(vs).toString()).orElse("n/a");
-            return new SimpleStringProperty(st);
-        });
+        TableColumn<ModelTableRow, String> state = createTableColumn("State", 130, idx++);
+        state.setCellValueFactory(cdf -> cdf.getValue().stateProperty());
         addTableColumnIfEnabled(state);
 
-        TableColumn<SessionState, Number> camscore = createTableColumn("Score", 75, idx++);
-        camscore.setCellValueFactory(cdf -> {
-            Double camScore = Optional.ofNullable(cdf.getValue().getM()).map(m -> m.getCamscore()).orElse(0d);
-            return new SimpleDoubleProperty(camScore);
-        });
+        TableColumn<ModelTableRow, Number> camscore = createTableColumn("Score", 75, idx++);
+        camscore.setCellValueFactory(cdf -> cdf.getValue().camScoreProperty());
         addTableColumnIfEnabled(camscore);
 
         // this is always 0, use https://api.myfreecams.com/missmfc and https://api.myfreecams.com/missmfc/online
@@ -195,75 +201,37 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
         //        });
         //        addTableColumnIfEnabled(missMfc);
 
-        TableColumn<SessionState, String> newModel = createTableColumn("New", 60, idx++);
-        newModel.setCellValueFactory(cdf -> {
-            Integer nu = Optional.ofNullable(cdf.getValue().getM()).map(m -> m.getNewModel()).orElse(0);
-            return new SimpleStringProperty(nu == 1 ? "new" : "");
-        });
+        TableColumn<ModelTableRow, String> newModel = createTableColumn("New", 60, idx++);
+        newModel.setCellValueFactory(cdf -> cdf.getValue().newModelProperty());
         addTableColumnIfEnabled(newModel);
 
-        TableColumn<SessionState, String> ethnic = createTableColumn("Ethnicity", 130, idx++);
-        ethnic.setCellValueFactory(cdf -> {
-            String eth = Optional.ofNullable(cdf.getValue().getU()).map(u -> u.getEthnic()).orElse("n/a");
-            return new SimpleStringProperty(eth);
-        });
+        TableColumn<ModelTableRow, String> ethnic = createTableColumn("Ethnicity", 130, idx++);
+        ethnic.setCellValueFactory(cdf -> cdf.getValue().ethnicityProperty());
         addTableColumnIfEnabled(ethnic);
 
-        TableColumn<SessionState, String> country = createTableColumn("Country", 160, idx++);
-        country.setCellValueFactory(cdf -> {
-            String c = Optional.ofNullable(cdf.getValue().getU()).map(u -> u.getCountry()).orElse("n/a");
-            return new SimpleStringProperty(c);
-        });
+        TableColumn<ModelTableRow, String> country = createTableColumn("Country", 160, idx++);
+        country.setCellValueFactory(cdf -> cdf.getValue().countryProperty());
         addTableColumnIfEnabled(country);
 
-        TableColumn<SessionState, String> continent = createTableColumn("Continent", 100, idx++);
-        continent.setCellValueFactory(cdf -> {
-            String c = Optional.ofNullable(cdf.getValue().getM()).map(m -> m.getContinent()).orElse("n/a");
-            return new SimpleStringProperty(c);
-        });
+        TableColumn<ModelTableRow, String> continent = createTableColumn("Continent", 100, idx++);
+        continent.setCellValueFactory(cdf -> cdf.getValue().continentProperty());
         addTableColumnIfEnabled(continent);
 
-        TableColumn<SessionState, String> occupation = createTableColumn("Occupation", 160, idx++);
-        occupation.setCellValueFactory(cdf -> {
-            String occ = Optional.ofNullable(cdf.getValue().getU()).map(u -> u.getOccupation()).orElse("n/a");
-            return new SimpleStringProperty(occ);
-        });
+        TableColumn<ModelTableRow, String> occupation = createTableColumn("Occupation", 160, idx++);
+        occupation.setCellValueFactory(cdf -> cdf.getValue().occupationProperty());
         addTableColumnIfEnabled(occupation);
 
-        TableColumn<SessionState, String> tags = createTableColumn("Tags", 300, idx++);
-        tags.setCellValueFactory(cdf -> {
-            Set<String> tagSet = Optional.ofNullable(cdf.getValue().getM()).map(m -> m.getTags()).orElse(Collections.emptySet());
-            if(tagSet.isEmpty()) {
-                return new SimpleStringProperty("");
-            } else {
-                StringBuilder sb = new StringBuilder();
-                for (String t : tagSet) {
-                    sb.append(t).append(',').append(' ');
-                }
-                return new SimpleStringProperty(sb.substring(0, sb.length()-2));
-            }
-        });
+        TableColumn<ModelTableRow, String> tags = createTableColumn("Tags", 300, idx++);
+        tags.setCellValueFactory(cdf -> cdf.getValue().tagsProperty());
         addTableColumnIfEnabled(tags);
 
-        TableColumn<SessionState, String> blurp = createTableColumn("Blurp", 300, idx++);
-        blurp.setCellValueFactory(cdf -> {
-            String blrp = Optional.ofNullable(cdf.getValue().getU()).map(u -> u.getBlurb()).orElse("n/a");
-            return new SimpleStringProperty(blrp);
-        });
+        TableColumn<ModelTableRow, String> blurp = createTableColumn("Blurp", 300, idx++);
+        blurp.setCellValueFactory(cdf -> cdf.getValue().blurpProperty());
         addTableColumnIfEnabled(blurp);
 
-        TableColumn<SessionState, String> topic = createTableColumn("Topic", 600, idx++);
-        topic.setCellValueFactory(cdf -> {
-            String tpc = Optional.ofNullable(cdf.getValue().getM()).map(m -> m.getTopic()).orElse("n/a");
-            try {
-                tpc = URLDecoder.decode(tpc, "utf-8");
-            } catch (UnsupportedEncodingException e) {
-                LOG.warn("Couldn't url decode topic", e);
-            }
-            return new SimpleStringProperty(tpc);
-        });
+        TableColumn<ModelTableRow, String> topic = createTableColumn("Topic", 600, idx++);
+        topic.setCellValueFactory(cdf -> cdf.getValue().topicProperty());
         addTableColumnIfEnabled(topic);
-
 
         scrollPane.setFitToHeight(true);
         scrollPane.setFitToWidth(true);
@@ -274,15 +242,15 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
     }
 
     private ContextMenu createContextMenu() {
-        ObservableList<SessionState> selectedStates = table.getSelectionModel().getSelectedItems();
+        ObservableList<ModelTableRow> selectedStates = table.getSelectionModel().getSelectedItems();
         if (selectedStates.isEmpty()) {
             return null;
         }
 
         List<Model> selectedModels = new ArrayList<>();
-        for (SessionState sessionState : selectedStates) {
-            if(sessionState.getNm() != null) {
-                MyFreeCamsModel model = mfc.createModel(sessionState.getNm());
+        for (ModelTableRow sessionState : selectedStates) {
+            if(sessionState.name.get() != null) {
+                MyFreeCamsModel model = mfc.createModel(sessionState.name.get());
                 mfc.getClient().update(model);
                 selectedModels.add(model);
             }
@@ -297,17 +265,17 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
             clipboard.setContent(content);
         });
 
-        //        MenuItem resumeRecording = new MenuItem("Record");
-        //        resumeRecording.setOnAction((e) -> resumeRecording(selectedModels));
+        MenuItem startRecording = new MenuItem("Record");
+        startRecording.setOnAction((e) -> startRecording(selectedModels));
         MenuItem openInBrowser = new MenuItem("Open in Browser");
         openInBrowser.setOnAction((e) -> DesktopIntegration.open(selectedModels.get(0).getUrl()));
         MenuItem openInPlayer = new MenuItem("Open in Player");
         openInPlayer.setOnAction((e) -> openInPlayer(selectedModels.get(0)));
         MenuItem follow = new MenuItem("Follow");
-        follow.setOnAction((e) -> follow(selectedModels));
+        follow.setOnAction((e) -> new FollowAction(getTabPane(), selectedModels).execute());
 
         ContextMenu menu = new ContextMenu();
-        menu.getItems().addAll(copyUrl, openInPlayer, openInBrowser, follow);
+        menu.getItems().addAll(startRecording, copyUrl, openInPlayer, openInBrowser, follow);
 
         if (selectedModels.size() > 1) {
             copyUrl.setDisable(true);
@@ -318,9 +286,8 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
         return menu;
     }
 
-    private Object follow(List<Model> selectedModels) {
-        // TODO Auto-generated method stub
-        return null;
+    private void startRecording(List<Model> selectedModels) {
+        new StartRecordingAction(getTabPane(), selectedModels, mfc.getRecorder()).execute();
     }
 
     private void openInPlayer(Model selectedModel) {
@@ -336,7 +303,7 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
         }).start();
     }
 
-    private void addTableColumnIfEnabled(TableColumn<SessionState, ?> tc) {
+    private void addTableColumnIfEnabled(TableColumn<ModelTableRow, ?> tc) {
         if(isColumnEnabled(tc)) {
             table.getColumns().add(tc);
         }
@@ -356,7 +323,7 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
             filteredModels.clear();
             for (int i = 0; i < table.getItems().size(); i++) {
                 StringBuilder sb = new StringBuilder();
-                for (TableColumn<SessionState, ?> tc : table.getColumns()) {
+                for (TableColumn<ModelTableRow, ?> tc : table.getColumns()) {
                     String cellData = tc.getCellData(i).toString();
                     sb.append(cellData).append(' ');
                 }
@@ -370,7 +337,7 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
                     }
                 }
                 if(tokensMissing) {
-                    SessionState sessionState = table.getItems().get(i);
+                    ModelTableRow sessionState = table.getItems().get(i);
                     filteredModels.add(sessionState);
                 }
             }
@@ -386,7 +353,7 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
 
     private void showColumnSelection(ActionEvent evt) {
         ContextMenu menu = new ContextMenu();
-        for (TableColumn<SessionState, ?> tc : columns) {
+        for (TableColumn<ModelTableRow, ?> tc : columns) {
             CheckMenuItem item = new CheckMenuItem(tc.getText());
             item.setSelected(isColumnEnabled(tc));
             menu.getItems().add(item);
@@ -394,7 +361,7 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
                 if(item.isSelected()) {
                     Config.getInstance().getSettings().mfcDisabledModelsTableColumns.remove(tc.getText());
                     for (int i = table.getColumns().size()-1; i>=0; i--) {
-                        TableColumn<SessionState, ?> other = table.getColumns().get(i);
+                        TableColumn<ModelTableRow, ?> other = table.getColumns().get(i);
                         int idx = (int) tc.getUserData();
                         int otherIdx = (int) other.getUserData();
                         if(otherIdx < idx) {
@@ -413,12 +380,12 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
         menu.show(getTabPane().getScene().getWindow(), location.getX(), location.getY() + src.getHeight() + 5);
     }
 
-    private boolean isColumnEnabled(TableColumn<SessionState, ?> tc) {
+    private boolean isColumnEnabled(TableColumn<ModelTableRow, ?> tc) {
         return !Config.getInstance().getSettings().mfcDisabledModelsTableColumns.contains(tc.getText());
     }
 
-    private <T> TableColumn<SessionState, T> createTableColumn(String text, int width, int idx) {
-        TableColumn<SessionState, T> tc = new TableColumn<>(text);
+    private <T> TableColumn<ModelTableRow, T> createTableColumn(String text, int width, int idx) {
+        TableColumn<ModelTableRow, T> tc = new TableColumn<>(text);
         tc.setPrefWidth(width);
         tc.sortTypeProperty().addListener((obs, o, n) -> saveState());
         tc.widthProperty().addListener((obs, o, n) -> saveState());
@@ -447,7 +414,7 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
 
     private void saveState() {
         if (!table.getSortOrder().isEmpty()) {
-            TableColumn<SessionState, ?> col = table.getSortOrder().get(0);
+            TableColumn<ModelTableRow, ?> col = table.getSortOrder().get(0);
             Config.getInstance().getSettings().mfcModelsTableSortColumn = col.getText();
             Config.getInstance().getSettings().mfcModelsTableSortType = col.getSortType().toString();
         }
@@ -461,7 +428,7 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
     private void restoreState() {
         String sortCol = Config.getInstance().getSettings().mfcModelsTableSortColumn;
         if (StringUtil.isNotBlank(sortCol)) {
-            for (TableColumn<SessionState, ?> col : table.getColumns()) {
+            for (TableColumn<ModelTableRow, ?> col : table.getColumns()) {
                 if (Objects.equals(sortCol, col.getText())) {
                     col.setSortType(SortType.valueOf(Config.getInstance().getSettings().mfcModelsTableSortType));
                     table.getSortOrder().clear();
@@ -481,12 +448,133 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
         filterInput.setText(Config.getInstance().getSettings().mfcModelsTableFilter);
     }
 
-    private ListChangeListener<TableColumn<SessionState, ?>> createSortOrderChangedListener() {
-        return new ListChangeListener<TableColumn<SessionState, ?>>() {
+    private ListChangeListener<TableColumn<ModelTableRow, ?>> createSortOrderChangedListener() {
+        return new ListChangeListener<TableColumn<ModelTableRow, ?>>() {
             @Override
-            public void onChanged(Change<? extends TableColumn<SessionState, ?>> c) {
+            public void onChanged(Change<? extends TableColumn<ModelTableRow, ?>> c) {
                 saveState();
             }
         };
+    }
+
+    private static class ModelTableRow {
+        private Integer uid;
+        private StringProperty name = new SimpleStringProperty();
+        private StringProperty state = new SimpleStringProperty();
+        private DoubleProperty camScore = new SimpleDoubleProperty();
+        private StringProperty newModel = new SimpleStringProperty();
+        private StringProperty ethnic = new SimpleStringProperty();
+        private StringProperty country = new SimpleStringProperty();
+        private StringProperty continent = new SimpleStringProperty();
+        private StringProperty occupation = new SimpleStringProperty();
+        private StringProperty tags = new SimpleStringProperty();
+        private StringProperty blurp = new SimpleStringProperty();
+        private StringProperty topic = new SimpleStringProperty();
+
+        public ModelTableRow(SessionState st) {
+            update(st);
+        }
+
+        public void update(SessionState st) {
+            uid = st.getUid();
+            name.set(Optional.ofNullable(st.getNm()).orElse("n/a"));
+            state.set(Optional.ofNullable(st.getVs()).map(vs -> ctbrec.sites.mfc.State.of(vs).toString()).orElse("n/a"));
+            camScore.set(Optional.ofNullable(st.getM()).map(m -> m.getCamscore()).orElse(0d));
+            Integer nu = Optional.ofNullable(st.getM()).map(m -> m.getNewModel()).orElse(0);
+            newModel.set(nu == 1 ? "new" : "");
+            ethnic.set(Optional.ofNullable(st.getU()).map(u -> u.getEthnic()).orElse("n/a"));
+            country.set(Optional.ofNullable(st.getU()).map(u -> u.getCountry()).orElse("n/a"));
+            continent.set(Optional.ofNullable(st.getM()).map(m -> m.getContinent()).orElse("n/a"));
+            occupation.set(Optional.ofNullable(st.getU()).map(u -> u.getOccupation()).orElse("n/a"));
+            Set<String> tagSet = Optional.ofNullable(st.getM()).map(m -> m.getTags()).orElse(Collections.emptySet());
+            if(tagSet.isEmpty()) {
+                tags.set("");
+            } else {
+                StringBuilder sb = new StringBuilder();
+                for (String t : tagSet) {
+                    sb.append(t).append(',').append(' ');
+                }
+                tags.set(sb.substring(0, sb.length()-2));
+            }
+            blurp.set(Optional.ofNullable(st.getU()).map(u -> u.getBlurb()).orElse("n/a"));
+            String tpc = Optional.ofNullable(st.getM()).map(m -> m.getTopic()).orElse("n/a");
+            try {
+                tpc = URLDecoder.decode(tpc, "utf-8");
+            } catch (UnsupportedEncodingException e) {
+                LOG.warn("Couldn't url decode topic", e);
+            }
+            topic.set(tpc);
+        }
+
+        public StringProperty nameProperty() {
+            return name;
+        };
+
+        public StringProperty stateProperty() {
+            return state;
+        };
+
+        public DoubleProperty camScoreProperty() {
+            return camScore;
+        };
+
+        public StringProperty newModelProperty() {
+            return newModel;
+        };
+
+        public StringProperty ethnicityProperty() {
+            return ethnic;
+        };
+
+        public StringProperty countryProperty() {
+            return country;
+        };
+
+        public StringProperty continentProperty() {
+            return continent;
+        };
+
+        public StringProperty occupationProperty() {
+            return occupation;
+        };
+
+        public StringProperty tagsProperty() {
+            return tags;
+        };
+
+        public StringProperty blurpProperty() {
+            return blurp;
+        };
+
+        public StringProperty topicProperty() {
+            return topic;
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + ((uid == null) ? 0 : uid.hashCode());
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            ModelTableRow other = (ModelTableRow) obj;
+            if (uid == null) {
+                if (other.uid != null)
+                    return false;
+            } else if (!uid.equals(other.uid))
+                return false;
+            return true;
+        };
+
+
     }
 }

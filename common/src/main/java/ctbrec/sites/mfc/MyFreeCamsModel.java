@@ -87,6 +87,7 @@ public class MyFreeCamsModel extends AbstractModel {
             return ctbrec.Model.State.GROUP;
         case OFFLINE:
         case CAMOFF:
+        case UNKNOWN:
             return ctbrec.Model.State.OFFLINE;
         default:
             LOG.debug("State {} is not mapped", this.state);

@@ -1,6 +1,9 @@
 package ctbrec.recorder.server;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.BindException;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
+import ctbrec.Version;
 import ctbrec.event.EventBusHolder;
 import ctbrec.event.EventHandler;
 import ctbrec.event.EventHandlerConfiguration;
@@ -40,6 +44,7 @@ public class HttpServer {
     private List<Site> sites = new ArrayList<>();
 
     public HttpServer() throws Exception {
+        logEnvironment();
         createSites();
         System.setProperty("ctbrec.server.mode", "1");
         if(System.getProperty("ctbrec.config") == null) {
@@ -145,6 +150,23 @@ public class HttpServer {
             LOG.debug("Registered event handler for {} {}", config.getEvent(), config.getName());
         }
         LOG.debug("Alert System registered");
+    }
+
+    private void logEnvironment() {
+        LOG.debug("OS:\t{} {}", System.getProperty("os.name"), System.getProperty("os.version"));
+        LOG.debug("Java:\t{} {} {}", System.getProperty("java.vendor"), System.getProperty("java.vm.name"), System.getProperty("java.version"));
+        try {
+            LOG.debug("ctbrec server {}", getVersion().toString());
+        } catch (IOException e) {}
+    }
+
+    private Version getVersion() throws IOException {
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream("version")) {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+            String versionString = reader.readLine();
+            Version version = Version.of(versionString);
+            return version;
+        }
     }
 
     public static void main(String[] args) throws Exception {

@@ -8,13 +8,10 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -30,11 +27,10 @@ import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
 import ctbrec.ui.action.FollowAction;
 import ctbrec.ui.action.PauseAction;
+import ctbrec.ui.action.PlayAction;
 import ctbrec.ui.action.ResumeAction;
 import ctbrec.ui.action.StopRecordingAction;
 import ctbrec.ui.controls.AutoFillTextField;
-import ctbrec.ui.controls.Toast;
-import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -42,7 +38,6 @@ import javafx.concurrent.ScheduledService;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
-import javafx.scene.Cursor;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
@@ -71,9 +66,6 @@ import javafx.util.Duration;
 
 public class RecordedModelsTab extends Tab implements TabSelectionListener {
     private static final transient Logger LOG = LoggerFactory.getLogger(RecordedModelsTab.class);
-
-    static BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
-    static ExecutorService threadPool = new ThreadPoolExecutor(2, 2, 10, TimeUnit.MINUTES, queue);
 
     private ScheduledService<List<JavaFxModel>> updateService;
     private Recorder recorder;
@@ -445,16 +437,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
     }
 
     private void openInPlayer(JavaFxModel selectedModel) {
-        table.setCursor(Cursor.WAIT);
-        new Thread(() -> {
-            boolean started = Player.play(selectedModel);
-            Platform.runLater(() -> {
-                if (started && Config.getInstance().getSettings().showPlayerStarting) {
-                    Toast.makeText(getTabPane().getScene(), "Starting Player", 2000, 500, 500);
-                }
-                table.setCursor(Cursor.DEFAULT);
-            });
-        }).start();
+        new PlayAction(getTabPane(), selectedModel).execute();
     }
 
     private void switchStreamSource(JavaFxModel fxModel) {

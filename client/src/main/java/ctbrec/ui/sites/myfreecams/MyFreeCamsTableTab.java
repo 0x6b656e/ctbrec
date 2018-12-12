@@ -22,13 +22,11 @@ import ctbrec.sites.mfc.MyFreeCams;
 import ctbrec.sites.mfc.MyFreeCamsModel;
 import ctbrec.sites.mfc.SessionState;
 import ctbrec.ui.DesktopIntegration;
-import ctbrec.ui.Player;
 import ctbrec.ui.TabSelectionListener;
 import ctbrec.ui.action.FollowAction;
+import ctbrec.ui.action.PlayAction;
 import ctbrec.ui.action.StartRecordingAction;
 import ctbrec.ui.controls.SearchBox;
-import ctbrec.ui.controls.Toast;
-import javafx.application.Platform;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -42,7 +40,6 @@ import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
-import javafx.scene.Cursor;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.ContextMenu;
@@ -291,16 +288,7 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
     }
 
     private void openInPlayer(Model selectedModel) {
-        table.setCursor(Cursor.WAIT);
-        new Thread(() -> {
-            boolean started = Player.play(selectedModel);
-            Platform.runLater(() -> {
-                if (started && Config.getInstance().getSettings().showPlayerStarting) {
-                    Toast.makeText(getTabPane().getScene(), "Starting Player", 2000, 500, 500);
-                }
-                table.setCursor(Cursor.DEFAULT);
-            });
-        }).start();
+        new PlayAction(getTabPane(), selectedModel).execute();
     }
 
     private void addTableColumnIfEnabled(TableColumn<ModelTableRow, ?> tc) {

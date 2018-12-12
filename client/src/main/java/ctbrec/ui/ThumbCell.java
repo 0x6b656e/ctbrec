@@ -21,7 +21,7 @@ import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.io.HttpException;
 import ctbrec.recorder.Recorder;
-import ctbrec.ui.controls.Toast;
+import ctbrec.ui.action.PlayAction;
 import javafx.animation.FadeTransition;
 import javafx.animation.FillTransition;
 import javafx.animation.ParallelTransition;
@@ -341,16 +341,7 @@ public class ThumbCell extends StackPane {
     }
 
     void startPlayer() {
-        setCursor(Cursor.WAIT);
-        new Thread(() -> {
-            boolean started = Player.play(model);
-            Platform.runLater(() -> {
-                setCursor(Cursor.DEFAULT);
-                if (started && Config.getInstance().getSettings().showPlayerStarting) {
-                    Toast.makeText(getScene(), "Starting Player", 2000, 500, 500);
-                }
-            });
-        }).start();
+        new PlayAction(this, model).execute();
     }
 
     private void setRecording(boolean recording) {

@@ -44,7 +44,7 @@ public class Cam4SiteUi implements SiteUI {
     }
 
     @Override
-    public boolean login() throws IOException {
+    public synchronized boolean login() throws IOException {
         boolean automaticLogin = cam4.login();
         if(automaticLogin) {
             return true;

@@ -105,7 +105,7 @@ public class Chaturbate extends AbstractSite {
     }
 
     @Override
-    public boolean login() throws IOException {
+    public synchronized boolean login() throws IOException {
         return credentialsAvailable() && getHttpClient().login();
     }
 

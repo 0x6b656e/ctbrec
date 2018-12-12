@@ -30,7 +30,7 @@ public class MyFreeCamsSiteUi implements SiteUI {
     }
 
     @Override
-    public boolean login() throws IOException {
+    public synchronized boolean login() throws IOException {
         return myFreeCams.login();
     }
 

@@ -307,6 +307,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         GridPane.setMargin(splitAfter, new Insets(0, 0, 0, CHECKBOX_MARGIN));
 
         layout.add(new Label("Post-Processing"), 0, row);
+        // TODO allow empty strings to remove post-processing scripts
         postProcessing = new ProgramSelectionBox(Config.getInstance().getSettings().postProcessing);
         postProcessing.fileProperty().addListener((obs, o, n) -> {
             String path = n.getAbsolutePath();

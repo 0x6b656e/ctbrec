@@ -16,7 +16,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -29,6 +28,10 @@ import ctbrec.Recording;
 import ctbrec.StringUtil;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
+import ctbrec.ui.action.FollowAction;
+import ctbrec.ui.action.PauseAction;
+import ctbrec.ui.action.ResumeAction;
+import ctbrec.ui.action.StopRecordingAction;
 import ctbrec.ui.controls.AutoFillTextField;
 import ctbrec.ui.controls.Toast;
 import javafx.application.Platform;
@@ -272,39 +275,11 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
     }
 
     private void pauseAll(ActionEvent evt) {
-        List<Model> models = recorder.getModelsRecording();
-        Consumer<Model> action = (m) -> {
-            try {
-                recorder.suspendRecording(m);
-            } catch(Exception e) {
-                Platform.runLater(() ->
-                showErrorDialog(e, "Couldn't suspend recording of model", "Suspending recording of " + m.getName() + " failed"));
-            }
-        };
-        massEdit(models, action);
+        new PauseAction(getTabPane(), recorder.getModelsRecording(), recorder).execute();
     }
 
     private void resumeAll(ActionEvent evt) {
-        List<Model> models = recorder.getModelsRecording();
-        Consumer<Model> action = (m) -> {
-            try {
-                recorder.resumeRecording(m);
-            } catch(Exception e) {
-                Platform.runLater(() ->
-                showErrorDialog(e, "Couldn't resume recording of model", "Resuming recording of " + m.getName() + " failed"));
-            }
-        };
-        massEdit(models, action);
-    }
-
-    private void massEdit(List<? extends Model> models, Consumer<Model> action) {
-        table.setCursor(Cursor.WAIT);
-        threadPool.submit(() -> {
-            for (Model model : models) {
-                action.accept(model);
-            }
-            Platform.runLater(() -> table.setCursor(Cursor.DEFAULT));
-        });
+        new ResumeAction(getTabPane(), recorder.getModelsRecording(), recorder).execute();
     }
 
     void initializeUpdateService() {
@@ -466,16 +441,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
     }
 
     private void follow(ObservableList<JavaFxModel> selectedModels) {
-        Consumer<Model> action = (m) -> {
-            try {
-                m.follow();
-            } catch(Throwable e) {
-                LOG.error("Couldn't follow model {}", m, e);
-                Platform.runLater(() ->
-                showErrorDialog(e, "Couldn't follow model", "Following " + m.getName() + " failed: " + e.getMessage()));
-            }
-        };
-        massEdit(new ArrayList<JavaFxModel>(selectedModels), action);
+        new FollowAction(getTabPane(), new ArrayList<JavaFxModel>(selectedModels)).execute();
     }
 
     private void openInPlayer(JavaFxModel selectedModel) {
@@ -540,45 +506,20 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
     }
 
     private void stopAction(List<JavaFxModel> selectedModels) {
-        Consumer<Model> action = (m) -> {
-            try {
-                recorder.stopRecording(m);
-                observableModels.remove(m);
-            } catch(Exception e) {
-                Platform.runLater(() ->
-                showErrorDialog(e, "Couldn't stop recording", "Stopping recording of " + m.getName() + " failed"));
-            }
-        };
         List<Model> models = selectedModels.stream().map(jfxm -> jfxm.getDelegate()).collect(Collectors.toList());
-        massEdit(models, action);
+        new StopRecordingAction(getTabPane(), models, recorder).execute((m) -> {
+            observableModels.remove(m);
+        });
     };
 
     private void pauseRecording(List<JavaFxModel> selectedModels) {
-        Consumer<Model> action = (m) -> {
-            try {
-                recorder.suspendRecording(m);
-                m.setSuspended(true);
-            } catch(Exception e) {
-                Platform.runLater(() ->
-                showErrorDialog(e, "Couldn't pause recording of model", "Pausing recording of " + m.getName() + " failed"));
-            }
-        };
         List<Model> models = selectedModels.stream().map(jfxm -> jfxm.getDelegate()).collect(Collectors.toList());
-        massEdit(models, action);
+        new PauseAction(getTabPane(), models, recorder).execute();
     };
 
     private void resumeRecording(List<JavaFxModel> selectedModels) {
-        Consumer<Model> action = (m) -> {
-            try {
-                recorder.resumeRecording(m);
-                m.setSuspended(false);
-            } catch(Exception e) {
-                Platform.runLater(() ->
-                showErrorDialog(e, "Couldn't resume recording of model", "Resuming recording of " + m.getName() + " failed"));
-            }
-        };
         List<Model> models = selectedModels.stream().map(jfxm -> jfxm.getDelegate()).collect(Collectors.toList());
-        massEdit(models, action);
+        new ResumeAction(getTabPane(), models, recorder).execute();
     }
 
     public void saveState() {

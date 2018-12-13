@@ -98,9 +98,6 @@ public class Popover extends Region implements EventHandler<Event>{
     };
 
     public Popover() {
-        // TODO Could pagesPane be a region instead? I need to draw some opaque background. Right now when
-        // TODO animating from one page to another you can see the background "shine through" because the
-        // TODO group background is transparent. That can't be good for performance either.
         getStyleClass().setAll("popover");
         frameBorder.getStyleClass().setAll("popover-frame");
         frameBorder.setMouseTransparent(true);

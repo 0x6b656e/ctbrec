@@ -1,3 +1,12 @@
+1.15.0
+========================
+* Fix: BongaCams overview didn't work anymore
+* Fix: CamSoda overview didn't work anymore
+* Fix: Multi selection of thumbnails didn't work when a tab was opened the
+  first time
+* Fix: Cam4 online detection was to restrictive
+* Added tabular view for MFC, which shows all online models
+
 1.14.0
 ========================
 * Added setting for MFC to ignore the upscaled (960p) stream

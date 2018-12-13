@@ -52,7 +52,6 @@ public class Cam4Model extends AbstractModel {
                 return false;
             }
         }
-        LOG.debug("{}   state:{}   playlistUrl:{}   private:{}", getName(), onlineState, playlistUrl != null, privateRoom);
         return onlineState == ONLINE && !privateRoom;
     }
 

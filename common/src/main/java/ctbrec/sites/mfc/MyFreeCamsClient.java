@@ -277,7 +277,7 @@ public class MyFreeCamsClient {
                         case ROOMDATA:
                             LOG.debug("ROOMDATA: {}", message);
                         case UEOPT:
-                            LOG.debug("UEOPT: {}", message);
+                            LOG.trace("UEOPT: {}", message);
                             break;
                         case SLAVEVSHARE:
                             //                        LOG.debug("SLAVEVSHARE {}", message);
@@ -295,7 +295,7 @@ public class MyFreeCamsClient {
                             }
                             break;
                         default:
-                            LOG.debug("Unknown message {}", message);
+                            LOG.trace("Unknown message {}", message);
                             break;
                         }
                     }

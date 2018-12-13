@@ -617,7 +617,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
 
     private double getFollowedTabYPosition(Tab followedTab) {
         TabPane tabPane = getTabPane();
-        int idx = tabPane.getTabs().indexOf(followedTab);
+        int idx = Math.max(0, tabPane.getTabs().indexOf(followedTab));
         for (Node node : tabPane.getChildrenUnmodifiable()) {
             Parent p = (Parent) node;
             for (Node child : p.getChildrenUnmodifiable()) {

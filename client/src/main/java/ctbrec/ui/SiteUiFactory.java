@@ -20,7 +20,7 @@ public class SiteUiFactory {
     private static ChaturbateSiteUi ctbSiteUi;
     private static MyFreeCamsSiteUi mfcSiteUi;
 
-    public static SiteUI getUi(Site site) {
+    public static synchronized SiteUI getUi(Site site) {
         if (site instanceof BongaCams) {
             if (bongaSiteUi == null) {
                 bongaSiteUi = new BongaCamsSiteUi((BongaCams) site);

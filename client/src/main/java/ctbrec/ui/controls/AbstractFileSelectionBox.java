@@ -79,7 +79,7 @@ public abstract class AbstractFileSelectionBox extends HBox {
             validationError.setText(msg);
             fileInput.setTooltip(validationError);
             Point2D p = fileInput.localToScreen(fileInput.getTranslateY(), fileInput.getTranslateY());
-            if(!validationError.isShowing()) {
+            if(!validationError.isShowing() && getScene() != null) {
                 validationError.show(getScene().getWindow(), p.getX(), p.getY() + fileInput.getHeight() + 4);
             }
         } else {

@@ -420,6 +420,11 @@ public class MyFreeCamsClient {
                     return;
                 }
 
+                // uid not set, we can't identify this model
+                if(state.getUid() == null || state.getUid() <= 0) {
+                    return;
+                }
+
                 MyFreeCamsModel model = models.getIfPresent(state.getUid());
                 if(model == null) {
                     model = mfc.createModel(state.getNm());

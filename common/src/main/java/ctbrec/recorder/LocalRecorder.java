@@ -4,6 +4,8 @@ import static ctbrec.Recording.State.*;
 import static ctbrec.event.Event.Type.*;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.FileStore;
@@ -11,6 +13,7 @@ import java.nio.file.Files;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,11 +37,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.eventbus.Subscribe;
+import com.iheartradio.m3u8.Encoding;
+import com.iheartradio.m3u8.Format;
 import com.iheartradio.m3u8.ParseException;
+import com.iheartradio.m3u8.ParsingMode;
 import com.iheartradio.m3u8.PlaylistException;
+import com.iheartradio.m3u8.PlaylistParser;
+import com.iheartradio.m3u8.data.MediaPlaylist;
+import com.iheartradio.m3u8.data.Playlist;
+import com.iheartradio.m3u8.data.TrackData;
 
 import ctbrec.Config;
 import ctbrec.Model;
+import ctbrec.MpegUtil;
 import ctbrec.OS;
 import ctbrec.Recording;
 import ctbrec.Recording.State;
@@ -740,9 +751,71 @@ public class LocalRecorder implements Recorder {
                 fireRecordingStateChanged(download.getTarget(), GENERATING_PLAYLIST, download.getModel(), download.getStartTime());
                 generatePlaylist(download.getTarget());
             }
+            boolean deleted = deleteIfTooShort(download);
+            if(deleted) {
+                // recording was too short. stop here and don't do post-processing
+                return;
+            }
             fireRecordingStateChanged(download.getTarget(), POST_PROCESSING, download.getModel(), download.getStartTime());
             postprocess(download);
             fireRecordingStateChanged(download.getTarget(), FINISHED, download.getModel(), download.getStartTime());
         };
+    }
+
+
+    // TODO maybe get file size and bitrate and check, if the values are plausible
+    // we could also compare the length with the time elapsed since starting the recording
+    private boolean deleteIfTooShort(Download download) {
+        long minimumLengthInSeconds = Config.getInstance().getSettings().minimumLengthInSeconds;
+        if(minimumLengthInSeconds <= 0) {
+            return false;
+        }
+
+        try {
+            LOG.debug("Determining video length for {}", download.getTarget());
+            File target = download.getTarget();
+            double duration = 0;
+            if(target.isDirectory()) {
+                File playlist = new File(target, "playlist.m3u8");
+                duration = getPlaylistLength(playlist);
+            } else {
+                duration = MpegUtil.getFileDuration(target);
+            }
+            Duration minLength = Duration.ofSeconds(minimumLengthInSeconds);
+            Duration videoLength = Duration.ofSeconds((long) duration);
+            LOG.debug("Recording started at:{}. Video length is {}", download.getStartTime(), videoLength);
+            if(videoLength.minus(minLength).isNegative()) {
+                LOG.debug("Video too short {} {}", videoLength, download.getTarget());
+                LOG.debug("Deleting {}", target);
+                if(target.isDirectory()) {
+                    deleteDirectory(target);
+                    deleteEmptyParents(target);
+                } else {
+                    Files.delete(target.toPath());
+                    deleteEmptyParents(target.getParentFile());
+                }
+                return true;
+            } else {
+                return false;
+            }
+        } catch (Exception e) {
+            LOG.error("Couldn't check video length", e);
+            return false;
+        }
+    }
+
+    private double getPlaylistLength(File playlist) throws IOException, ParseException, PlaylistException {
+        if(playlist.exists()) {
+            PlaylistParser playlistParser = new PlaylistParser(new FileInputStream(playlist), Format.EXT_M3U, Encoding.UTF_8, ParsingMode.LENIENT);
+            Playlist m3u = playlistParser.parse();
+            MediaPlaylist mediaPlaylist = m3u.getMediaPlaylist();
+            double length = 0;
+            for (TrackData trackData : mediaPlaylist.getTracks()) {
+                length += trackData.getTrackInfo().duration;
+            }
+            return length;
+        } else {
+            throw new FileNotFoundException(playlist.getAbsolutePath() + " does not exist");
+        }
     }
 }

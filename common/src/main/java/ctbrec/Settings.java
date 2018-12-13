@@ -41,6 +41,7 @@ public class Settings {
     public String recordingsDir = System.getProperty("user.home") + File.separator + "ctbrec";
     public DirectoryStructure recordingsDirStructure = DirectoryStructure.FLAT;
     public long minimumSpaceLeftInBytes = 0;
+    public int minimumLengthInSeconds = 0;
     public String mediaPlayer = "/usr/bin/mpv";
     public String postProcessing = "";
     public String username = ""; // chaturbate username TODO maybe rename this onetime

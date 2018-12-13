@@ -58,6 +58,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private TextField port;
     private TextField onlineCheckIntervalInSecs;
     private TextField leaveSpaceOnDevice;
+    private TextField minimumLengthInSecs;
     private CheckBox loadResolution;
     private CheckBox secureCommunication = new CheckBox();
     private CheckBox chooseStreamQuality = new CheckBox();
@@ -359,6 +360,26 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         });
         GridPane.setMargin(leaveSpaceOnDevice, new Insets(0, 0, 0, CHECKBOX_MARGIN));
         layout.add(leaveSpaceOnDevice, 1, row++);
+
+        tt = new Tooltip("Delete recordings, which are shorter than x seconds. 0 to disable.");
+        l = new Label("Delete recordings shorter than (secs)");
+        l.setTooltip(tt);
+        layout.add(l, 0, row);
+        int minimumLengthInSeconds = Config.getInstance().getSettings().minimumLengthInSeconds;
+        minimumLengthInSecs = new TextField(Integer.toString(minimumLengthInSeconds));
+        minimumLengthInSecs.setTooltip(tt);
+        minimumLengthInSecs.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                minimumLengthInSecs.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+            if(!minimumLengthInSecs.getText().isEmpty()) {
+                int minimumLength = Integer.parseInt(minimumLengthInSecs.getText());
+                Config.getInstance().getSettings().minimumLengthInSeconds = minimumLength;
+                saveConfig();
+            }
+        });
+        GridPane.setMargin(minimumLengthInSecs, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        layout.add(minimumLengthInSecs, 1, row++);
 
         TitledPane locations = new TitledPane("Recorder", layout);
         locations.setCollapsible(false);

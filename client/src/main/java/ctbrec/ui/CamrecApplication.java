@@ -38,6 +38,7 @@ import ctbrec.sites.cam4.Cam4;
 import ctbrec.sites.camsoda.Camsoda;
 import ctbrec.sites.chaturbate.Chaturbate;
 import ctbrec.sites.mfc.MyFreeCams;
+import ctbrec.sites.streamate.Streamate;
 import ctbrec.ui.settings.SettingsTab;
 import javafx.application.Application;
 import javafx.application.HostServices;
@@ -76,6 +77,7 @@ public class CamrecApplication extends Application {
         sites.add(new Camsoda());
         sites.add(new Chaturbate());
         sites.add(new MyFreeCams());
+        sites.add(new Streamate());
         loadConfig();
         registerAlertSystem();
         createHttpClient();

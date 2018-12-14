@@ -4,11 +4,13 @@ import static ctbrec.Model.State.*;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,9 +30,7 @@ import ctbrec.AbstractModel;
 import ctbrec.Config;
 import ctbrec.io.HttpException;
 import ctbrec.recorder.download.StreamSource;
-import okhttp3.FormBody;
 import okhttp3.Request;
-import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class StreamateModel extends AbstractModel {
@@ -52,32 +52,6 @@ public class StreamateModel extends AbstractModel {
             }
         }
         return online;
-    }
-
-    private JSONObject getRoomData() throws IOException {
-        String url = Streamate.BASE_URL + "/tools/amf.php";
-        RequestBody body = new FormBody.Builder()
-                .add("method", "getRoomData")
-                .add("args[]", getName())
-                .add("args[]", "false")
-                .build();
-        Request request = new Request.Builder()
-                .url(url)
-                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
-                .addHeader("Accept", "application/json, text/javascript, */*")
-                .addHeader("Accept-Language", "en")
-                .addHeader("Referer", Streamate.BASE_URL)
-                .addHeader("X-Requested-With", "XMLHttpRequest")
-                .post(body)
-                .build();
-        try(Response response = site.getHttpClient().execute(request)) {
-            if(response.isSuccessful()) {
-                JSONObject json = new JSONObject(response.body().string());
-                return json;
-            } else {
-                throw new IOException(response.code() + " " + response.message());
-            }
-        }
     }
 
     public void setOnline(boolean online) {
@@ -107,6 +81,7 @@ public class StreamateModel extends AbstractModel {
         if (streamUrl == null) {
             return Collections.emptyList();
         }
+        LOG.debug(streamUrl);
         Request req = new Request.Builder().url(streamUrl).build();
         try(Response response = site.getHttpClient().execute(req)) {
             if(response.isSuccessful()) {
@@ -117,7 +92,7 @@ public class StreamateModel extends AbstractModel {
                 streamSources.clear();
                 for (PlaylistData playlistData : master.getPlaylists()) {
                     StreamSource streamsource = new StreamSource();
-                    streamsource.mediaPlaylistUrl = streamUrl.replace("playlist.m3u8", playlistData.getUri());
+                    streamsource.mediaPlaylistUrl = playlistData.getUri();
                     if (playlistData.hasStreamInfo()) {
                         StreamInfo info = playlistData.getStreamInfo();
                         streamsource.bandwidth = info.getBandwidth();
@@ -138,6 +113,85 @@ public class StreamateModel extends AbstractModel {
     }
 
     private String getStreamUrl() throws IOException {
+        JSONObject json = getRoomInfo();
+        JSONObject performer = json.getJSONObject("performer");
+        id = Long.toString(performer.getLong("id"));
+        JSONObject stream = json.getJSONObject("stream");
+        String sserver = stream.getString("serverId");
+        String streamId = stream.getString("streamId");
+        String wsHost = stream.getString("nodeHost");
+        JSONObject liveservices = json.getJSONObject("liveservices");
+        String streamHost = liveservices.getString("host").replace("wss", "https");
+
+        String roomId;
+        try {
+            roomId = getRoomId(wsHost, sserver, streamId);
+            LOG.debug("room id: {}", roomId);
+        } catch (InterruptedException e) {
+            throw new IOException("Couldn't get room id", e);
+        }
+
+        String streamFormatUrl = getStreamFormatUrl(streamHost, roomId);
+        return getMasterPlaylistUrl(streamFormatUrl);
+    }
+
+    private String getMasterPlaylistUrl(String url) throws IOException {
+        LOG.debug(url);
+        Request req = new Request.Builder()
+                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
+                .addHeader("Accept", "*/*")
+                .addHeader("Accept-Language", "en")
+                .addHeader("Referer", Streamate.BASE_URL + '/' + getName())
+                .addHeader("X-Requested-With", "XMLHttpRequest")
+                .url(url)
+                .build();
+        try(Response response = site.getHttpClient().execute(req)) {
+            if(response.isSuccessful()) {
+                JSONObject json = new JSONObject(response.body().string());
+                JSONObject formats = json.getJSONObject("formats");
+                JSONObject hls = formats.getJSONObject("mp4-hls");
+                return hls.getString("manifest");
+            } else {
+                throw new HttpException(response.code(), response.message());
+            }
+        }
+    }
+
+    private String getStreamFormatUrl(String streamHost, String roomId) throws IOException {
+        String url = streamHost + "/videourl?payload="
+                + URLEncoder.encode("{\"puserid\":" + id + ",\"roomid\":\"" + roomId + "\",\"showtype\":1,\"nginx\":1}", "utf-8");
+        LOG.debug(url);
+        Request req = new Request.Builder()
+                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
+                .addHeader("Accept", "*/*")
+                .addHeader("Accept-Language", "en")
+                .addHeader("Referer", Streamate.BASE_URL + '/' + getName())
+                .addHeader("X-Requested-With", "XMLHttpRequest")
+                .url(url)
+                .build();
+        try(Response response = site.getHttpClient().execute(req)) {
+            if(response.isSuccessful()) {
+                JSONArray streamConfig = new JSONArray(response.body().string());
+                JSONObject obj = streamConfig.getJSONObject(0);
+                return obj.getString("url");
+            } else {
+                throw new HttpException(response.code(), response.message());
+            }
+        }
+    }
+
+    private String getRoomId(String wsHost, String sserver, String streamId) throws InterruptedException {
+        String wsUrl = wsHost + "/socket.io/?"
+                + "performerid=" + id
+                + "&sserver=" + sserver
+                + "&streamid=" + streamId
+                + "&sakey=&sessiontype=preview&perfdiscountid=0&minduration=0&goldshowid=0&version=7&referrer=hybrid.client.6.3.16/avchat.swf&usertype=false&lang=en&EIO=3&transport=websocket";
+
+        StreamateWebsocketClient wsClient = new StreamateWebsocketClient(wsUrl, site.getHttpClient());
+        return wsClient.getRoomId();
+    }
+
+    private JSONObject getRoomInfo() throws IOException {
         String url = "https://hybridclient.naiadsystems.com/api/v1/config/?sabasic=&sakey=&sk=www.streamate.com&userid=0&version=6.3.16&ajax=1&name=" + getName();
         Request req = new Request.Builder()
                 .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
@@ -149,25 +203,11 @@ public class StreamateModel extends AbstractModel {
                 .build();
         try(Response response = site.getHttpClient().execute(req)) {
             if(response.isSuccessful()) {
-                JSONObject json = new JSONObject(response.body().string());
-                JSONObject performer = json.getJSONObject("performer");
-                id = performer.getString("id");
-                JSONObject stream = json.getJSONObject("stream");
-                String sserver = stream.getString("serverId");
-                String streamId = stream.getString("streamId");
-                String wsHost = stream.getString("nodeHost");
-                LOG.debug(json.toString(2));
-
-                String wsUrl = wsHost + "/socket.io/?"
-                        + "performerid=" + id
-                        + "&sserver=" + sserver
-                        + "&streamid=" + streamId
-                        + "&sakey=&sessiontype=preview&perfdiscountid=0&minduration=0&goldshowid=0&version=7&referrer=hybrid.client.6.3.16/avchat.swf&usertype=false&lang=en&EIO=3&transport=websocket";
+                return new JSONObject(response.body().string());
             } else {
-                throw new IOException(response.code() + ' ' + response.message());
+                throw new HttpException(response.code(), response.message());
             }
         }
-        return "";
     }
 
     @Override

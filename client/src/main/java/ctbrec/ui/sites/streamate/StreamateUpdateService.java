@@ -64,7 +64,6 @@ public class StreamateUpdateService extends PaginatedScheduledService {
                 if (response.isSuccessful()) {
                     List<Model> models = new ArrayList<>();
                     String content = response.body().string();
-                    LOG.debug(content);
                     ByteArrayInputStream in = new ByteArrayInputStream(content.getBytes("utf-8"));
                     Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(in);
                     NodeList performers = doc.getElementsByTagName("Performer");
@@ -81,7 +80,7 @@ public class StreamateUpdateService extends PaginatedScheduledService {
                         Node pic = XmlParserUtils.getNodeWithXpath(performer, "Media/Pic/Full");
                         String previewUrl = "https:" + pic.getAttributes().getNamedItem("Src").getNodeValue();
                         model.setPreview(previewUrl);
-                        LOG.debug("Name {} - {}{}{}", name, PartyChat, PreGoldShow, GoldShow);
+                        //LOG.debug("Name {} - {}{}{}", name, PartyChat, PreGoldShow, GoldShow);
                     }
                     return models;
                 } else {

@@ -60,8 +60,10 @@ public class Settings {
     public boolean mfcIgnoreUpscaled = false;
     public String camsodaUsername = "";
     public String camsodaPassword = "";
-    public String cam4Username;
-    public String cam4Password;
+    public String cam4Username = "";
+    public String cam4Password = "";
+    public String streamateUsername = "";
+    public String streamatePassword = "";
     public String lastDownloadDir = "";
 
     public List<Model> models = new ArrayList<>();

@@ -10,9 +10,11 @@ import ctbrec.ui.TabProvider;
 public class StreamateSiteUi implements SiteUI {
 
     private StreamateTabProvider tabProvider;
+    private StreamateConfigUI configUi;
 
     public StreamateSiteUi(Streamate streamate) {
         tabProvider = new StreamateTabProvider(streamate);
+        configUi = new StreamateConfigUI(streamate);
     }
 
     @Override
@@ -22,7 +24,7 @@ public class StreamateSiteUi implements SiteUI {
 
     @Override
     public ConfigUI getConfigUI() {
-        return null;
+        return configUi;
     }
 
     @Override

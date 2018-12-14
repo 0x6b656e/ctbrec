@@ -64,6 +64,15 @@ public class StreamateUpdateService extends PaginatedScheduledService {
                             model.setId(Long.toString(p.getLong("id")));
                             model.setPreview(p.getString("thumbnail"));
                             model.setOnline(p.optBoolean("online"));
+                            // TODO figure out, what all the states mean
+                            //                         liveState   {…}
+                            //                            exclusiveShow     false
+                            //                            goldShow          true
+                            //                            onBreak           false
+                            //                            partyChat         true
+                            //                            preGoldShow       true
+                            //                            privateChat       false
+                            //                            specialShow       false
                             models.add(model);
                         }
                         return models;

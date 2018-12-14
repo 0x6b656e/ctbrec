@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 
 import ctbrec.Model;
 import ctbrec.sites.Site;
-import ctbrec.sites.chaturbate.Chaturbate;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.scene.control.Alert;
@@ -48,7 +47,7 @@ public class TipDialog extends TextInputDialog {
                     int tokens = get();
                     Platform.runLater(() -> {
                         if (tokens <= 0) {
-                            String msg = "Do you want to buy tokens now?\n\nIf you agree, Chaturbate will open in a browser. "
+                            String msg = "Do you want to buy tokens now?\n\nIf you agree, "+site.getName()+" will open in a browser. "
                                     + "The used address is an affiliate link, which supports me, but doesn't cost you anything more.";
                             Alert buyTokens = new AutosizeAlert(Alert.AlertType.CONFIRMATION, msg, ButtonType.NO, ButtonType.YES);
                             buyTokens.setTitle("No tokens");
@@ -56,7 +55,7 @@ public class TipDialog extends TextInputDialog {
                             buyTokens.showAndWait();
                             TipDialog.this.close();
                             if(buyTokens.getResult() == ButtonType.YES) {
-                                DesktopIntegration.open(Chaturbate.AFFILIATE_LINK);
+                                DesktopIntegration.open(site.getAffiliateLink());
                             }
                         } else {
                             getEditor().setDisable(false);

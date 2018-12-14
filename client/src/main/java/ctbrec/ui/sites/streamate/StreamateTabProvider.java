@@ -1,8 +1,6 @@
 package ctbrec.ui.sites.streamate;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,7 +28,15 @@ public class StreamateTabProvider extends TabProvider {
     public List<Tab> getTabs(Scene scene) {
         List<Tab> tabs = new ArrayList<>();
         try {
-            tabs.add(createTab("Girls", "/ctbrec/ui/sites/streamate/girls.sml"));
+            tabs.add(createTab("Girls",         Streamate.BASE_URL + "/api/search/list?domain=streamate.com&index=availperf&filters=gender:f"));
+            tabs.add(createTab("Guys",          Streamate.BASE_URL + "/api/search/list?domain=streamate.com&index=availperf&filters=gender:m"));
+            tabs.add(createTab("Couples",       Streamate.BASE_URL + "/api/search/list?domain=streamate.com&index=availperf&filters=gender:mf"));
+            tabs.add(createTab("Lesbian",       Streamate.BASE_URL + "/api/search/list?domain=streamate.com&index=availperf&filters=gender:ff"));
+            tabs.add(createTab("Gay",           Streamate.BASE_URL + "/api/search/list?domain=streamate.com&index=availperf&filters=gender:mm"));
+            tabs.add(createTab("Groups",        Streamate.BASE_URL + "/api/search/list?domain=streamate.com&index=availperf&filters=gender:g"));
+            tabs.add(createTab("Trans female",  Streamate.BASE_URL + "/api/search/list?domain=streamate.com&index=availperf&filters=gender:tm2f"));
+            tabs.add(createTab("Trans male",    Streamate.BASE_URL + "/api/search/list?domain=streamate.com&index=availperf&filters=gender:tf2m"));
+            tabs.add(createTab("New",           Streamate.BASE_URL + "/api/search/list?domain=streamate.com&index=availperf&filters=new:true"));
         } catch (IOException e) {
             LOG.error("Couldn't create streamate tab", e);
         }
@@ -42,21 +48,10 @@ public class StreamateTabProvider extends TabProvider {
         return null;
     }
 
-    private Tab createTab(String title, String queryFile) throws IOException {
-        StreamateUpdateService updateService = new StreamateUpdateService(loadQuery(queryFile), streamate);
+    private Tab createTab(String title, String url) throws IOException {
+        StreamateUpdateService updateService = new StreamateUpdateService(streamate, url);
         ThumbOverviewTab tab = new ThumbOverviewTab(title, updateService, streamate);
         tab.setRecorder(recorder);
         return tab;
-    }
-
-    private String loadQuery(String file) throws IOException {
-        InputStream is = getClass().getResourceAsStream(file);
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        byte[] b = new byte[1024];
-        int len = -1;
-        while( (len = is.read(b)) >= 0) {
-            bos.write(b, 0, len);
-        }
-        return new String(bos.toByteArray(), "utf-8");
     }
 }

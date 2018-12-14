@@ -3,8 +3,6 @@ package ctbrec.sites.streamate;
 import static ctbrec.Model.State.*;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -15,16 +13,8 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.iheartradio.m3u8.Encoding;
-import com.iheartradio.m3u8.Format;
 import com.iheartradio.m3u8.ParseException;
-import com.iheartradio.m3u8.ParsingMode;
 import com.iheartradio.m3u8.PlaylistException;
-import com.iheartradio.m3u8.PlaylistParser;
-import com.iheartradio.m3u8.data.MasterPlaylist;
-import com.iheartradio.m3u8.data.Playlist;
-import com.iheartradio.m3u8.data.PlaylistData;
-import com.iheartradio.m3u8.data.StreamInfo;
 
 import ctbrec.AbstractModel;
 import ctbrec.Config;
@@ -45,10 +35,17 @@ public class StreamateModel extends AbstractModel {
     @Override
     public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException {
         if(ignoreCache) {
-            JSONObject roomInfo = getRoomInfo();
-            JSONObject stream = roomInfo.getJSONObject("stream");
-            String serverId = stream.optString("serverId");
-            online = !serverId.equals("0");
+            String url = "https://sea1c-ls.naiadsystems.com/sea1c-edge-ls/80/live/s:" + getName() + ".json";
+            Request req = new Request.Builder().url(url)
+                    .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
+                    .addHeader("Accept", "*/*")
+                    .addHeader("Accept-Language", "en")
+                    .addHeader("Referer", Streamate.BASE_URL + '/' + getName())
+                    .addHeader("X-Requested-With", "XMLHttpRequest")
+                    .build();
+            try(Response response = site.getHttpClient().execute(req)) {
+                online = response.isSuccessful();
+            }
         }
         return online;
     }
@@ -76,137 +73,48 @@ public class StreamateModel extends AbstractModel {
 
     @Override
     public List<StreamSource> getStreamSources() throws IOException, ExecutionException, ParseException, PlaylistException {
-        String streamUrl = getStreamUrl();
-        if (streamUrl == null) {
-            return Collections.emptyList();
-        }
-        LOG.debug(streamUrl);
-        Request req = new Request.Builder().url(streamUrl).build();
-        try(Response response = site.getHttpClient().execute(req)) {
-            if(response.isSuccessful()) {
-                InputStream inputStream = response.body().byteStream();
-                PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8, ParsingMode.LENIENT);
-                Playlist playlist = parser.parse();
-                MasterPlaylist master = playlist.getMasterPlaylist();
-                streamSources.clear();
-                for (PlaylistData playlistData : master.getPlaylists()) {
-                    StreamSource streamsource = new StreamSource();
-                    streamsource.mediaPlaylistUrl = playlistData.getUri();
-                    if (playlistData.hasStreamInfo()) {
-                        StreamInfo info = playlistData.getStreamInfo();
-                        streamsource.bandwidth = info.getBandwidth();
-                        streamsource.width = info.hasResolution() ? info.getResolution().width : 0;
-                        streamsource.height = info.hasResolution() ? info.getResolution().height : 0;
-                    } else {
-                        streamsource.bandwidth = 0;
-                        streamsource.width = 0;
-                        streamsource.height = 0;
-                    }
-                    streamSources.add(streamsource);
-                }
-            } else {
-                throw new HttpException(response.code(), response.message());
-            }
-        }
-        return streamSources;
-    }
-
-    private String getStreamUrl() throws IOException {
-        JSONObject json = getRoomInfo();
-        JSONObject performer = json.getJSONObject("performer");
-        id = Long.toString(performer.getLong("id"));
-        JSONObject stream = json.getJSONObject("stream");
-        String sserver = stream.getString("serverId");
-        String streamId = stream.getString("streamId");
-        String wsHost = stream.getString("nodeHost");
-        JSONObject liveservices = json.getJSONObject("liveservices");
-        String streamHost = liveservices.getString("host").replace("wss", "https");
-
-        String roomId;
-        try {
-            roomId = getRoomId(wsHost, sserver, streamId);
-            LOG.debug("room id: {}", roomId);
-        } catch (InterruptedException e) {
-            throw new IOException("Couldn't get room id", e);
-        }
-
-        String streamFormatUrl = getStreamFormatUrl(streamHost, roomId);
-        return getMasterPlaylistUrl(streamFormatUrl);
-    }
-
-    private String getMasterPlaylistUrl(String url) throws IOException {
-        LOG.debug(url);
-        Request req = new Request.Builder()
+        String url = "https://sea1c-ls.naiadsystems.com/sea1c-edge-ls/80/live/s:" + getName() + ".json";
+        Request req = new Request.Builder().url(url)
                 .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
                 .addHeader("Accept", "*/*")
                 .addHeader("Accept-Language", "en")
                 .addHeader("Referer", Streamate.BASE_URL + '/' + getName())
                 .addHeader("X-Requested-With", "XMLHttpRequest")
-                .url(url)
                 .build();
         try(Response response = site.getHttpClient().execute(req)) {
             if(response.isSuccessful()) {
                 JSONObject json = new JSONObject(response.body().string());
                 JSONObject formats = json.getJSONObject("formats");
+                JSONObject ws = formats.getJSONObject("mp4-ws");
                 JSONObject hls = formats.getJSONObject("mp4-hls");
-                return hls.getString("manifest");
+
+                // add encodings
+                JSONArray encodings = hls.getJSONArray("encodings");
+                streamSources.clear();
+                for (int i = 0; i < encodings.length(); i++) {
+                    JSONObject encoding = encodings.getJSONObject(i);
+                    StreamSource src = new StreamSource();
+                    src.mediaPlaylistUrl = encoding.getString("location");
+                    src.width = encoding.optInt("videoWidth");
+                    src.height = encoding.optInt("videoHeight");
+                    src.bandwidth = (encoding.optInt("videoKbps") + encoding.optInt("audioKbps")) * 1024;
+                    streamSources.add(src);
+                }
+
+                // add raw source stream
+                JSONObject origin = hls.getJSONObject("origin");
+                StreamSource src = new StreamSource();
+                src.mediaPlaylistUrl = origin.getString("location");
+                origin = ws.getJSONObject("origin"); // switch to web socket origin, because it has width, height and bitrates
+                src.width = origin.optInt("videoWidth");
+                src.height = origin.optInt("videoHeight");
+                src.bandwidth = (origin.optInt("videoKbps") + origin.optInt("audioKbps")) * 1024;
+                streamSources.add(src);
             } else {
                 throw new HttpException(response.code(), response.message());
             }
         }
-    }
-
-    private String getStreamFormatUrl(String streamHost, String roomId) throws IOException {
-        String url = streamHost + "/videourl?payload="
-                + URLEncoder.encode("{\"puserid\":" + id + ",\"roomid\":\"" + roomId + "\",\"showtype\":1,\"nginx\":1}", "utf-8");
-        LOG.debug(url);
-        Request req = new Request.Builder()
-                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
-                .addHeader("Accept", "*/*")
-                .addHeader("Accept-Language", "en")
-                .addHeader("Referer", Streamate.BASE_URL + '/' + getName())
-                .addHeader("X-Requested-With", "XMLHttpRequest")
-                .url(url)
-                .build();
-        try(Response response = site.getHttpClient().execute(req)) {
-            if(response.isSuccessful()) {
-                JSONArray streamConfig = new JSONArray(response.body().string());
-                JSONObject obj = streamConfig.getJSONObject(0);
-                return obj.getString("url");
-            } else {
-                throw new HttpException(response.code(), response.message());
-            }
-        }
-    }
-
-    private String getRoomId(String wsHost, String sserver, String streamId) throws InterruptedException {
-        String wsUrl = wsHost + "/socket.io/?"
-                + "performerid=" + id
-                + "&sserver=" + sserver
-                + "&streamid=" + streamId
-                + "&sakey=&sessiontype=preview&perfdiscountid=0&minduration=0&goldshowid=0&version=7&referrer=hybrid.client.6.3.16/avchat.swf&usertype=false&lang=en&EIO=3&transport=websocket";
-
-        StreamateWebsocketClient wsClient = new StreamateWebsocketClient(wsUrl, site.getHttpClient());
-        return wsClient.getRoomId();
-    }
-
-    private JSONObject getRoomInfo() throws IOException {
-        String url = "https://hybridclient.naiadsystems.com/api/v1/config/?sabasic=&sakey=&sk=www.streamate.com&userid=0&version=6.3.16&ajax=1&name=" + getName();
-        Request req = new Request.Builder()
-                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
-                .addHeader("Accept", "application/json, text/javascript, */*")
-                .addHeader("Accept-Language", "en")
-                .addHeader("Referer", Streamate.BASE_URL + '/' + getName())
-                .addHeader("X-Requested-With", "XMLHttpRequest")
-                .url(url)
-                .build();
-        try(Response response = site.getHttpClient().execute(req)) {
-            if(response.isSuccessful()) {
-                return new JSONObject(response.body().string());
-            } else {
-                throw new HttpException(response.code(), response.message());
-            }
-        }
+        return streamSources;
     }
 
     @Override

@@ -2,6 +2,7 @@ package ctbrec.sites.streamate;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.NoSuchElementException;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -20,7 +21,7 @@ public class StreamateHttpClient extends HttpClient {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(StreamateHttpClient.class);
 
-    private String userId = "";
+    private Long userId;
     private String saKey = "";
 
     public StreamateHttpClient() {
@@ -33,6 +34,14 @@ public class StreamateHttpClient extends HttpClient {
                 .value("1")
                 .build();
         getCookieJar().saveFromResponse(HttpUrl.parse(Streamate.BASE_URL), Collections.singletonList(searchCookie));
+
+        // try to load sakey from cookie
+        try {
+            Cookie cookie = getCookieJar().getCookie(HttpUrl.parse("https://www.streamate.com"), "sakey");
+            saKey = cookie.value();
+        } catch (NoSuchElementException e) {
+            // ignore
+        }
     }
 
     @Override
@@ -65,14 +74,12 @@ public class StreamateHttpClient extends HttpClient {
                 .build();
         try (Response response = client.newCall(login).execute()) {
             String content = response.body().string();
-            //LOG.debug(content);
             if(response.isSuccessful()) {
                 JSONObject json = new JSONObject(content);
-                LOG.debug(json.toString());
                 loggedIn = json.has("sakey");
                 saKey = json.optString("sakey");
                 JSONObject account = json.getJSONObject("account");
-                userId = Long.toString(account.getLong("userid"));
+                userId = account.getLong("userid");
             } else {
                 throw new IOException("Login failed: " + response.code() + " " + response.message());
             }
@@ -83,53 +90,40 @@ public class StreamateHttpClient extends HttpClient {
     }
 
     /**
-     * Check, if the login worked
-     * @throws IOException
+     * Check, if the login worked by loading the favorites
      */
-    public boolean checkLoginSuccess() throws IOException {
-        //https://www.streamate.com/api/search/v1/favorites?host=streamate.com&domain=streamate.com&page_number=1&results_per_page=48&sakey=62857cfd1908cd28
-        return false;
-        //        String modelName = getAnyModelName();
-        //        // we request the roomData of a random model, because it contains
-        //        // user data, if the user is logged in, which we can use to verify, that the login worked
-        //        String url = Streamate.BASE_URL + "/tools/amf.php";
-        //        RequestBody body = new FormBody.Builder()
-        //                .add("method", "getRoomData")
-        //                .add("args[]", modelName)
-        //                .add("args[]", "false")
-        //                //.add("method", "ping")   // TODO alternative request, but
-        //                //.add("args[]", <userId>) // where to get the userId
-        //                .build();
-        //        Request request = new Request.Builder()
-        //                .url(url)
-        //                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
-        //                .addHeader("Accept", "application/json, text/javascript, */*")
-        //                .addHeader("Accept-Language", "en")
-        //                .addHeader("Referer", Streamate.BASE_URL)
-        //                .addHeader("X-Requested-With", "XMLHttpRequest")
-        //                .post(body)
-        //                .build();
-        //        try(Response response = execute(request)) {
-        //            if(response.isSuccessful()) {
-        //                JSONObject json = new JSONObject(response.body().string());
-        //                if(json.optString("status").equals("success")) {
-        //                    JSONObject userData = json.getJSONObject("userData");
-        //                    userId = userData.optInt("userId");
-        //                    return userId > 0;
-        //                } else {
-        //                    throw new IOException("Request was not successful: " + json.toString(2));
-        //                }
-        //            } else {
-        //                throw new HttpException(response.code(), response.message());
-        //            }
-        //        }
+    public boolean checkLoginSuccess() {
+        String url = Streamate.BASE_URL + "/api/search/v1/favorites?host=streamate.com&domain=streamate.com";
+        url = url + "&page_number=1&results_per_page=48&sakey=" + saKey + "&userid=" + userId;
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
+                .addHeader("Accept", "application/json, */*")
+                .addHeader("Accept-Language", "en")
+                .addHeader("Referer", Streamate.BASE_URL)
+                .build();
+        try(Response response = execute(request)) {
+            if (response.isSuccessful()) {
+                String content = response.body().string();
+                JSONObject json = new JSONObject(content);
+                if(json.optString("status").equals("SM_OK")) {
+                    return true;
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        } catch(Exception e) {
+            return false;
+        }
     }
 
     public String getSaKey() {
         return saKey;
     }
 
-    public String getUserId() {
+    public Long getUserId() {
         return userId;
     }
 }

@@ -61,7 +61,7 @@ public class StreamateUpdateService extends PaginatedScheduledService {
                             JSONObject p = performers.getJSONObject(i);
                             String nickname = p.getString("nickname");
                             StreamateModel model = (StreamateModel) streamate.createModel(nickname);
-                            model.setId(Long.toString(p.getLong("id")));
+                            model.setId(p.getLong("id"));
                             model.setPreview(p.getString("thumbnail"));
                             model.setOnline(p.optBoolean("online"));
                             // TODO figure out, what all the states mean

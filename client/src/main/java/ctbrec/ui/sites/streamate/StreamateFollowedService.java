@@ -47,7 +47,7 @@ public class StreamateFollowedService extends PaginatedScheduledService {
             public List<Model> call() throws IOException, SAXException, ParserConfigurationException, XPathExpressionException {
                 httpClient.login();
                 String saKey = httpClient.getSaKey();
-                String userId = httpClient.getUserId();
+                Long userId = httpClient.getUserId();
                 String _url = url + "&page_number=" + page + "&results_per_page=" + MODELS_PER_PAGE + "&sakey=" + saKey + "&userid=" + userId;
                 LOG.debug("Fetching page {}", _url);
                 Request request = new Request.Builder()
@@ -68,7 +68,7 @@ public class StreamateFollowedService extends PaginatedScheduledService {
                                 JSONObject p = performers.getJSONObject(i);
                                 String nickname = p.getString("Nickname");
                                 StreamateModel model = (StreamateModel) streamate.createModel(nickname);
-                                model.setId(Long.toString(p.getLong("PerformerId")));
+                                model.setId(p.getLong("PerformerId"));
                                 model.setPreview("https://m1.nsimg.net/biopic/320x240/" + model.getId());
                                 boolean online = p.optString("LiveStatus").equals("live");
                                 model.setOnline(online);

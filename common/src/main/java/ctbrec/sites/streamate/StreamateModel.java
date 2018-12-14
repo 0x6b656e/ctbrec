@@ -15,12 +15,16 @@ import org.slf4j.LoggerFactory;
 
 import com.iheartradio.m3u8.ParseException;
 import com.iheartradio.m3u8.PlaylistException;
+import com.squareup.moshi.JsonReader;
+import com.squareup.moshi.JsonWriter;
 
 import ctbrec.AbstractModel;
 import ctbrec.Config;
 import ctbrec.io.HttpException;
 import ctbrec.recorder.download.StreamSource;
+import okhttp3.MediaType;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class StreamateModel extends AbstractModel {
@@ -30,7 +34,7 @@ public class StreamateModel extends AbstractModel {
     private boolean online = false;
     private List<StreamSource> streamSources = new ArrayList<>();
     private int[] resolution;
-    private String id;
+    private Long id;
 
     @Override
     public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException {
@@ -180,19 +184,64 @@ public class StreamateModel extends AbstractModel {
 
     @Override
     public boolean follow() throws IOException {
-        return false;
+        return follow(true);
     }
 
     @Override
     public boolean unfollow() throws IOException {
-        return false;
+        return follow(false);
     }
 
-    public String getId() {
+    private boolean follow(boolean follow) throws IOException {
+        StreamateHttpClient client = (StreamateHttpClient) getSite().getHttpClient();
+        client.login();
+        String saKey = client.getSaKey();
+        Long userId = client.getUserId();
+
+        JSONObject requestParams = new JSONObject();
+        requestParams.put("sakey", saKey);
+        requestParams.put("userid", userId);
+        requestParams.put("pid", id);
+        requestParams.put("domain", "streamate.com");
+        requestParams.put("fav", follow);
+        RequestBody body = RequestBody.create(MediaType.parse("application/json"), requestParams.toString());
+
+        String url = site.getBaseUrl() + "/ajax/fav-notify.php?userid="+userId+"&sakey="+saKey+"&pid="+id+"&fav="+follow+"&domain=streamate.com";
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
+                .addHeader("Accept", "application/json, */*")
+                .addHeader("Accept-Language", "en")
+                .addHeader("Referer", getSite().getBaseUrl())
+                .post(body)
+                .build();
+        try(Response response = getSite().getHttpClient().execute(request)) {
+            String content = response.body().string();
+            if (response.isSuccessful()) {
+                JSONObject json = new JSONObject(content);
+                return json.optBoolean("success");
+            } else {
+                throw new HttpException(response.code(), response.message());
+            }
+        }
+    }
+
+    public Long getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(Long id) {
         this.id = id;
+    }
+
+    @Override
+    public void readSiteSpecificData(JsonReader reader) throws IOException {
+        reader.nextName();
+        id = reader.nextLong();
+    }
+
+    @Override
+    public void writeSiteSpecificData(JsonWriter writer) throws IOException {
+        writer.name("id").value(id);
     }
 }

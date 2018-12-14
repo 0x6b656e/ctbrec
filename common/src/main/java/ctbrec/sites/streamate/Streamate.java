@@ -125,7 +125,7 @@ public class Streamate extends AbstractSite {
 
     @Override
     public boolean supportsFollow() {
-        return false;
+        return true;
     }
 
     @Override
@@ -151,7 +151,6 @@ public class Streamate extends AbstractSite {
             if (response.isSuccessful()) {
                 String body = response.body().string();
                 JSONObject json = new JSONObject(body);
-                LOG.debug(json.toString(2));
                 if (json.optString("status").equals("SM_OK")) {
                     List<Model> models = new ArrayList<>();
                     JSONObject results = json.getJSONObject("results");
@@ -159,7 +158,7 @@ public class Streamate extends AbstractSite {
                     for (int i = 0; i < nickname.length(); i++) {
                         JSONObject result = nickname.getJSONObject(i);
                         StreamateModel model = (StreamateModel) createModel(result.getString("nickname"));
-                        model.setId(result.getString("performerId"));
+                        model.setId(Long.parseLong(result.getString("performerId")));
                         String thumb = result.getString("thumbnail");
                         if (thumb != null) {
                             model.setPreview(thumb);

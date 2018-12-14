@@ -9,8 +9,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,10 +46,8 @@ public class PlaylistGenerator {
 
         Arrays.sort(files, (f1, f2) -> {
             String n1 = f1.getName();
-            int seq1 = getSequence(n1);
             String n2 = f2.getName();
-            int seq2 = getSequence(n2);
-            return seq1 - seq2;
+            return n1.compareTo(n2);
         });
 
         // create a track containing all files
@@ -100,16 +96,6 @@ public class PlaylistGenerator {
             LOG.debug("Finished playlist generation for {}", directory);
         }
         return output;
-    }
-
-    private int getSequence(String filename) {
-        filename = filename.substring(0, filename.lastIndexOf('.')); // cut off file suffix
-        Matcher matcher = Pattern.compile(".*?(\\d+)").matcher(filename);
-        if(matcher.matches()) {
-            return Integer.parseInt(matcher.group(1));
-        } else {
-            return -1;
-        }
     }
 
     private void updateProgressListeners(double percentage) {

@@ -13,6 +13,8 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Date;
@@ -38,6 +40,9 @@ public class HlsDownload extends AbstractHlsDownload {
     private static final transient Logger LOG = LoggerFactory.getLogger(HlsDownload.class);
 
     protected Path downloadDir;
+
+    private int segmentCounter = 1;
+    private NumberFormat nf = new DecimalFormat("000000");
 
     public HlsDownload(HttpClient client) {
         super(client);
@@ -78,7 +83,8 @@ public class HlsDownload extends AbstractHlsDownload {
                         for (int i = nextSegment; i < lsp.seq; i++) {
                             URL segmentUrl = new URL(first.replaceAll(Integer.toString(seq), Integer.toString(i)));
                             LOG.debug("Reloading segment {} for model {}", i, model.getName());
-                            downloadThreadPool.submit(new SegmentDownload(segmentUrl, downloadDir, client));
+                            String prefix = nf.format(segmentCounter++);
+                            downloadThreadPool.submit(new SegmentDownload(segmentUrl, downloadDir, client, prefix));
                         }
                         // TODO switch to a lower bitrate/resolution ?!?
                     }
@@ -88,7 +94,8 @@ public class HlsDownload extends AbstractHlsDownload {
                             skip--;
                         } else {
                             URL segmentUrl = new URL(segment);
-                            downloadThreadPool.submit(new SegmentDownload(segmentUrl, downloadDir, client));
+                            String prefix = nf.format(segmentCounter++);
+                            downloadThreadPool.submit(new SegmentDownload(segmentUrl, downloadDir, client, prefix));
                             //new SegmentDownload(segment, downloadDir).call();
                         }
                     }
@@ -150,11 +157,11 @@ public class HlsDownload extends AbstractHlsDownload {
         private Path file;
         private HttpClient client;
 
-        public SegmentDownload(URL url, Path dir, HttpClient client) {
+        public SegmentDownload(URL url, Path dir, HttpClient client, String prefix) {
             this.url = url;
             this.client = client;
             File path = new File(url.getPath());
-            file = FileSystems.getDefault().getPath(dir.toString(), path.getName());
+            file = FileSystems.getDefault().getPath(dir.toString(), prefix + '_' + path.getName());
         }
 
         @Override

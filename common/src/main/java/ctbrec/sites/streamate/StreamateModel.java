@@ -45,11 +45,10 @@ public class StreamateModel extends AbstractModel {
     @Override
     public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException {
         if(ignoreCache) {
-            String url = getStreamUrl();
-            Request req = new Request.Builder().url(url).build();
-            try(Response resp = site.getHttpClient().execute(req)) {
-                online = resp.isSuccessful();
-            }
+            JSONObject roomInfo = getRoomInfo();
+            JSONObject stream = roomInfo.getJSONObject("stream");
+            String serverId = stream.optString("serverId");
+            online = !serverId.equals("0");
         }
         return online;
     }

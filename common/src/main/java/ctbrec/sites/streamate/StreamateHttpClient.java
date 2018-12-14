@@ -1,11 +1,14 @@
 package ctbrec.sites.streamate;
 
 import java.io.IOException;
+import java.util.Collections;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.io.HttpClient;
+import okhttp3.Cookie;
+import okhttp3.HttpUrl;
 
 public class StreamateHttpClient extends HttpClient {
 
@@ -13,6 +16,14 @@ public class StreamateHttpClient extends HttpClient {
 
     public StreamateHttpClient() {
         super("streamate");
+
+        // this cookie is needed for the search
+        Cookie searchCookie = new Cookie.Builder()
+                .domain("streamate.com")
+                .name("Xld_rct")
+                .value("1")
+                .build();
+        getCookieJar().saveFromResponse(HttpUrl.parse(Streamate.BASE_URL), Collections.singletonList(searchCookie));
     }
 
     @Override

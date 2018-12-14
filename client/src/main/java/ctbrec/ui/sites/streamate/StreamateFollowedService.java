@@ -47,8 +47,7 @@ public class StreamateFollowedService extends PaginatedScheduledService {
             public List<Model> call() throws IOException, SAXException, ParserConfigurationException, XPathExpressionException {
                 httpClient.login();
                 String saKey = httpClient.getSaKey();
-                Long userId = httpClient.getUserId();
-                String _url = url + "&page_number=" + page + "&results_per_page=" + MODELS_PER_PAGE + "&sakey=" + saKey + "&userid=" + userId;
+                String _url = url + "&page_number=" + page + "&results_per_page=" + MODELS_PER_PAGE + "&sakey=" + saKey;
                 LOG.debug("Fetching page {}", _url);
                 Request request = new Request.Builder()
                         .url(_url)

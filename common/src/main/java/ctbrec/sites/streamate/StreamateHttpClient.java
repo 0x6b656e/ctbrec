@@ -23,6 +23,7 @@ public class StreamateHttpClient extends HttpClient {
 
     private Long userId;
     private String saKey = "";
+    private String userNickname = "";
 
     public StreamateHttpClient() {
         super("streamate");
@@ -57,6 +58,11 @@ public class StreamateHttpClient extends HttpClient {
             return true;
         }
 
+        loggedIn = loginWithoutCookies();
+        return loggedIn;
+    }
+
+    private synchronized boolean loginWithoutCookies() throws IOException {
         JSONObject loginRequest = new JSONObject();
         loginRequest.put("email", Config.getInstance().getSettings().streamateUsername);
         loginRequest.put("password", Config.getInstance().getSettings().streamatePassword);
@@ -76,10 +82,12 @@ public class StreamateHttpClient extends HttpClient {
             String content = response.body().string();
             if(response.isSuccessful()) {
                 JSONObject json = new JSONObject(content);
+                LOG.debug(json.toString(2));
                 loggedIn = json.has("sakey");
                 saKey = json.optString("sakey");
                 JSONObject account = json.getJSONObject("account");
                 userId = account.getLong("userid");
+                userNickname = account.getString("nickname");
             } else {
                 throw new IOException("Login failed: " + response.code() + " " + response.message());
             }
@@ -123,7 +131,14 @@ public class StreamateHttpClient extends HttpClient {
         return saKey;
     }
 
-    public Long getUserId() {
+    public Long getUserId() throws IOException {
+        if(userId == null) {
+            loginWithoutCookies();
+        }
         return userId;
+    }
+
+    public String getUserNickname() {
+        return userNickname;
     }
 }

@@ -22,10 +22,12 @@ import ctbrec.AbstractModel;
 import ctbrec.Config;
 import ctbrec.io.HttpException;
 import ctbrec.recorder.download.StreamSource;
+import okhttp3.FormBody;
 import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okio.Buffer;
 
 public class StreamateModel extends AbstractModel {
 
@@ -128,35 +130,111 @@ public class StreamateModel extends AbstractModel {
 
     @Override
     public void receiveTip(int tokens) throws IOException {
-        //        String url = Streamate.BASE_URL + "/chat-ajax-amf-service?" + System.currentTimeMillis();
-        //        int userId = ((StreamateHttpClient)site.getHttpClient()).getUserId();
-        //        RequestBody body = new FormBody.Builder()
-        //                .add("method", "tipModel")
-        //                .add("args[]", getName())
-        //                .add("args[]", Integer.toString(tokens))
-        //                .add("args[]", Integer.toString(userId))
-        //                .add("args[3]", "")
-        //                .build();
-        //        Request request = new Request.Builder()
-        //                .url(url)
-        //                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
-        //                .addHeader("Accept", "application/json, text/javascript, */*")
-        //                .addHeader("Accept-Language", "en")
-        //                .addHeader("Referer", Streamate.BASE_URL + '/' + getName())
-        //                .addHeader("X-Requested-With", "XMLHttpRequest")
-        //                .post(body)
-        //                .build();
-        //        try(Response response = site.getHttpClient().execute(request)) {
-        //            if(response.isSuccessful()) {
-        //                JSONObject json = new JSONObject(response.body().string());
-        //                if(!json.optString("status").equals("success")) {
-        //                    LOG.error("Sending tip failed {}", json.toString(2));
-        //                    throw new IOException("Sending tip failed");
-        //                }
-        //            } else {
-        //                throw new IOException(response.code() + ' ' + response.message());
-        //            }
-        //        }
+        /*
+        Mt._giveGoldAjax = function(e, t) {
+                var n = _t.getState(),
+                    a = n.nickname,
+                    o = n.id,
+                    i = Ds.getState(),
+                    r = i.userStreamId,
+                    s = i.sakey,
+                    l = i.userId,
+                    c = i.nickname,
+                    u = "";
+                switch (Ot.getState().streamType) {
+                    case z.STREAM_TYPE_PRIVATE:
+                    case z.STREAM_TYPE_BLOCK:
+                        u = "premium";
+                        break;
+                    case z.STREAM_TYPE_EXCLUSIVE:
+                    case z.STREAM_TYPE_BLOCK_EXCLUSIVE:
+                        u = "exclusive"
+                }
+                if (!l) return ae.a.reject("no userId!");
+                var d = {
+                        amt: e,
+                        isprepopulated: t,
+                        modelname: a,
+                        nickname: c,
+                        performernickname: a,
+                        sakey: s,
+                        session: u,
+                        smid: o,
+                        streamid: r,
+                        userid: l,
+                        username: c
+                    },
+                    p = de.a.getBaseUrl() + "/api/v1/givegold/";
+                return de.a.postPromise(p, d, "json")
+            },
+         */
+
+        StreamateHttpClient client = (StreamateHttpClient) getSite().getHttpClient();
+        client.login();
+        String saKey = client.getSaKey();
+        Long userId = client.getUserId();
+        String nickname = client.getUserNickname();
+
+        String url = "https://hybridclient.naiadsystems.com/api/v1/givegold/";  // this returns 404 at the moment. not sure if it's the wrong server, or if this is not used anymore
+        RequestBody body = new FormBody.Builder()
+                .add("amt", Integer.toString(tokens))           // amount
+                .add("isprepopulated", "1")                     // ?
+                .add("modelname", getName())                    // model's name
+                .add("nickname", nickname)                      // user's nickname
+                .add("performernickname", getName())            // model's name
+                .add("sakey", saKey)                            // sakey from login
+                .add("session", "")                             // is related to gold an private shows, for normal tips keep it empty
+                .add("smid", Long.toString(getId()))            // model id
+                .add("streamid", getStreamId())                 // id of the current stream
+                .add("userid", Long.toString(userId))           // user's id
+                .add("username", nickname)                      // user's nickname
+                .build();
+        Buffer b = new Buffer();
+        body.writeTo(b);
+        LOG.debug("tip params {}", b.readUtf8());
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
+                .addHeader("Accept", "application/json, text/javascript, */*")
+                .addHeader("Accept-Language", "en")
+                .addHeader("Referer", Streamate.BASE_URL + '/' + getName())
+                .addHeader("X-Requested-With", "XMLHttpRequest")
+                .post(body)
+                .build();
+        try(Response response = site.getHttpClient().execute(request)) {
+            if(response.isSuccessful()) {
+                JSONObject json = new JSONObject(response.body().string());
+                LOG.debug(json.toString(2));
+                if(!json.optString("status").equals("success")) {
+                    LOG.error("Sending tip failed {}", json.toString(2));
+                    throw new IOException("Sending tip failed");
+                }
+            } else {
+                throw new HttpException(response.code(), response.message());
+            }
+        }
+    }
+
+    private String getStreamId() throws IOException {
+        String url = "https://hybridclient.naiadsystems.com/api/v1/config/?name=" + getName()
+        + "&sabasic=&sakey=&sk=www.streamate.com&userid=0&version=6.3.17&ajax=1";
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
+                .addHeader("Accept", "application/json, text/javascript, */*")
+                .addHeader("Accept-Language", "en")
+                .addHeader("Referer", Streamate.BASE_URL + '/' + getName())
+                .addHeader("X-Requested-With", "XMLHttpRequest")
+                .build();
+        try(Response response = site.getHttpClient().execute(request)) {
+            if(response.isSuccessful()) {
+                JSONObject json = new JSONObject(response.body().string());
+                JSONObject stream = json.getJSONObject("stream");
+                return stream.getString("streamId");
+            } else {
+                throw new HttpException(response.code(), response.message());
+            }
+        }
     }
 
     @Override

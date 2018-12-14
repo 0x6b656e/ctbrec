@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
 import ctbrec.Model;
+import ctbrec.StringUtil;
 import ctbrec.io.HttpClient;
 import ctbrec.io.HttpException;
 import ctbrec.sites.AbstractSite;
@@ -150,6 +151,7 @@ public class Streamate extends AbstractSite {
             if (response.isSuccessful()) {
                 String body = response.body().string();
                 JSONObject json = new JSONObject(body);
+                LOG.debug(json.toString(2));
                 if (json.optString("status").equals("SM_OK")) {
                     List<Model> models = new ArrayList<>();
                     JSONObject results = json.getJSONObject("results");
@@ -183,7 +185,8 @@ public class Streamate extends AbstractSite {
 
     @Override
     public boolean credentialsAvailable() {
-        return false;
+        String username = Config.getInstance().getSettings().username;
+        return StringUtil.isNotBlank(username);
     }
 
     @Override

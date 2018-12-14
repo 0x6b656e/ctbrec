@@ -18,6 +18,7 @@ public class StreamateTabProvider extends TabProvider {
     private static final transient Logger LOG = LoggerFactory.getLogger(StreamateTabProvider.class);
     private Streamate streamate;
     private Recorder recorder;
+    private ThumbOverviewTab followedTab;
 
     public StreamateTabProvider(Streamate streamate) {
         this.streamate = streamate;
@@ -37,6 +38,10 @@ public class StreamateTabProvider extends TabProvider {
             tabs.add(createTab("Trans female",  Streamate.BASE_URL + "/api/search/list?domain=streamate.com&index=availperf&filters=gender:tm2f"));
             tabs.add(createTab("Trans male",    Streamate.BASE_URL + "/api/search/list?domain=streamate.com&index=availperf&filters=gender:tf2m"));
             tabs.add(createTab("New",           Streamate.BASE_URL + "/api/search/list?domain=streamate.com&index=availperf&filters=new:true"));
+
+            followedTab = new StreamateFollowedTab(streamate);
+            followedTab.setRecorder(recorder);
+            tabs.add(followedTab);
         } catch (IOException e) {
             LOG.error("Couldn't create streamate tab", e);
         }
@@ -45,7 +50,7 @@ public class StreamateTabProvider extends TabProvider {
 
     @Override
     public Tab getFollowedTab() {
-        return null;
+        return followedTab;
     }
 
     private Tab createTab(String title, String url) throws IOException {

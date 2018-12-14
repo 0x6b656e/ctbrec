@@ -11,8 +11,10 @@ public class StreamateSiteUi implements SiteUI {
 
     private StreamateTabProvider tabProvider;
     private StreamateConfigUI configUi;
+    private Streamate streamate;
 
     public StreamateSiteUi(Streamate streamate) {
+        this.streamate = streamate;
         tabProvider = new StreamateTabProvider(streamate);
         configUi = new StreamateConfigUI(streamate);
     }
@@ -29,7 +31,7 @@ public class StreamateSiteUi implements SiteUI {
 
     @Override
     public boolean login() throws IOException {
-        return false;
+        return streamate.login();
     }
 
 }

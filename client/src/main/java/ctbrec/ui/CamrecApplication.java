@@ -178,9 +178,13 @@ public class CamrecApplication extends Application {
                     try {
                         Config.getInstance().save();
                         LOG.info("Shutdown complete. Goodbye!");
-                        Platform.exit();
-                        // This is needed, because OkHttp?! seems to block the shutdown with its writer threads. They are not daemon threads :(
-                        System.exit(0);
+                        Platform.runLater(() -> {
+                            primaryStage.close();
+                            shutdownInfo.close();
+                            Platform.exit();
+                            // This is needed, because OkHttp?! seems to block the shutdown with its writer threads. They are not daemon threads :(
+                            System.exit(0);
+                        });
                     } catch (IOException e1) {
                         Platform.runLater(() -> {
                             Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);

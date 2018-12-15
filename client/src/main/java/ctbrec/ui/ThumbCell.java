@@ -22,6 +22,7 @@ import ctbrec.Model;
 import ctbrec.io.HttpException;
 import ctbrec.recorder.Recorder;
 import ctbrec.ui.action.PlayAction;
+import ctbrec.ui.controls.StreamPreview;
 import javafx.animation.FadeTransition;
 import javafx.animation.FillTransition;
 import javafx.animation.ParallelTransition;
@@ -43,6 +44,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Polygon;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.Shape;
 import javafx.scene.text.Font;
@@ -58,6 +60,7 @@ public class ThumbCell extends StackPane {
     private static final Duration ANIMATION_DURATION = new Duration(250);
 
     private Model model;
+    private StreamPreview streamPreview;
     private ImageView iv;
     private Rectangle resolutionBackground;
     private final Paint resolutionOnlineColor = new Color(0.22, 0.8, 0.29, 1);
@@ -87,14 +90,21 @@ public class ThumbCell extends StackPane {
             .expireAfterAccess(4, TimeUnit.HOURS)
             .maximumSize(1000)
             .build();
+    private ThumbOverviewTab parent;
 
     public ThumbCell(ThumbOverviewTab parent, Model model, Recorder recorder) {
+        this.parent = parent;
         this.thumbCellList = parent.grid.getChildren();
         this.model = model;
         this.recorder = recorder;
         recording = recorder.isRecording(model);
         model.setSuspended(recorder.isSuspended(model));
         this.setStyle("-fx-background-color: -fx-base");
+
+        streamPreview = new StreamPreview();
+        streamPreview.prefWidthProperty().bind(widthProperty());
+        streamPreview.prefHeightProperty().bind(heightProperty());
+        getChildren().add(streamPreview);
 
         iv = new ImageView();
         iv.setSmooth(true);
@@ -164,8 +174,10 @@ public class ThumbCell extends StackPane {
         StackPane.setAlignment(pausedIndicator, Pos.TOP_LEFT);
         getChildren().add(pausedIndicator);
 
+        getChildren().add(createPreviewTrigger());
+
         selectionOverlay = new Rectangle();
-        selectionOverlay.setOpacity(0);
+        selectionOverlay.visibleProperty().bind(selectionProperty);
         selectionOverlay.widthProperty().bind(widthProperty());
         selectionOverlay.heightProperty().bind(heightProperty());
         StackPane.setAlignment(selectionOverlay, Pos.TOP_LEFT);
@@ -195,6 +207,50 @@ public class ThumbCell extends StackPane {
 
         setRecording(recording);
         update();
+    }
+
+    private Node createPreviewTrigger() {
+        int s = 32;
+        StackPane previewTrigger = new StackPane();
+        previewTrigger.setStyle("-fx-background-color: white;");
+        previewTrigger.setOpacity(.8);
+        previewTrigger.setMaxSize(s, s);
+
+        Polygon play = new Polygon(new double[] {
+                16, 8,
+                26, 15,
+                16, 22
+        });
+        StackPane.setMargin(play, new Insets(0, 0, 0, 3));
+        play.setStyle("-fx-background-color: black;");
+        previewTrigger.getChildren().add(play);
+
+        Circle clip = new Circle(s / 2);
+        clip.setTranslateX(clip.getRadius());
+        clip.setTranslateY(clip.getRadius());
+        previewTrigger.setClip(clip);
+        StackPane.setAlignment(previewTrigger, Pos.BOTTOM_LEFT);
+        StackPane.setMargin(previewTrigger, new Insets(0, 0, 24, 4));
+        previewTrigger.setOnMouseEntered(evt -> setPreviewVisible(previewTrigger, true));
+        previewTrigger.setOnMouseExited(evt -> setPreviewVisible(previewTrigger, false));
+        return previewTrigger;
+    }
+
+    private void setPreviewVisible(Node previewTrigger, boolean visible) {
+        parent.suspendUpdates(visible);
+        iv.setVisible(!visible);
+        topic.setVisible(!visible);
+        topicBackground.setVisible(!visible);
+        name.setVisible(!visible);
+        nameBackground.setVisible(!visible);
+        streamPreview.setVisible(visible);
+        streamPreview.startStream(model);
+        recordingIndicator.setVisible(!visible);
+        pausedIndicator.setVisible(!visible);
+        if(!visible) {
+            updateRecordingIndicator();
+        }
+        previewTrigger.setCursor(visible ? Cursor.HAND : Cursor.DEFAULT);
     }
 
     public void setSelected(boolean selected) {
@@ -356,6 +412,10 @@ public class ThumbCell extends StackPane {
             nameBackground.setFill(c);
         }
 
+        updateRecordingIndicator();
+    }
+
+    private void updateRecordingIndicator() {
         if(recording) {
             recordingIndicator.setVisible(!model.isSuspended());
             pausedIndicator.setVisible(model.isSuspended());
@@ -574,12 +634,14 @@ public class ThumbCell extends StackPane {
         nameBackground.setWidth(w);
         nameBackground.setHeight(20);
         topicBackground.setWidth(w);
-        topicBackground.setHeight(getHeight()-nameBackground.getHeight());
+        topicBackground.setHeight(h - nameBackground.getHeight());
         topic.prefHeight(getHeight()-25);
         topic.maxHeight(getHeight()-25);
         int margin = 4;
         topic.maxWidth(w-margin*2);
         topic.setWrappingWidth(w-margin*2);
+
+        streamPreview.resizeTo(w, h);
 
         Rectangle clip = new Rectangle(w, h);
         clip.setArcWidth(10);

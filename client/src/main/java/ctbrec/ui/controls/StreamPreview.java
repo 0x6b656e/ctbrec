@@ -34,8 +34,8 @@ public class StreamPreview extends StackPane {
     private MediaPlayer videoPlayer;
     private Media video;
     private ProgressIndicator progressIndicator;
-    private ExecutorService executor = Executors.newSingleThreadExecutor();
-    private Future<?> future;
+    private static ExecutorService executor = Executors.newSingleThreadExecutor();
+    private static Future<?> future;
 
     public StreamPreview() {
         videoPreview = new MediaView();
@@ -53,7 +53,6 @@ public class StreamPreview extends StackPane {
 
         progressIndicator = new ProgressIndicator();
         progressIndicator.setVisible(false);
-        progressIndicator.prefWidthProperty().bind(videoPreview.fitWidthProperty());
 
         Region veil = new Region();
         veil.setStyle("-fx-background-color: rgba(0, 0, 0, 0.8)");
@@ -64,14 +63,25 @@ public class StreamPreview extends StackPane {
     }
 
     public void startStream(Model model) {
+        Platform.runLater(() -> {
+            progressIndicator.setVisible(true);
+            if(model.getPreview() != null) {
+                try {
+                    videoPreview.setVisible(false);
+                    Image img = new Image(model.getPreview(), true);
+                    preview.setImage(img);
+                    double aspect = img.getWidth() / img.getHeight();
+                    double w = Config.getInstance().getSettings().thumbWidth;
+                    double h = w / aspect;
+                    resizeTo(w, h);
+                } catch (Exception e) {}
+            }
+        });
         if(future != null && !future.isDone()) {
             future.cancel(true);
         }
         future = executor.submit(() -> {
             try {
-                Platform.runLater(() -> {
-                    progressIndicator.setVisible(true);
-                });
                 List<StreamSource> sources = model.getStreamSources();
                 Collections.sort(sources);
                 StreamSource best = sources.get(0);
@@ -90,7 +100,7 @@ public class StreamPreview extends StackPane {
                             double aspect = (double)video.getWidth() / video.getHeight();
                             double w = Config.getInstance().getSettings().thumbWidth;
                             double h = w / aspect;
-                            resizeToFitContent(w, h);
+                            resizeTo(w, h);
                             progressIndicator.setVisible(false);
                             videoPreview.setVisible(true);
                             videoPreview.setMediaPlayer(videoPlayer);
@@ -127,23 +137,23 @@ public class StreamPreview extends StackPane {
         });
     }
 
-    private void resizeToFitContent(double w, double h) {
-        setPrefSize(w,  h);
+    public void resizeTo(double w, double h) {
         preview.setFitWidth(w);
         preview.setFitHeight(h);
         videoPreview.setFitWidth(w);
         videoPreview.setFitHeight(h);
+        progressIndicator.setPrefSize(w,  h);
     }
 
     public void stop() {
         if(future != null && !future.isDone()) {
             future.cancel(true);
         }
-        Platform.runLater(() -> {
+        new Thread(() -> {
             if(videoPlayer != null) {
                 videoPlayer.dispose();
             }
-        });
+        }).start();
     }
 
     private void onError(MediaPlayer videoPlayer) {
@@ -151,7 +161,7 @@ public class StreamPreview extends StackPane {
         if(videoPlayer.getError().getCause() != null) {
             LOG.error("Error while starting preview stream root cause:", videoPlayer.getError().getCause());
         }
-        videoPlayer.dispose();
+        stop();
         Platform.runLater(() -> {
             showTestImage();
         });
@@ -165,7 +175,7 @@ public class StreamPreview extends StackPane {
             double aspect = img.getWidth() / img.getHeight();
             double w = Config.getInstance().getSettings().thumbWidth;
             double h = w / aspect;
-            resizeToFitContent(w, h);
+            resizeTo(w, h);
             progressIndicator.setVisible(false);
         });
     }

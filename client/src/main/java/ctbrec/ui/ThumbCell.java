@@ -174,7 +174,9 @@ public class ThumbCell extends StackPane {
         StackPane.setAlignment(pausedIndicator, Pos.TOP_LEFT);
         getChildren().add(pausedIndicator);
 
-        getChildren().add(createPreviewTrigger());
+        if(Config.getInstance().getSettings().previewInThumbnails) {
+            getChildren().add(createPreviewTrigger());
+        }
 
         selectionOverlay = new Rectangle();
         selectionOverlay.visibleProperty().bind(selectionProperty);

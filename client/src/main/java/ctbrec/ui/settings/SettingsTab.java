@@ -64,6 +64,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private CheckBox chooseStreamQuality = new CheckBox();
     private CheckBox multiplePlayers = new CheckBox();
     private CheckBox updateThumbnails = new CheckBox();
+    private CheckBox previewInThumbnails = new CheckBox();
     private CheckBox showPlayerStarting = new CheckBox();
     private RadioButton recordLocal;
     private RadioButton recordRemote;
@@ -422,7 +423,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             Config.getInstance().getSettings().showPlayerStarting = showPlayerStarting.isSelected();
             saveConfig();
         });
-        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
         GridPane.setMargin(showPlayerStarting, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(showPlayerStarting, 1, row++);
 
@@ -434,7 +435,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             Config.getInstance().getSettings().determineResolution = loadResolution.isSelected();
             saveConfig();
         });
-        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
         GridPane.setMargin(loadResolution, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(loadResolution, 1, row++);
 
@@ -445,7 +446,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             Config.getInstance().getSettings().chooseStreamQuality = chooseStreamQuality.isSelected();
             saveConfig();
         });
-        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
         GridPane.setMargin(chooseStreamQuality, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(chooseStreamQuality, 1, row++);
 
@@ -456,9 +457,20 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             Config.getInstance().getSettings().updateThumbnails = updateThumbnails.isSelected();
             saveConfig();
         });
-        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
-        GridPane.setMargin(updateThumbnails, new Insets(CHECKBOX_MARGIN, 0, CHECKBOX_MARGIN, CHECKBOX_MARGIN));
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
+        GridPane.setMargin(updateThumbnails, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(updateThumbnails, 1, row++);
+
+        l = new Label("Preview in thumbnails");
+        layout.add(l, 0, row);
+        previewInThumbnails.setSelected(Config.getInstance().getSettings().previewInThumbnails);
+        previewInThumbnails.setOnAction((e) -> {
+            Config.getInstance().getSettings().previewInThumbnails = previewInThumbnails.isSelected();
+            saveConfig();
+        });
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
+        GridPane.setMargin(previewInThumbnails, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
+        layout.add(previewInThumbnails, 1, row++);
 
         l = new Label("Start Tab");
         layout.add(l, 0, row);
@@ -468,8 +480,8 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             saveConfig();
         });
         layout.add(startTab, 1, row++);
-        GridPane.setMargin(l, new Insets(0, 0, 0, 0));
-        GridPane.setMargin(startTab, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
+        GridPane.setMargin(startTab, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
 
         l = new Label("Colors (Base / Accent)");
         layout.add(l, 0, row);

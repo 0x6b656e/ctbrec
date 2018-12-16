@@ -19,6 +19,7 @@ import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Date;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,19 +75,14 @@ public class HlsDownload extends AbstractHlsDownload {
                 }
                 int lastSegment = 0;
                 int nextSegment = 0;
+                boolean sleep = true; // this enables sleeping between playlist requests
+                // once we miss a segment, this is set to false, so that no sleeping happens anymore
                 while(running) {
                     SegmentPlaylist lsp = getNextSegments(segments);
                     if(nextSegment > 0 && lsp.seq > nextSegment) {
-                        LOG.warn("Missed segments {} < {} in download for {}", nextSegment, lsp.seq, model);
-                        String first = lsp.segments.get(0);
-                        int seq = lsp.seq;
-                        for (int i = nextSegment; i < lsp.seq; i++) {
-                            URL segmentUrl = new URL(first.replaceAll(Integer.toString(seq), Integer.toString(i)));
-                            LOG.debug("Reloading segment {} for model {}", i, model.getName());
-                            String prefix = nf.format(segmentCounter++);
-                            downloadThreadPool.submit(new SegmentDownload(segmentUrl, downloadDir, client, prefix));
-                        }
                         // TODO switch to a lower bitrate/resolution ?!?
+                        LOG.warn("Missed segments {} < {} in download for {}", nextSegment, lsp.seq, model);
+                        sleep = false;
                     }
                     int skip = nextSegment - lsp.seq;
                     for (String segment : lsp.segments) {
@@ -101,7 +97,7 @@ public class HlsDownload extends AbstractHlsDownload {
                     }
 
                     long wait = 0;
-                    if(lastSegment == lsp.seq) {
+                    if(sleep && lastSegment == lsp.seq) {
                         // playlist didn't change -> wait for at least half the target duration
                         wait = (long) lsp.targetDuration * 1000 / 2;
                         LOG.trace("Playlist didn't change... waiting for {}ms", wait);
@@ -142,6 +138,11 @@ public class HlsDownload extends AbstractHlsDownload {
             throw new IOException("Couldn't download segment", e);
         } finally {
             alive = false;
+            downloadThreadPool.shutdown();
+            try {
+                LOG.debug("Waiting for last segments for {}", model);
+                downloadThreadPool.awaitTermination(60, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {}
             LOG.debug("Download for {} terminated", model);
         }
     }

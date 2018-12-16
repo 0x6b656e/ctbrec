@@ -91,7 +91,6 @@ public class StreamateModel extends AbstractModel {
             if(response.isSuccessful()) {
                 JSONObject json = new JSONObject(response.body().string());
                 JSONObject formats = json.getJSONObject("formats");
-                JSONObject ws = formats.getJSONObject("mp4-ws");
                 JSONObject hls = formats.getJSONObject("mp4-hls");
 
                 // add encodings
@@ -108,14 +107,17 @@ public class StreamateModel extends AbstractModel {
                 }
 
                 // add raw source stream
-                JSONObject origin = hls.getJSONObject("origin");
-                StreamSource src = new StreamSource();
-                src.mediaPlaylistUrl = origin.getString("location");
-                origin = ws.getJSONObject("origin"); // switch to web socket origin, because it has width, height and bitrates
-                src.width = origin.optInt("videoWidth");
-                src.height = origin.optInt("videoHeight");
-                src.bandwidth = (origin.optInt("videoKbps") + origin.optInt("audioKbps")) * 1024;
-                streamSources.add(src);
+                if(formats.has("mp4-ws")) {
+                    JSONObject ws = formats.getJSONObject("mp4-ws");
+                    JSONObject origin = hls.getJSONObject("origin");
+                    StreamSource src = new StreamSource();
+                    src.mediaPlaylistUrl = origin.getString("location");
+                    origin = ws.getJSONObject("origin"); // switch to web socket origin, because it has width, height and bitrates
+                    src.width = origin.optInt("videoWidth");
+                    src.height = origin.optInt("videoHeight");
+                    src.bandwidth = (origin.optInt("videoKbps") + origin.optInt("audioKbps")) * 1024;
+                    streamSources.add(src);
+                }
             } else {
                 throw new HttpException(response.code(), response.message());
             }

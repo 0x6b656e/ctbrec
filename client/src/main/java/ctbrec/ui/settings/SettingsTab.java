@@ -238,7 +238,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         recordingsDirectory = new DirectorySelectionBox(Config.getInstance().getSettings().recordingsDir);
         recordingsDirectory.prefWidth(400);
         recordingsDirectory.fileProperty().addListener((obs, o, n) -> {
-            String path = n.getAbsolutePath();
+            String path = n;
             if(!Objects.equals(path, Config.getInstance().getSettings().recordingsDir)) {
                 Config.getInstance().getSettings().recordingsDir = path;
                 saveConfig();
@@ -310,10 +310,10 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         GridPane.setMargin(maxResolution, new Insets(0, 0, 0, CHECKBOX_MARGIN));
 
         layout.add(new Label("Post-Processing"), 0, row);
-        // TODO allow empty strings to remove post-processing scripts
         postProcessing = new ProgramSelectionBox(Config.getInstance().getSettings().postProcessing);
+        postProcessing.allowEmptyValue();
         postProcessing.fileProperty().addListener((obs, o, n) -> {
-            String path = n.getAbsolutePath();
+            String path = n;
             if(!Objects.equals(path, Config.getInstance().getSettings().postProcessing)) {
                 Config.getInstance().getSettings().postProcessing = path;
                 saveConfig();
@@ -395,7 +395,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         layout.add(new Label("Player"), 0, row);
         mediaPlayer = new ProgramSelectionBox(Config.getInstance().getSettings().mediaPlayer);
         mediaPlayer.fileProperty().addListener((obs, o, n) -> {
-            String path = n.getAbsolutePath();
+            String path = n;
             if (!Objects.equals(path, Config.getInstance().getSettings().mediaPlayer)) {
                 Config.getInstance().getSettings().mediaPlayer = path;
                 saveConfig();

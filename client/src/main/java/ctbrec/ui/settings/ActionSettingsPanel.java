@@ -173,7 +173,7 @@ public class ActionSettingsPanel extends TitledPane {
         if(playSound.isSelected()) {
             ActionConfiguration ac = new ActionConfiguration();
             ac.setType(PlaySound.class.getName());
-            File file = sound.fileProperty().get();
+            File file = new File(sound.fileProperty().get());
             ac.getConfiguration().put("file", file.getAbsolutePath());
             ac.setName("play " + file.getName());
             config.getActions().add(ac);
@@ -181,7 +181,7 @@ public class ActionSettingsPanel extends TitledPane {
         if(executeProgram.isSelected()) {
             ActionConfiguration ac = new ActionConfiguration();
             ac.setType(ExecuteProgram.class.getName());
-            File file = program.fileProperty().get();
+            File file = new File(program.fileProperty().get());
             ac.getConfiguration().put("file", file.getAbsolutePath());
             ac.setName("execute " + file.getName());
             config.getActions().add(ac);

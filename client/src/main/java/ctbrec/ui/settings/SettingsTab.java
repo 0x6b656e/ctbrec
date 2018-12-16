@@ -70,7 +70,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private RadioButton recordRemote;
     private ToggleGroup recordLocation;
     private ProxySettingsPane proxySettingsPane;
-    private ComboBox<Integer> maxResolution;
+    private TextField maxResolution;
     private ComboBox<SplitAfterOption> splitAfter;
     private ComboBox<DirectoryStructure> directoryStructure;
     private ComboBox<String> startTab;
@@ -264,26 +264,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         layout.add(directoryStructure, 1, row++);
         recordingsDirectory.prefWidthProperty().bind(directoryStructure.widthProperty());
 
-        Label l = new Label("Maximum resolution (0 = unlimited)");
-        layout.add(l, 0, row);
-        List<Integer> resolutionOptions = new ArrayList<>();
-        resolutionOptions.add(1080);
-        resolutionOptions.add(720);
-        resolutionOptions.add(600);
-        resolutionOptions.add(480);
-        resolutionOptions.add(0);
-        maxResolution = new ComboBox<>(FXCollections.observableList(resolutionOptions));
-        setMaxResolutionValue();
-        maxResolution.setOnAction((e) -> {
-            Config.getInstance().getSettings().maximumResolution = maxResolution.getSelectionModel().getSelectedItem();
-            saveConfig();
-        });
-        maxResolution.prefWidthProperty().bind(directoryStructure.widthProperty());
-        layout.add(maxResolution, 1, row++);
-        GridPane.setMargin(l, new Insets(0, 0, 0, 0));
-        GridPane.setMargin(maxResolution, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-
-        l = new Label("Split recordings after (minutes)");
+        Label l = new Label("Split recordings after (minutes)");
         layout.add(l, 0, row);
         List<SplitAfterOption> splitOptions = new ArrayList<>();
         splitOptions.add(new SplitAfterOption("disabled", 0));
@@ -307,6 +288,26 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         splitAfter.prefWidthProperty().bind(directoryStructure.widthProperty());
         GridPane.setMargin(l, new Insets(0, 0, 0, 0));
         GridPane.setMargin(splitAfter, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+
+        l = new Label("Maximum resolution (0 = unlimited)");
+        layout.add(l, 0, row);
+        maxResolution = new TextField(Integer.toString(Config.getInstance().getSettings().maximumResolution));
+        maxResolution.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                maxResolution.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+            if (!maxResolution.getText().isEmpty()) {
+                int newRes = Integer.parseInt(maxResolution.getText());
+                if (newRes != Config.getInstance().getSettings().maximumResolution) {
+                    Config.getInstance().getSettings().maximumResolution = newRes;
+                    saveConfig();
+                }
+            }
+        });
+        maxResolution.prefWidthProperty().bind(directoryStructure.widthProperty());
+        layout.add(maxResolution, 1, row++);
+        GridPane.setMargin(l, new Insets(0, 0, 0, 0));
+        GridPane.setMargin(maxResolution, new Insets(0, 0, 0, CHECKBOX_MARGIN));
 
         layout.add(new Label("Post-Processing"), 0, row);
         // TODO allow empty strings to remove post-processing scripts
@@ -500,15 +501,6 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         for (SplitAfterOption option : splitAfter.getItems()) {
             if(option.getValue() == value) {
                 splitAfter.getSelectionModel().select(option);
-            }
-        }
-    }
-
-    private void setMaxResolutionValue() {
-        int value = Config.getInstance().getSettings().maximumResolution;
-        for (Integer option : maxResolution.getItems()) {
-            if(option == value) {
-                maxResolution.getSelectionModel().select(option);
             }
         }
     }

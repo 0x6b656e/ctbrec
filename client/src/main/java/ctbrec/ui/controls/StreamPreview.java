@@ -88,6 +88,7 @@ public class StreamPreview extends StackPane {
                 checkInterrupt();
                 LOG.debug("Preview url for {} is {}", model.getName(), best.getMediaPlaylistUrl());
                 video = new Media(best.getMediaPlaylistUrl());
+                video.setOnError(() -> onError(videoPlayer));
                 if(videoPlayer != null) {
                     videoPlayer.dispose();
                 }
@@ -128,8 +129,8 @@ public class StreamPreview extends StackPane {
                     // future has been canceled, that's fine
                 } else {
                     LOG.warn("Couldn't start preview video: {}", e.getMessage());
-                    showTestImage();
                 }
+                showTestImage();
             } catch (Exception e) {
                 LOG.warn("Couldn't start preview video: {}", e.getMessage());
                 showTestImage();
@@ -146,12 +147,14 @@ public class StreamPreview extends StackPane {
     }
 
     public void stop() {
-        if(future != null && !future.isDone()) {
-            future.cancel(true);
-        }
+        MediaPlayer old = videoPlayer;
+        Future<?> oldFuture = future;
         new Thread(() -> {
-            if(videoPlayer != null) {
-                videoPlayer.dispose();
+            if(oldFuture != null && !oldFuture.isDone()) {
+                oldFuture.cancel(true);
+            }
+            if(old != null) {
+                old.dispose();
             }
         }).start();
     }
@@ -161,13 +164,11 @@ public class StreamPreview extends StackPane {
         if(videoPlayer.getError().getCause() != null) {
             LOG.error("Error while starting preview stream root cause:", videoPlayer.getError().getCause());
         }
-        stop();
-        Platform.runLater(() -> {
-            showTestImage();
-        });
+        showTestImage();
     }
 
     private void showTestImage() {
+        stop();
         Platform.runLater(() -> {
             videoPreview.setVisible(false);
             Image img = new Image(getClass().getResource("/image_not_found.png").toString(), true);

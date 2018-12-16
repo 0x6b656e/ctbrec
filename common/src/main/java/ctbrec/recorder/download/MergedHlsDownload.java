@@ -66,6 +66,7 @@ public class MergedHlsDownload extends AbstractHlsDownload {
     private BlockingQueue<Runnable> downloadQueue = new LinkedBlockingQueue<>(50);
     private ExecutorService downloadThreadPool = new ThreadPoolExecutor(5, 5, 2, TimeUnit.MINUTES, downloadQueue);
     private FileChannel fileChannel = null;
+    private Object downloadFinished = new Object();
 
     public MergedHlsDownload(HttpClient client) {
         super(client);
@@ -105,13 +106,20 @@ public class MergedHlsDownload extends AbstractHlsDownload {
         } catch (InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e) {
             throw new IOException("Couldn't add HMAC to playlist url", e);
         } finally {
-            alive = false;
             try {
                 streamer.stop();
             } catch(Exception e) {
                 LOG.error("Couldn't stop streamer", e);
             }
             downloadThreadPool.shutdown();
+            try {
+                LOG.debug("Waiting for last segments for {}", model);
+                downloadThreadPool.awaitTermination(60, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {}
+            alive = false;
+            synchronized (downloadFinished) {
+                downloadFinished.notifyAll();
+            }
             LOG.debug("Download terminated for {}", segmentPlaylistUri);
         }
     }
@@ -155,13 +163,21 @@ public class MergedHlsDownload extends AbstractHlsDownload {
         } catch(Exception e) {
             throw new IOException("Couldn't download segment", e);
         } finally {
-            alive = false;
             if(streamer != null) {
                 try {
                     streamer.stop();
                 } catch(Exception e) {
                     LOG.error("Couldn't stop streamer", e);
                 }
+            }
+            downloadThreadPool.shutdown();
+            try {
+                LOG.debug("Waiting for last segments for {}", model);
+                downloadThreadPool.awaitTermination(60, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {}
+            alive = false;
+            synchronized (downloadFinished) {
+                downloadFinished.notifyAll();
             }
             LOG.debug("Download for {} terminated", model);
         }
@@ -353,9 +369,15 @@ public class MergedHlsDownload extends AbstractHlsDownload {
     @Override
     public void stop() {
         running = false;
-        alive = false;
         if(streamer != null) {
             streamer.stop();
+        }
+        try {
+            synchronized (downloadFinished) {
+                downloadFinished.wait();
+            }
+        } catch (InterruptedException e) {
+            LOG.error("Couldn't wait for download to finish", e);
         }
         LOG.debug("Download stopped");
     }

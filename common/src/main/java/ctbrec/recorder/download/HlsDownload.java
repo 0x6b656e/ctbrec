@@ -44,6 +44,7 @@ public class HlsDownload extends AbstractHlsDownload {
 
     private int segmentCounter = 1;
     private NumberFormat nf = new DecimalFormat("000000");
+    private Object downloadFinished = new Object();
 
     public HlsDownload(HttpClient client) {
         super(client);
@@ -75,8 +76,7 @@ public class HlsDownload extends AbstractHlsDownload {
                 }
                 int lastSegment = 0;
                 int nextSegment = 0;
-                boolean sleep = true; // this enables sleeping between playlist requests
-                // once we miss a segment, this is set to false, so that no sleeping happens anymore
+                boolean sleep = true; // this enables sleeping between playlist requests. once we miss a segment, this is set to false, so that no sleeping happens anymore
                 while(running) {
                     SegmentPlaylist lsp = getNextSegments(segments);
                     if(nextSegment > 0 && lsp.seq > nextSegment) {
@@ -137,12 +137,15 @@ public class HlsDownload extends AbstractHlsDownload {
         } catch(Exception e) {
             throw new IOException("Couldn't download segment", e);
         } finally {
-            alive = false;
             downloadThreadPool.shutdown();
             try {
                 LOG.debug("Waiting for last segments for {}", model);
                 downloadThreadPool.awaitTermination(60, TimeUnit.SECONDS);
             } catch (InterruptedException e) {}
+            alive = false;
+            synchronized (downloadFinished) {
+                downloadFinished.notifyAll();
+            }
             LOG.debug("Download for {} terminated", model);
         }
     }
@@ -150,7 +153,13 @@ public class HlsDownload extends AbstractHlsDownload {
     @Override
     public void stop() {
         running = false;
-        alive = false;
+        try {
+            synchronized (downloadFinished) {
+                downloadFinished.wait();
+            }
+        } catch (InterruptedException e) {
+            LOG.error("Couldn't wait for download to finish", e);
+        }
     }
 
     private static class SegmentDownload implements Callable<Boolean> {

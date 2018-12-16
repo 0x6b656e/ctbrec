@@ -216,10 +216,14 @@ public class LocalRecorder implements Recorder {
 
     private void stopRecordingProcess(Model model)  {
         Download download = recordingProcesses.get(model);
-        download.stop();
         recordingProcesses.remove(model);
         fireRecordingStateChanged(download.getTarget(), STOPPED, model, download.getStartTime());
-        ppThreadPool.submit(createPostProcessor(download));
+
+        Runnable stopAndThePostProcess = () -> {
+            download.stop();
+            createPostProcessor(download).run();
+        };
+        ppThreadPool.submit(stopAndThePostProcess);
     }
 
     private void postprocess(Download download) {
@@ -550,6 +554,8 @@ public class LocalRecorder implements Recorder {
                         if (rec.listFiles().length == 0) {
                             continue;
                         }
+
+                        // TODO don't list recordings, which currently get deleted
 
                         Date startDate = sdf.parse(rec.getName());
                         Recording recording = new Recording();

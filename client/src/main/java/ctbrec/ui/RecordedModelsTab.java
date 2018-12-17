@@ -118,6 +118,9 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         preview.setCellValueFactory(cdf -> new SimpleStringProperty("  ▶  "));
         preview.setEditable(false);
         preview.setId("preview");
+        if(!Config.getInstance().getSettings().livePreviews) {
+            preview.setVisible(false);
+        }
         TableColumn<JavaFxModel, String> name = new TableColumn<>("Model");
         name.setPrefWidth(200);
         name.setCellValueFactory(new PropertyValueFactory<JavaFxModel, String>("displayName"));

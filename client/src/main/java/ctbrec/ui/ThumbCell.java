@@ -174,7 +174,7 @@ public class ThumbCell extends StackPane {
         StackPane.setAlignment(pausedIndicator, Pos.TOP_LEFT);
         getChildren().add(pausedIndicator);
 
-        if(Config.getInstance().getSettings().previewInThumbnails) {
+        if(Config.getInstance().getSettings().livePreviews) {
             getChildren().add(createPreviewTrigger());
         }
 

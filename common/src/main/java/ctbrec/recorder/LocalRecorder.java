@@ -554,8 +554,10 @@ public class LocalRecorder implements Recorder {
                         if (rec.listFiles().length == 0) {
                             continue;
                         }
-
-                        // TODO don't list recordings, which currently get deleted
+                        // don't list recordings, which currently get deleted
+                        if (deleteInProgress.contains(rec)) {
+                            continue;
+                        }
 
                         Date startDate = sdf.parse(rec.getName());
                         Recording recording = new Recording();

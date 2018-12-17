@@ -330,6 +330,13 @@ public class StreamateModel extends AbstractModel {
 
     @Override
     public void writeSiteSpecificData(JsonWriter writer) throws IOException {
+        if(id == null) {
+            try {
+                loadModelInfo();
+            } catch (IOException e) {
+                LOG.error("Couldn't load model ID for {}. This can cause problems with saving / loading the model", getName());
+            }
+        }
         writer.name("id").value(id);
     }
 }

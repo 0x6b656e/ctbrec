@@ -193,13 +193,7 @@ public class Streamate extends AbstractSite {
         Matcher m = Pattern.compile("https?://.*?streamate.com/cam/([^/]*?)/?").matcher(url);
         if (m.matches()) {
             String modelName = m.group(1);
-            StreamateModel model = (StreamateModel) createModel(modelName);
-            try {
-                model.loadModelInfo();
-            } catch (IOException e) {
-                LOG.error("Couldn't load model info. This can cause problems with saving / loading the model");
-            }
-            return model;
+            return createModel(modelName);
         } else {
             return super.createModelFromUrl(url);
         }

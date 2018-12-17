@@ -5,6 +5,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.JsonReader;
 import com.squareup.moshi.JsonReader.Token;
@@ -15,6 +18,8 @@ import ctbrec.sites.Site;
 import ctbrec.sites.chaturbate.ChaturbateModel;
 
 public class ModelJsonAdapter extends JsonAdapter<Model> {
+
+    private static final transient Logger LOG = LoggerFactory.getLogger(ModelJsonAdapter.class);
 
     private List<Site> sites;
 
@@ -62,7 +67,12 @@ public class ModelJsonAdapter extends JsonAdapter<Model> {
                         model.setSuspended(suspended);
                     } else if(key.equals("siteSpecific")) {
                         reader.beginObject();
-                        model.readSiteSpecificData(reader);
+                        try {
+                            model.readSiteSpecificData(reader);
+                        } catch(Exception e) {
+                            LOG.error("Couldn't read site specific data for model {}", model.getName());
+                            throw e;
+                        }
                         reader.endObject();
                     }
                 } else {

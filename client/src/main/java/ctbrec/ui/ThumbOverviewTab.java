@@ -479,6 +479,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                         event.put("amount", tokens);
                         EventBusHolder.BUS.post(event);
                     } catch (Exception e1) {
+                        LOG.error("An error occured while sending tip", e1);
                         showError("Couldn't send tip", "An error occured while sending tip:", e1);
                     }
                 } else {

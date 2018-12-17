@@ -38,6 +38,7 @@ import ctbrec.sites.cam4.Cam4;
 import ctbrec.sites.camsoda.Camsoda;
 import ctbrec.sites.chaturbate.Chaturbate;
 import ctbrec.sites.mfc.MyFreeCams;
+import ctbrec.sites.streamate.Streamate;
 import ctbrec.ui.settings.SettingsTab;
 import javafx.application.Application;
 import javafx.application.HostServices;
@@ -76,6 +77,7 @@ public class CamrecApplication extends Application {
         sites.add(new Camsoda());
         sites.add(new Chaturbate());
         sites.add(new MyFreeCams());
+        sites.add(new Streamate());
         loadConfig();
         registerAlertSystem();
         createHttpClient();
@@ -176,9 +178,13 @@ public class CamrecApplication extends Application {
                     try {
                         Config.getInstance().save();
                         LOG.info("Shutdown complete. Goodbye!");
-                        Platform.exit();
-                        // This is needed, because OkHttp?! seems to block the shutdown with its writer threads. They are not daemon threads :(
-                        System.exit(0);
+                        Platform.runLater(() -> {
+                            primaryStage.close();
+                            shutdownInfo.close();
+                            Platform.exit();
+                            // This is needed, because OkHttp?! seems to block the shutdown with its writer threads. They are not daemon threads :(
+                            System.exit(0);
+                        });
                     } catch (IOException e1) {
                         Platform.runLater(() -> {
                             Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);

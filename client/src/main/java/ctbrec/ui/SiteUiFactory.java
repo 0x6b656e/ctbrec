@@ -6,11 +6,13 @@ import ctbrec.sites.cam4.Cam4;
 import ctbrec.sites.camsoda.Camsoda;
 import ctbrec.sites.chaturbate.Chaturbate;
 import ctbrec.sites.mfc.MyFreeCams;
+import ctbrec.sites.streamate.Streamate;
 import ctbrec.ui.sites.bonga.BongaCamsSiteUi;
 import ctbrec.ui.sites.cam4.Cam4SiteUi;
 import ctbrec.ui.sites.camsoda.CamsodaSiteUi;
 import ctbrec.ui.sites.chaturbate.ChaturbateSiteUi;
 import ctbrec.ui.sites.myfreecams.MyFreeCamsSiteUi;
+import ctbrec.ui.sites.streamate.StreamateSiteUi;
 
 public class SiteUiFactory {
 
@@ -19,6 +21,7 @@ public class SiteUiFactory {
     private static CamsodaSiteUi camsodaSiteUi;
     private static ChaturbateSiteUi ctbSiteUi;
     private static MyFreeCamsSiteUi mfcSiteUi;
+    private static StreamateSiteUi streamateSiteUi;
 
     public static synchronized SiteUI getUi(Site site) {
         if (site instanceof BongaCams) {
@@ -46,6 +49,11 @@ public class SiteUiFactory {
                 mfcSiteUi = new MyFreeCamsSiteUi((MyFreeCams) site);
             }
             return mfcSiteUi;
+        } else if (site instanceof Streamate) {
+            if (streamateSiteUi == null) {
+                streamateSiteUi = new StreamateSiteUi((Streamate) site);
+            }
+            return streamateSiteUi;
         }
         throw new RuntimeException("Unknown site " + site.getName());
     }

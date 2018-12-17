@@ -277,7 +277,7 @@ public class MyFreeCamsClient {
                         case ROOMDATA:
                             LOG.debug("ROOMDATA: {}", message);
                         case UEOPT:
-                            LOG.debug("UEOPT: {}", message);
+                            LOG.trace("UEOPT: {}", message);
                             break;
                         case SLAVEVSHARE:
                             //                        LOG.debug("SLAVEVSHARE {}", message);
@@ -295,7 +295,7 @@ public class MyFreeCamsClient {
                             }
                             break;
                         default:
-                            LOG.debug("Unknown message {}", message);
+                            LOG.trace("Unknown message {}", message);
                             break;
                         }
                     }
@@ -417,6 +417,11 @@ public class MyFreeCamsClient {
 
                 // tokens not yet available
                 if(ctxenc == null) {
+                    return;
+                }
+
+                // uid not set, we can't identify this model
+                if(state.getUid() == null || state.getUid() <= 0) {
                     return;
                 }
 

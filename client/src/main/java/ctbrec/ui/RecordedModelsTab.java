@@ -58,6 +58,7 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
@@ -117,6 +118,9 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         preview.setCellValueFactory(cdf -> new SimpleStringProperty("  ▶  "));
         preview.setEditable(false);
         preview.setId("preview");
+        if(!Config.getInstance().getSettings().livePreviews) {
+            preview.setVisible(false);
+        }
         TableColumn<JavaFxModel, String> name = new TableColumn<>("Model");
         name.setPrefWidth(200);
         name.setCellValueFactory(new PropertyValueFactory<JavaFxModel, String>("displayName"));
@@ -148,6 +152,14 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
                 popup.show(table, event.getScreenX(), event.getScreenY());
             }
             event.consume();
+        });
+        table.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+            if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
+                JavaFxModel model = table.getSelectionModel().getSelectedItem();
+                if(model != null) {
+                    new PlayAction(table, model).execute();
+                }
+            }
         });
         table.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
             if (popup != null) {

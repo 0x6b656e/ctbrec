@@ -12,7 +12,7 @@ public class DirectorySelectionBox extends AbstractFileSelectionBox {
     @Override
     protected void choose() {
         DirectoryChooser chooser = new DirectoryChooser();
-        File currentDir = fileProperty().get();
+        File currentDir = new File(fileProperty().get());
         if (currentDir.exists() && currentDir.isDirectory()) {
             chooser.setInitialDirectory(currentDir);
         }

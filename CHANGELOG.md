@@ -1,3 +1,17 @@
+1.16.0
+========================
+* Thumbnails can show a live preview. Can be switched on in the settings.
+* Live preview is experimental for now, because I noticed some funky behavior
+  of the the internal media player. You can use it on your own risk.
+* Added Streamate (metcams, xhamstercams, pornhublive)
+* Maximum resolution can be an arbitrary value now
+* Added setting for minimal recording length. Recordings, which are shorter
+  than this value, get deleted automatically.
+* Double-click in Recording tab starts the player
+* Fix: BongaCams friends tab not working
+* Fix: BongaCams search fails with JSON exception
+* Fix: In some cases MFC models got confused
+
 1.15.0
 ========================
 * Fix: BongaCams overview didn't work anymore

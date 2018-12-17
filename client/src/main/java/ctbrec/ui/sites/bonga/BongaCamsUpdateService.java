@@ -56,7 +56,10 @@ public class BongaCamsUpdateService extends PaginatedScheduledService {
                         JSONArray _models = json.getJSONArray("models");
                         for (int i = 0; i < _models.length(); i++) {
                             JSONObject m = _models.getJSONObject(i);
-                            String name = m.getString("username");
+                            String name = m.optString("username");
+                            if(name.isEmpty()) {
+                                continue;
+                            }
                             BongaCamsModel model = (BongaCamsModel) bongaCams.createModel(name);
                             boolean away = m.optBoolean("is_away");
                             boolean online = m.optBoolean("online");

@@ -48,9 +48,9 @@ public class ExecuteProgram extends Action {
             err.start();
 
             process.waitFor();
-            LOG.debug("executing {} finished", executable);
+            LOG.debug("Executing {} finished", executable);
         } catch (Exception e) {
-            LOG.error("Error while processing {}", e);
+            LOG.error("Error while executing {}", executable, e);
         }
     }
 

@@ -33,6 +33,7 @@ import ctbrec.sites.cam4.Cam4;
 import ctbrec.sites.camsoda.Camsoda;
 import ctbrec.sites.chaturbate.Chaturbate;
 import ctbrec.sites.mfc.MyFreeCams;
+import ctbrec.sites.streamate.Streamate;
 
 public class HttpServer {
 
@@ -82,6 +83,7 @@ public class HttpServer {
         sites.add(new Camsoda());
         sites.add(new Cam4());
         sites.add(new BongaCams());
+        sites.add(new Streamate());
     }
 
     private void addShutdownHook() {

@@ -6,9 +6,10 @@ import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ctbrec.StringUtil;
 import ctbrec.ui.AutosizeAlert;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.ObjectPropertyBase;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
@@ -29,18 +30,20 @@ import javafx.stage.FileChooser;
 public abstract class AbstractFileSelectionBox extends HBox {
     private static final transient Logger LOG = LoggerFactory.getLogger(AbstractFileSelectionBox.class);
 
-    private ObjectProperty<File> fileProperty = new ObjectPropertyBase<File>() {
-        @Override
-        public Object getBean() {
-            return null;
-        }
-
-        @Override
-        public String getName() {
-            return "file";
-        }
-    };
+    //    private ObjectProperty<File> fileProperty = new ObjectPropertyBase<File>() {
+    //        @Override
+    //        public Object getBean() {
+    //            return null;
+    //        }
+    //
+    //        @Override
+    //        public String getName() {
+    //            return "file";
+    //        }
+    //    };
+    private StringProperty fileProperty = new SimpleStringProperty();
     protected TextField fileInput;
+    protected boolean allowEmptyValue = false;
     private Tooltip validationError = new Tooltip();
 
     public AbstractFileSelectionBox() {
@@ -67,8 +70,14 @@ public abstract class AbstractFileSelectionBox extends HBox {
     private ChangeListener<? super String> textListener() {
         return (obs, o, n) -> {
             String input = fileInput.getText();
-            File program = new File(input);
-            setFile(program);
+            if(StringUtil.isBlank(input) && allowEmptyValue) {
+                fileProperty.set("");
+                hideValidationHints();
+                return;
+            } else {
+                File program = new File(input);
+                setFile(program);
+            }
         };
     }
 
@@ -83,11 +92,15 @@ public abstract class AbstractFileSelectionBox extends HBox {
                 validationError.show(getScene().getWindow(), p.getX(), p.getY() + fileInput.getHeight() + 4);
             }
         } else {
-            fileInput.setBorder(Border.EMPTY);
-            fileInput.setTooltip(null);
-            fileProperty.set(file);
-            validationError.hide();
+            fileProperty.set(file.getAbsolutePath());
+            hideValidationHints();
         }
+    }
+
+    private void hideValidationHints() {
+        fileInput.setBorder(Border.EMPTY);
+        fileInput.setTooltip(null);
+        validationError.hide();
     }
 
     protected String validate(File file) {
@@ -96,6 +109,10 @@ public abstract class AbstractFileSelectionBox extends HBox {
         } else {
             return null;
         }
+    }
+
+    public void allowEmptyValue() {
+        this.allowEmptyValue = true;
     }
 
     private Button createBrowseButton() {
@@ -123,7 +140,7 @@ public abstract class AbstractFileSelectionBox extends HBox {
         }
     }
 
-    public ObjectProperty<File> fileProperty() {
+    public StringProperty fileProperty() {
         return fileProperty;
     }
 }

@@ -58,17 +58,19 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private TextField port;
     private TextField onlineCheckIntervalInSecs;
     private TextField leaveSpaceOnDevice;
+    private TextField minimumLengthInSecs;
     private CheckBox loadResolution;
     private CheckBox secureCommunication = new CheckBox();
     private CheckBox chooseStreamQuality = new CheckBox();
     private CheckBox multiplePlayers = new CheckBox();
     private CheckBox updateThumbnails = new CheckBox();
+    private CheckBox livePreviews = new CheckBox();
     private CheckBox showPlayerStarting = new CheckBox();
     private RadioButton recordLocal;
     private RadioButton recordRemote;
     private ToggleGroup recordLocation;
     private ProxySettingsPane proxySettingsPane;
-    private ComboBox<Integer> maxResolution;
+    private TextField maxResolution;
     private ComboBox<SplitAfterOption> splitAfter;
     private ComboBox<DirectoryStructure> directoryStructure;
     private ComboBox<String> startTab;
@@ -236,7 +238,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         recordingsDirectory = new DirectorySelectionBox(Config.getInstance().getSettings().recordingsDir);
         recordingsDirectory.prefWidth(400);
         recordingsDirectory.fileProperty().addListener((obs, o, n) -> {
-            String path = n.getAbsolutePath();
+            String path = n;
             if(!Objects.equals(path, Config.getInstance().getSettings().recordingsDir)) {
                 Config.getInstance().getSettings().recordingsDir = path;
                 saveConfig();
@@ -262,26 +264,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         layout.add(directoryStructure, 1, row++);
         recordingsDirectory.prefWidthProperty().bind(directoryStructure.widthProperty());
 
-        Label l = new Label("Maximum resolution (0 = unlimited)");
-        layout.add(l, 0, row);
-        List<Integer> resolutionOptions = new ArrayList<>();
-        resolutionOptions.add(1080);
-        resolutionOptions.add(720);
-        resolutionOptions.add(600);
-        resolutionOptions.add(480);
-        resolutionOptions.add(0);
-        maxResolution = new ComboBox<>(FXCollections.observableList(resolutionOptions));
-        setMaxResolutionValue();
-        maxResolution.setOnAction((e) -> {
-            Config.getInstance().getSettings().maximumResolution = maxResolution.getSelectionModel().getSelectedItem();
-            saveConfig();
-        });
-        maxResolution.prefWidthProperty().bind(directoryStructure.widthProperty());
-        layout.add(maxResolution, 1, row++);
-        GridPane.setMargin(l, new Insets(0, 0, 0, 0));
-        GridPane.setMargin(maxResolution, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-
-        l = new Label("Split recordings after (minutes)");
+        Label l = new Label("Split recordings after (minutes)");
         layout.add(l, 0, row);
         List<SplitAfterOption> splitOptions = new ArrayList<>();
         splitOptions.add(new SplitAfterOption("disabled", 0));
@@ -306,11 +289,31 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         GridPane.setMargin(l, new Insets(0, 0, 0, 0));
         GridPane.setMargin(splitAfter, new Insets(0, 0, 0, CHECKBOX_MARGIN));
 
+        l = new Label("Maximum resolution (0 = unlimited)");
+        layout.add(l, 0, row);
+        maxResolution = new TextField(Integer.toString(Config.getInstance().getSettings().maximumResolution));
+        maxResolution.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                maxResolution.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+            if (!maxResolution.getText().isEmpty()) {
+                int newRes = Integer.parseInt(maxResolution.getText());
+                if (newRes != Config.getInstance().getSettings().maximumResolution) {
+                    Config.getInstance().getSettings().maximumResolution = newRes;
+                    saveConfig();
+                }
+            }
+        });
+        maxResolution.prefWidthProperty().bind(directoryStructure.widthProperty());
+        layout.add(maxResolution, 1, row++);
+        GridPane.setMargin(l, new Insets(0, 0, 0, 0));
+        GridPane.setMargin(maxResolution, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+
         layout.add(new Label("Post-Processing"), 0, row);
-        // TODO allow empty strings to remove post-processing scripts
         postProcessing = new ProgramSelectionBox(Config.getInstance().getSettings().postProcessing);
+        postProcessing.allowEmptyValue();
         postProcessing.fileProperty().addListener((obs, o, n) -> {
-            String path = n.getAbsolutePath();
+            String path = n;
             if(!Objects.equals(path, Config.getInstance().getSettings().postProcessing)) {
                 Config.getInstance().getSettings().postProcessing = path;
                 saveConfig();
@@ -360,6 +363,26 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         GridPane.setMargin(leaveSpaceOnDevice, new Insets(0, 0, 0, CHECKBOX_MARGIN));
         layout.add(leaveSpaceOnDevice, 1, row++);
 
+        tt = new Tooltip("Delete recordings, which are shorter than x seconds. 0 to disable.");
+        l = new Label("Delete recordings shorter than (secs)");
+        l.setTooltip(tt);
+        layout.add(l, 0, row);
+        int minimumLengthInSeconds = Config.getInstance().getSettings().minimumLengthInSeconds;
+        minimumLengthInSecs = new TextField(Integer.toString(minimumLengthInSeconds));
+        minimumLengthInSecs.setTooltip(tt);
+        minimumLengthInSecs.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                minimumLengthInSecs.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+            if(!minimumLengthInSecs.getText().isEmpty()) {
+                int minimumLength = Integer.parseInt(minimumLengthInSecs.getText());
+                Config.getInstance().getSettings().minimumLengthInSeconds = minimumLength;
+                saveConfig();
+            }
+        });
+        GridPane.setMargin(minimumLengthInSecs, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        layout.add(minimumLengthInSecs, 1, row++);
+
         TitledPane locations = new TitledPane("Recorder", layout);
         locations.setCollapsible(false);
         return locations;
@@ -372,7 +395,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         layout.add(new Label("Player"), 0, row);
         mediaPlayer = new ProgramSelectionBox(Config.getInstance().getSettings().mediaPlayer);
         mediaPlayer.fileProperty().addListener((obs, o, n) -> {
-            String path = n.getAbsolutePath();
+            String path = n;
             if (!Objects.equals(path, Config.getInstance().getSettings().mediaPlayer)) {
                 Config.getInstance().getSettings().mediaPlayer = path;
                 saveConfig();
@@ -401,7 +424,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             Config.getInstance().getSettings().showPlayerStarting = showPlayerStarting.isSelected();
             saveConfig();
         });
-        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
         GridPane.setMargin(showPlayerStarting, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(showPlayerStarting, 1, row++);
 
@@ -413,7 +436,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             Config.getInstance().getSettings().determineResolution = loadResolution.isSelected();
             saveConfig();
         });
-        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
         GridPane.setMargin(loadResolution, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(loadResolution, 1, row++);
 
@@ -424,7 +447,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             Config.getInstance().getSettings().chooseStreamQuality = chooseStreamQuality.isSelected();
             saveConfig();
         });
-        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
         GridPane.setMargin(chooseStreamQuality, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(chooseStreamQuality, 1, row++);
 
@@ -435,9 +458,21 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             Config.getInstance().getSettings().updateThumbnails = updateThumbnails.isSelected();
             saveConfig();
         });
-        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
-        GridPane.setMargin(updateThumbnails, new Insets(CHECKBOX_MARGIN, 0, CHECKBOX_MARGIN, CHECKBOX_MARGIN));
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
+        GridPane.setMargin(updateThumbnails, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(updateThumbnails, 1, row++);
+
+        l = new Label("Enable live previews (experimental)");
+        layout.add(l, 0, row);
+        livePreviews.setSelected(Config.getInstance().getSettings().livePreviews);
+        livePreviews.setOnAction((e) -> {
+            Config.getInstance().getSettings().livePreviews = livePreviews.isSelected();
+            saveConfig();
+            showRestartRequired();
+        });
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
+        GridPane.setMargin(livePreviews, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
+        layout.add(livePreviews, 1, row++);
 
         l = new Label("Start Tab");
         layout.add(l, 0, row);
@@ -447,8 +482,8 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             saveConfig();
         });
         layout.add(startTab, 1, row++);
-        GridPane.setMargin(l, new Insets(0, 0, 0, 0));
-        GridPane.setMargin(startTab, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
+        GridPane.setMargin(startTab, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
 
         l = new Label("Colors (Base / Accent)");
         layout.add(l, 0, row);
@@ -467,15 +502,6 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         for (SplitAfterOption option : splitAfter.getItems()) {
             if(option.getValue() == value) {
                 splitAfter.getSelectionModel().select(option);
-            }
-        }
-    }
-
-    private void setMaxResolutionValue() {
-        int value = Config.getInstance().getSettings().maximumResolution;
-        for (Integer option : maxResolution.getItems()) {
-            if(option == value) {
-                maxResolution.getSelectionModel().select(option);
             }
         }
     }
@@ -503,6 +529,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         onlineCheckIntervalInSecs.setDisable(!local);
         leaveSpaceOnDevice.setDisable(!local);
         postProcessing.setDisable(!local);
+        minimumLengthInSecs.setDisable(!local);
     }
 
     @Override

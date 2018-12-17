@@ -41,6 +41,7 @@ public class Settings {
     public String recordingsDir = System.getProperty("user.home") + File.separator + "ctbrec";
     public DirectoryStructure recordingsDirStructure = DirectoryStructure.FLAT;
     public long minimumSpaceLeftInBytes = 0;
+    public int minimumLengthInSeconds = 0;
     public String mediaPlayer = "/usr/bin/mpv";
     public String postProcessing = "";
     public String username = ""; // chaturbate username TODO maybe rename this onetime
@@ -59,13 +60,16 @@ public class Settings {
     public boolean mfcIgnoreUpscaled = false;
     public String camsodaUsername = "";
     public String camsodaPassword = "";
-    public String cam4Username;
-    public String cam4Password;
+    public String cam4Username = "";
+    public String cam4Password = "";
+    public String streamateUsername = "";
+    public String streamatePassword = "";
     public String lastDownloadDir = "";
 
     public List<Model> models = new ArrayList<>();
     public List<EventHandlerConfiguration> eventHandlers = new ArrayList<>();
     public boolean determineResolution = false;
+    public boolean livePreviews = false;
     public boolean requireAuthentication = false;
     public boolean chooseStreamQuality = false;
     public int maximumResolution = 0;

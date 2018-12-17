@@ -93,7 +93,6 @@ public class OS {
         } else if(OS.getOsType() == OS.TYPE.WINDOWS) {
             notifyWindows(title, header, msg);
         } else if(OS.getOsType() == OS.TYPE.MAC) {
-            // TODO find out, if it makes a sound or if we have to play a sound
             notifyMac(title, header, msg);
         } else {
             // unknown system, try systemtray notification anyways

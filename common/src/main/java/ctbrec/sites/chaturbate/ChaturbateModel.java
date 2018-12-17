@@ -1,11 +1,12 @@
 package ctbrec.sites.chaturbate;
 
-import static ctbrec.sites.chaturbate.Chaturbate.*;
+import static ctbrec.Model.State.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 import org.slf4j.Logger;
@@ -26,7 +27,7 @@ import okhttp3.Response;
 public class ChaturbateModel extends AbstractModel {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(ChaturbateModel.class);
-    private Chaturbate chaturbate;
+    private int[] resolution = new int[2];
 
     /**
      * This constructor exists only for deserialization. Please don't call it directly
@@ -36,33 +37,34 @@ public class ChaturbateModel extends AbstractModel {
 
     ChaturbateModel(Chaturbate site) {
         this.site = site;
-        this.chaturbate = site;
     }
 
     @Override
     public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException {
-        StreamInfo info;
+        String roomStatus;
         if(ignoreCache) {
-            info = chaturbate.loadStreamInfo(getName());
+            StreamInfo info = getChaturbate().loadStreamInfo(getName());
+            roomStatus = Optional.ofNullable(info).map(i -> i.room_status).orElse("");
             LOG.trace("Model {} room status: {}", getName(), info.room_status);
         } else {
-            info = chaturbate.getStreamInfo(getName());
+            StreamInfo info = getChaturbate().getStreamInfo(getName(), true);
+            roomStatus = Optional.ofNullable(info).map(i -> i.room_status).orElse("");
         }
-        return Objects.equals("public", info.room_status);
+        return Objects.equals("public", roomStatus);
     }
 
     @Override
     public int[] getStreamResolution(boolean failFast) throws ExecutionException {
-        int[] resolution = chaturbate.streamResolutionCache.getIfPresent(getName());
-        if(resolution != null) {
-            return chaturbate.getResolution(getName());
-        } else {
-            if(failFast) {
-                return new int[2];
-            } else {
-                return chaturbate.getResolution(getName());
-            }
+        if(failFast) {
+            return resolution;
         }
+
+        try {
+            resolution = getChaturbate().getResolution(getName());
+        } catch(Exception e) {
+            throw new ExecutionException(e);
+        }
+        return resolution;
     }
 
     /**
@@ -71,30 +73,62 @@ public class ChaturbateModel extends AbstractModel {
      */
     @Override
     public void invalidateCacheEntries() {
-        chaturbate.streamInfoCache.invalidate(getName());
-        chaturbate.streamResolutionCache.invalidate(getName());
+        getChaturbate().streamInfoCache.invalidate(getName());
     }
 
-    public String getOnlineState() throws IOException, ExecutionException {
+    public State getOnlineState() throws IOException, ExecutionException {
         return getOnlineState(false);
     }
 
     @Override
-    public String getOnlineState(boolean failFast) throws IOException, ExecutionException {
-        StreamInfo info = chaturbate.streamInfoCache.getIfPresent(getName());
-        return info != null ? info.room_status : "n/a";
+    public State getOnlineState(boolean failFast) throws IOException, ExecutionException {
+        if(failFast) {
+            StreamInfo info = getChaturbate().streamInfoCache.getIfPresent(getName());
+            setOnlineStateByRoomStatus(info.room_status);
+        } else {
+            StreamInfo info = getChaturbate().streamInfoCache.get(getName());
+            setOnlineStateByRoomStatus(info.room_status);
+        }
+        return onlineState;
+    }
+
+    private void setOnlineStateByRoomStatus(String room_status) {
+        if(room_status != null) {
+            switch(room_status) {
+            case "public":
+                onlineState = ONLINE;
+                break;
+            case "offline":
+                onlineState = OFFLINE;
+                break;
+            case "private":
+            case "hidden":
+            case "password protected":
+                onlineState = PRIVATE;
+                break;
+            case "away":
+                onlineState = AWAY;
+                break;
+            case "group":
+                onlineState = State.GROUP;
+                break;
+            default:
+                LOG.debug("Unknown show type {}", room_status);
+                onlineState = State.UNKNOWN;
+            }
+        }
     }
 
     public StreamInfo getStreamInfo() throws IOException, ExecutionException {
-        return chaturbate.getStreamInfo(getName());
+        return getChaturbate().getStreamInfo(getName());
     }
     public MasterPlaylist getMasterPlaylist() throws IOException, ParseException, PlaylistException, ExecutionException {
-        return chaturbate.getMasterPlaylist(getName());
+        return getChaturbate().getMasterPlaylist(getName());
     }
 
     @Override
     public void receiveTip(int tokens) throws IOException {
-        chaturbate.sendTip(getName(), tokens);
+        getChaturbate().sendTip(getName(), tokens);
     }
 
     @Override
@@ -112,6 +146,9 @@ public class ChaturbateModel extends AbstractModel {
                 String baseUrl = masterUrl.substring(0, masterUrl.lastIndexOf('/') + 1);
                 String segmentUri = baseUrl + playlist.getUri();
                 src.mediaPlaylistUrl = segmentUri;
+                if(src.mediaPlaylistUrl.contains("?")) {
+                    src.mediaPlaylistUrl = src.mediaPlaylistUrl.substring(0, src.mediaPlaylistUrl.lastIndexOf('?'));
+                }
                 LOG.trace("Media playlist {}", src.mediaPlaylistUrl);
                 sources.add(src);
             }
@@ -136,9 +173,9 @@ public class ChaturbateModel extends AbstractModel {
 
         String url = null;
         if(follow) {
-            url = BASE_URI + "/follow/follow/" + getName() + "/";
+            url = getSite().getBaseUrl() + "/follow/follow/" + getName() + "/";
         } else {
-            url = BASE_URI + "/follow/unfollow/" + getName() + "/";
+            url = getSite().getBaseUrl() + "/follow/unfollow/" + getName() + "/";
         }
 
         RequestBody body = RequestBody.create(null, new byte[0]);
@@ -166,5 +203,9 @@ public class ChaturbateModel extends AbstractModel {
             resp.close();
             throw new IOException("HTTP status " + resp.code() + " " + resp.message());
         }
+    }
+
+    private Chaturbate getChaturbate() {
+        return (Chaturbate) site;
     }
 }

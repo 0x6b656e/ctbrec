@@ -26,7 +26,7 @@ public class StreamRedirectThread implements Runnable {
             while(in != null && (length = in.read(buffer)) >= 0) {
                 out.write(buffer, 0, length);
             }
-            LOG.debug("Stream redirect thread ended");
+            LOG.trace("Stream redirect thread ended");
         } catch(Exception e) {
             LOG.error("Couldn't redirect stream: {}", e.getLocalizedMessage());
         }

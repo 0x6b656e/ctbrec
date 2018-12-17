@@ -110,7 +110,7 @@ public class JavaFxModel implements Model {
     }
 
     @Override
-    public String getOnlineState(boolean failFast) throws IOException, ExecutionException {
+    public State getOnlineState(boolean failFast) throws IOException, ExecutionException {
         return delegate.getOnlineState(failFast);
     }
 
@@ -196,5 +196,20 @@ public class JavaFxModel implements Model {
     public void setSuspended(boolean suspended) {
         delegate.setSuspended(suspended);
         pausedProperty.set(suspended);
+    }
+
+    @Override
+    public String getDisplayName() {
+        return delegate.getDisplayName();
+    }
+
+    @Override
+    public void setDisplayName(String name) {
+        delegate.setDisplayName(name);
+    }
+
+    @Override
+    public int compareTo(Model o) {
+        return delegate.compareTo(o);
     }
 }

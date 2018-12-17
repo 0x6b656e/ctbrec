@@ -23,7 +23,7 @@ public class Player {
     private static final transient Logger LOG = LoggerFactory.getLogger(Player.class);
     private static PlayerThread playerThread;
 
-    public static void play(String url) {
+    public static boolean play(String url) {
         boolean singlePlayer = Config.getInstance().getSettings().singlePlayer;
         try {
             if (singlePlayer && playerThread != null && playerThread.isRunning()) {
@@ -31,12 +31,14 @@ public class Player {
             }
 
             playerThread = new PlayerThread(url);
+            return true;
         } catch (Exception e1) {
             LOG.error("Couldn't start player", e1);
+            return false;
         }
     }
 
-    public static void play(Recording rec) {
+    public static boolean play(Recording rec) {
         boolean singlePlayer = Config.getInstance().getSettings().singlePlayer;
         try {
             if (singlePlayer && playerThread != null && playerThread.isRunning()) {
@@ -44,12 +46,14 @@ public class Player {
             }
 
             playerThread = new PlayerThread(rec);
+            return true;
         } catch (Exception e1) {
             LOG.error("Couldn't start player", e1);
+            return false;
         }
     }
 
-    public static void play(Model model) {
+    public static boolean play(Model model) {
         try {
             if(model.isOnline(true)) {
                 boolean singlePlayer = Config.getInstance().getSettings().singlePlayer;
@@ -60,7 +64,7 @@ public class Player {
                 Collections.sort(sources);
                 StreamSource best = sources.get(sources.size()-1);
                 LOG.debug("Playing {}", best.getMediaPlaylistUrl());
-                Player.play(best.getMediaPlaylistUrl());
+                return Player.play(best.getMediaPlaylistUrl());
             } else {
                 Platform.runLater(() -> {
                     Alert alert = new AutosizeAlert(Alert.AlertType.INFORMATION);
@@ -68,6 +72,7 @@ public class Player {
                     alert.setHeaderText("Room is currently not public");
                     alert.showAndWait();
                 });
+                return false;
             }
         } catch (Exception e1) {
             LOG.error("Couldn't get stream information for model {}", model, e1);
@@ -78,6 +83,7 @@ public class Player {
                 alert.setContentText(e1.getLocalizedMessage());
                 alert.showAndWait();
             });
+            return false;
         }
     }
 
@@ -114,7 +120,11 @@ public class Player {
             try {
                 if (Config.getInstance().getSettings().localRecording && rec != null) {
                     File file = new File(Config.getInstance().getSettings().recordingsDir, rec.getPath());
-                    playerProcess = rt.exec(Config.getInstance().getSettings().mediaPlayer + " " + file, OS.getEnvironment(), file.getParentFile());
+                    String[] args = new String[] {
+                            Config.getInstance().getSettings().mediaPlayer,
+                            file.getName()
+                    };
+                    playerProcess = rt.exec(args, OS.getEnvironment(), file.getParentFile());
                 } else {
                     if(Config.getInstance().getSettings().requireAuthentication) {
                         URL u = new URL(url);
@@ -130,10 +140,12 @@ public class Player {
                 // create threads, which read stdout and stderr of the player process. these are needed,
                 // because otherwise the internal buffer for these streams fill up and block the process
                 Thread std = new Thread(new StreamRedirectThread(playerProcess.getInputStream(), new DevNull()));
+                //Thread std = new Thread(new StreamRedirectThread(playerProcess.getInputStream(), System.out));
                 std.setName("Player stdout pipe");
                 std.setDaemon(true);
                 std.start();
                 Thread err = new Thread(new StreamRedirectThread(playerProcess.getErrorStream(), new DevNull()));
+                //Thread err = new Thread(new StreamRedirectThread(playerProcess.getErrorStream(), System.err));
                 err.setName("Player stderr pipe");
                 err.setDaemon(true);
                 err.start();

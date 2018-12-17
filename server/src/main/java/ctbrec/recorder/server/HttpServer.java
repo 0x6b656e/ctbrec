@@ -1,6 +1,9 @@
 package ctbrec.recorder.server;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.BindException;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +20,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
+import ctbrec.Version;
+import ctbrec.event.EventBusHolder;
+import ctbrec.event.EventHandler;
+import ctbrec.event.EventHandlerConfiguration;
 import ctbrec.recorder.LocalRecorder;
+import ctbrec.recorder.OnlineMonitor;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
 import ctbrec.sites.bonga.BongaCams;
@@ -25,16 +33,19 @@ import ctbrec.sites.cam4.Cam4;
 import ctbrec.sites.camsoda.Camsoda;
 import ctbrec.sites.chaturbate.Chaturbate;
 import ctbrec.sites.mfc.MyFreeCams;
+import ctbrec.sites.streamate.Streamate;
 
 public class HttpServer {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(HttpServer.class);
     private Recorder recorder;
+    private OnlineMonitor onlineMonitor;
     private Config config;
     private Server server = new Server();
     private List<Site> sites = new ArrayList<>();
 
     public HttpServer() throws Exception {
+        logEnvironment();
         createSites();
         System.setProperty("ctbrec.server.mode", "1");
         if(System.getProperty("ctbrec.config") == null) {
@@ -49,11 +60,15 @@ public class HttpServer {
 
         addShutdownHook(); // for graceful termination
 
+        registerAlertSystem();
+
         config = Config.getInstance();
         if(config.getSettings().key != null) {
             LOG.info("HMAC authentication is enabled");
         }
         recorder = new LocalRecorder(config);
+        OnlineMonitor monitor = new OnlineMonitor(recorder);
+        monitor.start();
         for (Site site : sites) {
             if(site.isEnabled()) {
                 site.init();
@@ -68,6 +83,7 @@ public class HttpServer {
         sites.add(new Camsoda());
         sites.add(new Cam4());
         sites.add(new BongaCams());
+        sites.add(new Streamate());
     }
 
     private void addShutdownHook() {
@@ -75,6 +91,9 @@ public class HttpServer {
             @Override
             public void run() {
                 LOG.info("Shutting down");
+                if(onlineMonitor != null) {
+                    onlineMonitor.shutdown();
+                }
                 if(recorder != null) {
                     recorder.shutdown();
                 }
@@ -123,6 +142,32 @@ public class HttpServer {
         } catch (BindException e) {
             LOG.error("Port {} is already in use", http.getPort(), e);
             System.exit(1);
+        }
+    }
+
+    private void registerAlertSystem() {
+        for (EventHandlerConfiguration config : Config.getInstance().getSettings().eventHandlers) {
+            EventHandler handler = new EventHandler(config);
+            EventBusHolder.register(handler);
+            LOG.debug("Registered event handler for {} {}", config.getEvent(), config.getName());
+        }
+        LOG.debug("Alert System registered");
+    }
+
+    private void logEnvironment() {
+        LOG.debug("OS:\t{} {}", System.getProperty("os.name"), System.getProperty("os.version"));
+        LOG.debug("Java:\t{} {} {}", System.getProperty("java.vendor"), System.getProperty("java.vm.name"), System.getProperty("java.version"));
+        try {
+            LOG.debug("ctbrec server {}", getVersion().toString());
+        } catch (IOException e) {}
+    }
+
+    private Version getVersion() throws IOException {
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream("version")) {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+            String versionString = reader.readLine();
+            Version version = Version.of(versionString);
+            return version;
         }
     }
 

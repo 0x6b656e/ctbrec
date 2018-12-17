@@ -1,4 +1,4 @@
-package ctbrec.ui;
+package ctbrec.ui.settings;
 import static ctbrec.Settings.ProxyType.*;
 
 import java.util.ArrayList;
@@ -51,18 +51,23 @@ public class ProxySettingsPane extends TitledPane implements EventHandler<Action
         l = new Label("Host");
         layout.add(l, 0, 1);
         layout.add(proxyHost, 1, 1);
+        proxyHost.textProperty().addListener((ob, o, n) -> settingsTab.saveConfig());
 
         l = new Label("Port");
         layout.add(l, 0, 2);
         layout.add(proxyPort, 1, 2);
+        proxyPort.textProperty().addListener((ob, o, n) -> settingsTab.saveConfig());
 
         l = new Label("Username");
         layout.add(l, 0, 3);
         layout.add(proxyUser, 1, 3);
+        proxyUser.textProperty().addListener((ob, o, n) -> settingsTab.saveConfig());
+
 
         l = new Label("Password");
         layout.add(l, 0, 4);
         layout.add(proxyPassword, 1, 4);
+        proxyPassword.textProperty().addListener((ob, o, n) -> settingsTab.saveConfig());
     }
 
     private void loadConfig() {
@@ -86,6 +91,7 @@ public class ProxySettingsPane extends TitledPane implements EventHandler<Action
     public void handle(ActionEvent event) {
         setComponentDisableState();
         settingsTab.showRestartRequired();
+        settingsTab.saveConfig();
     }
 
     private void setComponentDisableState() {

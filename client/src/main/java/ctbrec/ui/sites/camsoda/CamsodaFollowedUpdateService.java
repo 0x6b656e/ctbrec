@@ -1,5 +1,7 @@
 package ctbrec.ui.sites.camsoda;
 
+import static ctbrec.Model.State.*;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -47,7 +49,7 @@ public class CamsodaFollowedUpdateService extends PaginatedScheduledService {
                                 JSONObject m = following.getJSONObject(i);
                                 CamsodaModel model = (CamsodaModel) camsoda.createModel(m.getString("followname"));
                                 boolean online = m.getInt("online") == 1;
-                                model.setOnlineState(online ? "online" : "offline");
+                                model.setOnlineState(online ? ONLINE : OFFLINE);
                                 model.setPreview("https://md.camsoda.com/thumbs/" + model.getName() + ".jpg");
                                 models.add(model);
                             }

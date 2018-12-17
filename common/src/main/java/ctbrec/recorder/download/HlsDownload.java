@@ -1,5 +1,7 @@
 package ctbrec.recorder.download;
 
+import static ctbrec.Recording.State.*;
+
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -11,10 +13,13 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Date;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +29,8 @@ import com.iheartradio.m3u8.PlaylistException;
 
 import ctbrec.Config;
 import ctbrec.Model;
+import ctbrec.event.EventBusHolder;
+import ctbrec.event.RecordingStateChangedEvent;
 import ctbrec.io.HttpClient;
 import ctbrec.io.HttpException;
 import okhttp3.Request;
@@ -34,6 +41,10 @@ public class HlsDownload extends AbstractHlsDownload {
     private static final transient Logger LOG = LoggerFactory.getLogger(HlsDownload.class);
 
     protected Path downloadDir;
+
+    private int segmentCounter = 1;
+    private NumberFormat nf = new DecimalFormat("000000");
+    private Object downloadFinished = new Object();
 
     public HlsDownload(HttpClient client) {
         super(client);
@@ -54,6 +65,10 @@ public class HlsDownload extends AbstractHlsDownload {
                 throw new IOException(model.getName() +"'s room is not public");
             }
 
+            // let the world know, that we are recording now
+            RecordingStateChangedEvent evt = new RecordingStateChangedEvent(getTarget(), RECORDING, model, getStartTime());
+            EventBusHolder.BUS.post(evt);
+
             String segments = getSegmentPlaylistUrl(model);
             if(segments != null) {
                 if (!Files.exists(downloadDir, LinkOption.NOFOLLOW_LINKS)) {
@@ -61,18 +76,13 @@ public class HlsDownload extends AbstractHlsDownload {
                 }
                 int lastSegment = 0;
                 int nextSegment = 0;
+                boolean sleep = true; // this enables sleeping between playlist requests. once we miss a segment, this is set to false, so that no sleeping happens anymore
                 while(running) {
                     SegmentPlaylist lsp = getNextSegments(segments);
                     if(nextSegment > 0 && lsp.seq > nextSegment) {
-                        LOG.warn("Missed segments {} < {} in download for {}", nextSegment, lsp.seq, model);
-                        String first = lsp.segments.get(0);
-                        int seq = lsp.seq;
-                        for (int i = nextSegment; i < lsp.seq; i++) {
-                            URL segmentUrl = new URL(first.replaceAll(Integer.toString(seq), Integer.toString(i)));
-                            LOG.debug("Reloading segment {} for model {}", i, model.getName());
-                            downloadThreadPool.submit(new SegmentDownload(segmentUrl, downloadDir, client));
-                        }
                         // TODO switch to a lower bitrate/resolution ?!?
+                        LOG.warn("Missed segments {} < {} in download for {}", nextSegment, lsp.seq, model);
+                        sleep = false;
                     }
                     int skip = nextSegment - lsp.seq;
                     for (String segment : lsp.segments) {
@@ -80,13 +90,14 @@ public class HlsDownload extends AbstractHlsDownload {
                             skip--;
                         } else {
                             URL segmentUrl = new URL(segment);
-                            downloadThreadPool.submit(new SegmentDownload(segmentUrl, downloadDir, client));
+                            String prefix = nf.format(segmentCounter++);
+                            downloadThreadPool.submit(new SegmentDownload(segmentUrl, downloadDir, client, prefix));
                             //new SegmentDownload(segment, downloadDir).call();
                         }
                     }
 
                     long wait = 0;
-                    if(lastSegment == lsp.seq) {
+                    if(sleep && lastSegment == lsp.seq) {
                         // playlist didn't change -> wait for at least half the target duration
                         wait = (long) lsp.targetDuration * 1000 / 2;
                         LOG.trace("Playlist didn't change... waiting for {}ms", wait);
@@ -126,7 +137,15 @@ public class HlsDownload extends AbstractHlsDownload {
         } catch(Exception e) {
             throw new IOException("Couldn't download segment", e);
         } finally {
+            downloadThreadPool.shutdown();
+            try {
+                LOG.debug("Waiting for last segments for {}", model);
+                downloadThreadPool.awaitTermination(60, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {}
             alive = false;
+            synchronized (downloadFinished) {
+                downloadFinished.notifyAll();
+            }
             LOG.debug("Download for {} terminated", model);
         }
     }
@@ -134,7 +153,13 @@ public class HlsDownload extends AbstractHlsDownload {
     @Override
     public void stop() {
         running = false;
-        alive = false;
+        try {
+            synchronized (downloadFinished) {
+                downloadFinished.wait();
+            }
+        } catch (InterruptedException e) {
+            LOG.error("Couldn't wait for download to finish", e);
+        }
     }
 
     private static class SegmentDownload implements Callable<Boolean> {
@@ -142,11 +167,11 @@ public class HlsDownload extends AbstractHlsDownload {
         private Path file;
         private HttpClient client;
 
-        public SegmentDownload(URL url, Path dir, HttpClient client) {
+        public SegmentDownload(URL url, Path dir, HttpClient client, String prefix) {
             this.url = url;
             this.client = client;
             File path = new File(url.getPath());
-            file = FileSystems.getDefault().getPath(dir.toString(), path.getName());
+            file = FileSystems.getDefault().getPath(dir.toString(), prefix + '_' + path.getName());
         }
 
         @Override
@@ -171,7 +196,7 @@ public class HlsDownload extends AbstractHlsDownload {
                     break;
                 } catch(Exception e) {
                     if (i == maxTries) {
-                        LOG.warn("Error while downloading segment. Segment finally {} failed", file.toFile().getName());
+                        LOG.warn("Error while downloading segment. Segment {} finally failed", file.toFile().getName());
                     } else {
                         LOG.warn("Error while downloading segment on try {}", i);
                     }

@@ -92,4 +92,8 @@ public class CookieJarImpl implements CookieJar {
     public Map<String, List<Cookie>> getCookies() {
         return cookieStore;
     }
+
+    public void clear() {
+        cookieStore.clear();
+    }
 }

@@ -1,16 +1,27 @@
 package ctbrec.sites.cam4;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import ctbrec.Config;
 import ctbrec.Model;
+import ctbrec.StringUtil;
 import ctbrec.io.HttpClient;
+import ctbrec.io.HttpException;
 import ctbrec.sites.AbstractSite;
+import okhttp3.Request;
+import okhttp3.Response;
 
 public class Cam4 extends AbstractSite {
 
     public static final String BASE_URI = "https://www.cam4.com";
-
     public static final String AFFILIATE_LINK = BASE_URI + "/?referrerId=1514a80d87b5effb456cca02f6743aa1";
 
     private HttpClient httpClient;
@@ -53,7 +64,7 @@ public class Cam4 extends AbstractSite {
     }
 
     @Override
-    public boolean login() throws IOException {
+    public synchronized boolean login() throws IOException {
         return credentialsAvailable() && getHttpClient().login();
     }
 
@@ -85,6 +96,57 @@ public class Cam4 extends AbstractSite {
     }
 
     @Override
+    public boolean supportsSearch() {
+        return true;
+    }
+
+    @Override
+    public boolean searchRequiresLogin() {
+        return true;
+    }
+
+    @Override
+    public List<Model> search(String q) throws IOException, InterruptedException {
+        List<Model> result = new ArrayList<>();
+        search(q, false, result);
+        search(q, true, result);
+        return result;
+    }
+
+    private void search(String q, boolean offline, List<Model> models) throws IOException {
+        String url = BASE_URI + "/usernameSearch?username=" + URLEncoder.encode(q, "utf-8");
+        if(offline) {
+            url += "&offline=true";
+        }
+        Request req = new Request.Builder()
+                .url(url)
+                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
+                .build();
+        try(Response response = getHttpClient().execute(req)) {
+            if(response.isSuccessful()) {
+                String body = response.body().string();
+                JSONArray results = new JSONArray(body);
+                for (int i = 0; i < results.length(); i++) {
+                    JSONObject result = results.getJSONObject(i);
+                    Model model = createModel(result.getString("username"));
+                    String thumb = null;
+                    if(result.has("thumbnailId")) {
+                        thumb = "https://snapshots.xcdnpro.com/thumbnails/" + model.getName() + "?s=" + result.getString("thumbnailId");
+                    } else {
+                        thumb = result.getString("profileImageLink");
+                    }
+                    if(StringUtil.isNotBlank(thumb)) {
+                        model.setPreview(thumb);
+                    }
+                    models.add(model);
+                }
+            } else {
+                throw new HttpException(response.code(), response.message());
+            }
+        }
+    }
+
+    @Override
     public boolean isSiteForModel(Model m) {
         return m instanceof Cam4Model;
     }
@@ -93,5 +155,16 @@ public class Cam4 extends AbstractSite {
     public boolean credentialsAvailable() {
         String username = Config.getInstance().getSettings().cam4Username;
         return username != null && !username.trim().isEmpty();
+    }
+
+    @Override
+    public Model createModelFromUrl(String url) {
+        Matcher m = Pattern.compile("https?://(?:www\\.)?cam4(?:.*?).com/([^/]*?)/?").matcher(url);
+        if(m.matches()) {
+            String modelName = m.group(1);
+            return createModel(modelName);
+        } else {
+            return super.createModelFromUrl(url);
+        }
     }
 }

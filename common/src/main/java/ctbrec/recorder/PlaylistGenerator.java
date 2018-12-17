@@ -6,30 +6,17 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.nio.channels.ReadableByteChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import org.jcodec.common.Demuxer;
-import org.jcodec.common.DemuxerTrack;
-import org.jcodec.common.TrackType;
-import org.jcodec.common.Tuple;
-import org.jcodec.common.Tuple._2;
-import org.jcodec.common.io.FileChannelWrapper;
-import org.jcodec.common.io.NIOUtils;
-import org.jcodec.common.model.Packet;
-import org.jcodec.containers.mps.MPSDemuxer;
-import org.jcodec.containers.mps.MTSDemuxer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.iheartradio.m3u8.Encoding;
 import com.iheartradio.m3u8.Format;
 import com.iheartradio.m3u8.ParseException;
+import com.iheartradio.m3u8.ParsingMode;
 import com.iheartradio.m3u8.PlaylistException;
 import com.iheartradio.m3u8.PlaylistParser;
 import com.iheartradio.m3u8.PlaylistWriter;
@@ -38,6 +25,8 @@ import com.iheartradio.m3u8.data.Playlist;
 import com.iheartradio.m3u8.data.PlaylistType;
 import com.iheartradio.m3u8.data.TrackData;
 import com.iheartradio.m3u8.data.TrackInfo;
+
+import ctbrec.MpegUtil;
 
 
 public class PlaylistGenerator {
@@ -57,10 +46,8 @@ public class PlaylistGenerator {
 
         Arrays.sort(files, (f1, f2) -> {
             String n1 = f1.getName();
-            int seq1 = getSequence(n1);
             String n2 = f2.getName();
-            int seq2 = getSequence(n2);
-            return seq1 - seq2;
+            return n1.compareTo(n2);
         });
 
         // create a track containing all files
@@ -71,7 +58,7 @@ public class PlaylistGenerator {
             try {
                 track.add(new TrackData.Builder()
                         .withUri(file.getName())
-                        .withTrackInfo(new TrackInfo((float) getFileDuration(file), file.getName()))
+                        .withTrackInfo(new TrackInfo((float) MpegUtil.getFileDuration(file), file.getName()))
                         .build());
             } catch(Exception e) {
                 LOG.warn("Couldn't determine duration for {}. Skipping this file.", file.getName());
@@ -111,16 +98,6 @@ public class PlaylistGenerator {
         return output;
     }
 
-    private int getSequence(String filename) {
-        filename = filename.substring(0, filename.lastIndexOf('.')); // cut off file suffix
-        Matcher matcher = Pattern.compile(".*?(\\d+)").matcher(filename);
-        if(matcher.matches()) {
-            return Integer.parseInt(matcher.group(1));
-        } else {
-            return -1;
-        }
-    }
-
     private void updateProgressListeners(double percentage) {
         int p = (int) (percentage*100);
         if(p > lastPercentage) {
@@ -140,45 +117,6 @@ public class PlaylistGenerator {
         return targetDuration;
     }
 
-    private double getFileDuration(File file) throws IOException {
-        try(FileChannelWrapper ch = NIOUtils.readableChannel(file)) {
-            _2<Integer,Demuxer> m2tsDemuxer = createM2TSDemuxer(ch, TrackType.VIDEO);
-            Demuxer demuxer = m2tsDemuxer.v1;
-            DemuxerTrack videoDemux = demuxer.getTracks().get(0);
-            Packet videoFrame = null;
-            double totalDuration = 0;
-            while( (videoFrame = videoDemux.nextFrame()) != null) {
-                totalDuration += videoFrame.getDurationD();
-            }
-            return totalDuration;
-        }
-    }
-
-    public static _2<Integer, Demuxer> createM2TSDemuxer(FileChannelWrapper ch, TrackType targetTrack) throws IOException {
-        MTSDemuxer mts = new MTSDemuxer(ch);
-        Set<Integer> programs = mts.getPrograms();
-        if (programs.size() == 0) {
-            LOG.error("The MPEG TS stream contains no programs");
-            return null;
-        }
-        Tuple._2<Integer, Demuxer> found = null;
-        for (Integer pid : programs) {
-            ReadableByteChannel program = mts.getProgram(pid);
-            if (found != null) {
-                program.close();
-                continue;
-            }
-            MPSDemuxer demuxer = new MPSDemuxer(program);
-            if (targetTrack == TrackType.AUDIO && demuxer.getAudioTracks().size() > 0
-                    || targetTrack == TrackType.VIDEO && demuxer.getVideoTracks().size() > 0) {
-                found = org.jcodec.common.Tuple._2(pid, (Demuxer) demuxer);
-            } else {
-                program.close();
-            }
-        }
-        return found;
-    }
-
     public void addProgressListener(ProgressListener l) {
         listeners.add(l);
     }
@@ -190,7 +128,7 @@ public class PlaylistGenerator {
     public void validate(File recDir) throws IOException, ParseException, PlaylistException {
         File playlist = new File(recDir, "playlist.m3u8");
         if(playlist.exists()) {
-            PlaylistParser playlistParser = new PlaylistParser(new FileInputStream(playlist), Format.EXT_M3U, Encoding.UTF_8);
+            PlaylistParser playlistParser = new PlaylistParser(new FileInputStream(playlist), Format.EXT_M3U, Encoding.UTF_8, ParsingMode.LENIENT);
             Playlist m3u = playlistParser.parse();
             MediaPlaylist mediaPlaylist = m3u.getMediaPlaylist();
             int playlistSize = mediaPlaylist.getTracks().size();

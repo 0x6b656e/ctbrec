@@ -6,7 +6,7 @@
 	<groupId>ctbrec</groupId>
 	<artifactId>master</artifactId>
     <packaging>pom</packaging>
-	<version>1.10.0</version>
+	<version>1.15.0</version>
 	
 	<modules>
 		<module>../common</module>
@@ -68,7 +68,7 @@
 			<dependency>
 				<groupId>com.iheartradio.m3u8</groupId>
 				<artifactId>open-m3u8</artifactId>
-				<version>0.2.4</version>
+				<version>0.2.7-CTBREC</version>
 			</dependency>
 			<dependency>
 				<groupId>org.jcodec</groupId>

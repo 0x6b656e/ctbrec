@@ -30,12 +30,14 @@ public class Streamer {
     private Thread streamingThread;
 
     private boolean sleepingEnabled;
+    private String name;
 
-    private Streamer(MTSSource source, MTSSink sink, int bufferSize, boolean sleepingEnabled) {
+    private Streamer(MTSSource source, MTSSink sink, int bufferSize, boolean sleepingEnabled, String name) {
         this.source = source;
         this.sink = sink;
         this.bufferSize = bufferSize;
         this.sleepingEnabled = sleepingEnabled;
+        this.name = name;
     }
 
     public void stream() throws InterruptedException {
@@ -48,20 +50,26 @@ public class Streamer {
         try {
             preBuffer();
         } catch (Exception e) {
-            throw new IllegalStateException("Error while bufering", e);
+            throw new IllegalStateException("Error while buffering", e);
         }
         log.info("Done PreBuffering");
 
-        bufferingThread = new Thread(this::fillBuffer, "buffering");
+        bufferingThread = new Thread(this::fillBuffer, "Buffering ["+name+"]");
         bufferingThread.setDaemon(true);
         bufferingThread.start();
 
-        streamingThread = new Thread(this::internalStream, "streaming");
+        streamingThread = new Thread(this::internalStream, "Streaming ["+name+"]");
         streamingThread.setDaemon(true);
         streamingThread.start();
 
         bufferingThread.join();
         streamingThread.join();
+
+        try {
+            sink.close();
+        } catch(Exception e) {
+            log.error("Couldn't close sink", e);
+        }
     }
 
     public void stop() {
@@ -82,6 +90,16 @@ public class Streamer {
             streamingThread.interrupt();
         } catch (Exception e) {
             log.error("Couldn't interrupt streamer threads");
+        }
+    }
+
+    public void switchSink(MTSSink sink) {
+        MTSSink old = this.sink;
+        this.sink = sink;
+        try {
+            old.close();
+        } catch (Exception e) {
+            log.error("Couldn't close old sink while switching sinks", e);
         }
     }
 
@@ -123,7 +141,7 @@ public class Streamer {
                     }
                 }
             } catch (InterruptedException e1) {
-                if(!endOfSourceReached) {
+                if(!endOfSourceReached && !streamingShouldStop) {
                     log.error("Interrupted while waiting for packet");
                     continue;
                 } else {
@@ -240,7 +258,7 @@ public class Streamer {
             // Stream packet
             // System.out.println("Streaming packet #" + packetCount + ", PID=" + mtsPacket.getPid() + ", pcrCount=" + pcrCount + ", continuityCounter=" + mtsPacket.getContinuityCounter());
 
-            if(!streamingShouldStop) {
+            if(!streamingShouldStop && !Thread.interrupted()) {
                 try {
                     sink.send(packet);
                 } catch (Exception e) {
@@ -275,7 +293,7 @@ public class Streamer {
                         buffer.put(packet);
                         put = true;
                     } catch (InterruptedException ignored) {
-
+                        log.error("Error adding packet to buffer", ignored);
                     }
                 }
             }
@@ -287,7 +305,11 @@ public class Streamer {
             log.error("Error reading from source", e);
         } finally {
             endOfSourceReached = true;
-            streamingThread.interrupt();
+            try {
+                streamingThread.interrupt();
+            } catch(Exception e) {
+                log.error("Couldn't interrupt streaming thread", e);
+            }
         }
     }
 
@@ -308,6 +330,7 @@ public class Streamer {
         private MTSSource source;
         private int bufferSize = 1000;
         private boolean sleepingEnabled = false;
+        private String name;
 
         public StreamerBuilder setSink(MTSSink sink) {
             this.sink = sink;
@@ -329,10 +352,16 @@ public class Streamer {
             return this;
         }
 
+        public StreamerBuilder setName(String name) {
+            this.name = name;
+            return this;
+        }
+
         public Streamer build() {
             Preconditions.checkNotNull(sink);
             Preconditions.checkNotNull(source);
-            return new Streamer(source, sink, bufferSize, sleepingEnabled);
+            return new Streamer(source, sink, bufferSize, sleepingEnabled, name);
         }
+
     }
 }

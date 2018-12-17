@@ -1,3 +1,78 @@
+1.16.0
+========================
+* Thumbnails can show a live preview. Can be switched off in the settings.
+* Added Streamate (metcams, xhamstercams, pornhublive)
+* Maximum resolution can be an arbitrary value now
+* Added setting for minimal recording length. Recordings, which are shorter
+  than this value, get deleted automatically.
+* Double-click in Recording tab starts the player
+* Fix: BongaCams friends tab not working
+* Fix: In some cases MFC models got confused
+
+1.15.0
+========================
+* Fix: BongaCams overview didn't work anymore
+* Fix: CamSoda overview didn't work anymore
+* Fix: Multi selection of thumbnails didn't work when a tab was opened the
+  first time
+* Fix: Cam4 online detection was to restrictive
+* Added tabular view for MFC, which shows all online models
+
+1.14.0
+========================
+* Added setting for MFC to ignore the upscaled (960p) stream
+* Added event system. You can define to show a notification, play a sound or
+  execute a program, when the state of a model or recording changes
+* Added "follow" menu entry on the Recording tab
+* Fix: Recordings change from suspended to recording by their own when a
+  thumbnail tab is opened and the model is showing
+* Fix: Linux scripts don't work on systems where bash isn't the default shell
+* Improved loading and display of resolution tags. They are not re-loaded
+  everytime you switch between tabs
+
+1.13.0
+========================
+* Added  possibility to open small live previews of online models
+  in the Recording tab
+* Added setting to toggle "Player Starting" message
+* Added possibility to add models by their URL
+* Added pause / resume all buttons
+* Setting to define the base URL for MFC and CTB
+* The paused checkbox are now clickable
+* Implemented multi-selection for Recording and Recordings tab
+* Fix: Don't throw exceptions for unknown attributes in PlaylistParser
+* Fix: Don't do space check, if minimum is set to 0
+* Fix: Player not starting when path contains spaces
+
+1.12.1
+========================
+* Fixed downloads in client / server mode
+
+1.12.0
+========================
+* Added threshold setting to keep free space on the recording device.
+  This is useful, if you don't want to use up all of your storage.
+  The free space is also shown on the recordings tab
+* Tweaked the download internals a lot. Downloads should not hang
+  in RECORDING state without actually recording. Downloads should
+  be more robust in general.
+* Fixed and improved split recordings
+* Improved detection of online state for Cam4 models
+* Accelerated the initial loading of the "Recording" tab for many
+  Chaturbate models
+* Recordings tab now shows smaller size units (Bytes, KiB, MiB, GiB) 
+
+1.11.0
+========================
+* Added model search function
+* Added color settings to change the appearance of the application
+* Added setting for the online check interval
+* Added setting to define the tab the application opens on start
+* Double-click starts playback of recordings
+* Refresh of thumbnails can be disabled
+* Changed settings are saved immediately (including changes of the
+  list of recorded models)
+
 1.10.0
 ========================
 * Fix: HMAC authentication didn't work for playing and downloading of a

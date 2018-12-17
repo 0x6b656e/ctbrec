@@ -1,0 +1,10 @@
+ColorSettingsPane .color-picker .color-picker-label .text {
+	visibility: false;
+}
+/*
+ColorSettingsPane .color-picker > .arrow-button,
+ColorSettingsPane .color-picker > .arrow-button:hover
+{
+	visibility: false;
+}
+*/

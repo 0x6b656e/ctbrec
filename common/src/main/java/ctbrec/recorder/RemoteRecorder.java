@@ -1,27 +1,38 @@
 package ctbrec.recorder;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.iheartradio.m3u8.ParseException;
+import com.iheartradio.m3u8.PlaylistException;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 
+import ctbrec.AbstractModel;
 import ctbrec.Config;
 import ctbrec.Hmac;
 import ctbrec.Model;
 import ctbrec.Recording;
+import ctbrec.event.EventBusHolder;
+import ctbrec.event.RecordingStateChangedEvent;
 import ctbrec.io.HttpClient;
 import ctbrec.io.HttpException;
 import ctbrec.io.InstantJsonAdapter;
 import ctbrec.io.ModelJsonAdapter;
+import ctbrec.recorder.download.StreamSource;
 import ctbrec.sites.Site;
 import okhttp3.MediaType;
 import okhttp3.Request;
@@ -32,7 +43,6 @@ import okhttp3.Response;
 public class RemoteRecorder implements Recorder {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(RemoteRecorder.class);
-
     public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     private Moshi moshi = new Moshi.Builder()
             .add(Instant.class, new InstantJsonAdapter())
@@ -44,7 +54,10 @@ public class RemoteRecorder implements Recorder {
 
     private List<Model> models = Collections.emptyList();
     private List<Model> onlineModels = Collections.emptyList();
+    private List<Recording> recordings = Collections.emptyList();
     private List<Site> sites;
+    private long spaceTotal = -1;
+    private long spaceFree = -1;
 
     private Config config;
     private HttpClient client;
@@ -92,6 +105,7 @@ public class RemoteRecorder implements Recorder {
                     models.add(model);
                 } else if ("stop".equals(action)) {
                     models.remove(model);
+                    onlineModels.remove(model);
                 }
             } else {
                 throw new HttpException(response.code(), response.message());
@@ -125,10 +139,10 @@ public class RemoteRecorder implements Recorder {
 
     @Override
     public List<Model> getModelsRecording() {
-        if(lastSync.isBefore(Instant.now().minusSeconds(60))) {
+        if(!lastSync.equals(Instant.EPOCH) && lastSync.isBefore(Instant.now().minusSeconds(60))) {
             throw new RuntimeException("Last sync was over a minute ago");
         }
-        return models;
+        return new ArrayList<Model>(models);
     }
 
     @Override
@@ -150,7 +164,33 @@ public class RemoteRecorder implements Recorder {
             while(running) {
                 syncModels();
                 syncOnlineModels();
+                syncSpace();
+                syncRecordings();
                 sleep();
+            }
+        }
+
+        private void syncSpace() {
+            try {
+                String msg = "{\"action\": \"space\"}";
+                RequestBody body = RequestBody.create(JSON, msg);
+                Request.Builder builder = new Request.Builder()
+                        .url("http://" + config.getSettings().httpServer + ":" + config.getSettings().httpPort + "/rec")
+                        .post(body);
+                addHmacIfNeeded(msg, builder);
+                Request request = builder.build();
+                try(Response response = client.execute(request)) {
+                    String json = response.body().string();
+                    if(response.isSuccessful()) {
+                        JSONObject resp = new JSONObject(json);
+                        spaceTotal = resp.getLong("spaceTotal");
+                        spaceFree = resp.getLong("spaceFree");
+                    } else {
+                        LOG.error("Couldn't synchronize with server. HTTP status: {} - {}", response.code(), json);
+                    }
+                }
+            } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e) {
+                LOG.error("Couldn't synchronize with server", e);
             }
         }
 
@@ -223,9 +263,52 @@ public class RemoteRecorder implements Recorder {
             }
         }
 
+        private void syncRecordings() {
+            try {
+                String msg = "{\"action\": \"recordings\"}";
+                RequestBody body = RequestBody.create(JSON, msg);
+                Request.Builder builder = new Request.Builder()
+                        .url("http://" + config.getSettings().httpServer + ":" + config.getSettings().httpPort + "/rec")
+                        .post(body);
+                addHmacIfNeeded(msg, builder);
+                Request request = builder.build();
+                try (Response response = client.execute(request)) {
+                    String json = response.body().string();
+                    if (response.isSuccessful()) {
+                        RecordingListResponse resp = recordingListResponseAdapter.fromJson(json);
+                        if (resp.status.equals("success")) {
+                            List<Recording> newRecordings = resp.recordings;
+                            // fire changed events
+                            for (Iterator<Recording> iterator = recordings.iterator(); iterator.hasNext();) {
+                                Recording recording = iterator.next();
+                                if(newRecordings.contains(recording)) {
+                                    int idx = newRecordings.indexOf(recording);
+                                    Recording newRecording = newRecordings.get(idx);
+                                    if(newRecording.getStatus() != recording.getStatus()) {
+                                        File file = new File(recording.getPath());
+                                        Model m = new UnknownModel();
+                                        m.setName(newRecording.getModelName());
+                                        RecordingStateChangedEvent evt = new RecordingStateChangedEvent(file, newRecording.getStatus(), m, recording.getStartDate());
+                                        EventBusHolder.BUS.post(evt);
+                                    }
+                                }
+                            }
+                            recordings = newRecordings;
+                        } else {
+                            LOG.error("Server returned error: {} - {}", resp.status, resp.msg);
+                        }
+                    } else {
+                        LOG.error("Couldn't synchronize with server. HTTP status: {} - {}", response.code(), json);
+                    }
+                }
+            } catch (IOException | InvalidKeyException | NoSuchAlgorithmException | IllegalStateException e) {
+                LOG.error("Couldn't synchronize with server", e);
+            }
+        }
+
         private void sleep() {
             try {
-                Thread.sleep(10000);
+                Thread.sleep(2000);
             } catch (InterruptedException e) {
                 // interrupted, probably by stopThread
             }
@@ -251,28 +334,7 @@ public class RemoteRecorder implements Recorder {
 
     @Override
     public List<Recording> getRecordings() throws IOException, InvalidKeyException, NoSuchAlgorithmException, IllegalStateException {
-        String msg = "{\"action\": \"recordings\"}";
-        RequestBody body = RequestBody.create(JSON, msg);
-        Request.Builder builder = new Request.Builder()
-                .url("http://" + config.getSettings().httpServer + ":" + config.getSettings().httpPort + "/rec")
-                .post(body);
-        addHmacIfNeeded(msg, builder);
-        Request request = builder.build();
-        try(Response response = client.execute(request)) {
-            String json = response.body().string();
-            if(response.isSuccessful()) {
-                RecordingListResponse resp = recordingListResponseAdapter.fromJson(json);
-                if(resp.status.equals("success")) {
-                    List<Recording> recordings = resp.recordings;
-                    return recordings;
-                } else {
-                    LOG.error("Server returned error: {} - {}", resp.status, resp.msg);
-                }
-            } else {
-                LOG.error("Couldn't synchronize with server. HTTP status: {} - {}", response.code(), json);
-            }
-        }
-        return Collections.emptyList();
+        return recordings;
     }
 
     @Override
@@ -290,6 +352,8 @@ public class RemoteRecorder implements Recorder {
             if(response.isSuccessful()) {
                 if(!resp.status.equals("success")) {
                     throw new IOException("Couldn't delete recording: " + resp.msg);
+                } else {
+                    recordings.remove(recording);
                 }
             } else {
                 throw new IOException("Couldn't delete recording: " + resp.msg);
@@ -361,5 +425,162 @@ public class RemoteRecorder implements Recorder {
     @Override
     public HttpClient getHttpClient() {
         return client;
+    }
+
+    @Override
+    public long getTotalSpaceBytes() throws IOException {
+        return spaceTotal;
+    }
+
+    @Override
+    public long getFreeSpaceBytes() {
+        return spaceFree;
+    }
+
+    private static class UnknownModel extends AbstractModel {
+        @Override
+        public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException {
+            return false;
+        }
+
+        @Override
+        public List<StreamSource> getStreamSources() throws IOException, ExecutionException, ParseException, PlaylistException {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public void invalidateCacheEntries() {
+        }
+
+        @Override
+        public void receiveTip(int tokens) throws IOException {
+        }
+
+        @Override
+        public int[] getStreamResolution(boolean failFast) throws ExecutionException {
+            return new int[2];
+        }
+
+        @Override
+        public boolean follow() throws IOException {
+            return false;
+        }
+
+        @Override
+        public boolean unfollow() throws IOException {
+            return false;
+        }
+
+        @Override
+        public Site getSite() {
+            return new Site() {
+
+                @Override
+                public boolean supportsTips() {
+                    return false;
+                }
+
+                @Override
+                public boolean supportsSearch() {
+                    return false;
+                }
+
+                @Override
+                public boolean supportsFollow() {
+                    return false;
+                }
+
+                @Override
+                public void shutdown() {
+                }
+
+                @Override
+                public void setRecorder(Recorder recorder) {
+                }
+
+                @Override
+                public void setEnabled(boolean enabled) {
+                }
+
+                @Override
+                public boolean searchRequiresLogin() {
+                    return false;
+                }
+
+                @Override
+                public List<Model> search(String q) throws IOException, InterruptedException {
+                    return Collections.emptyList();
+                }
+
+                @Override
+                public boolean login() throws IOException {
+                    return false;
+                }
+
+                @Override
+                public boolean isSiteForModel(Model m) {
+                    return false;
+                }
+
+                @Override
+                public boolean isEnabled() {
+                    return false;
+                }
+
+                @Override
+                public void init() throws IOException {
+                }
+
+                @Override
+                public Integer getTokenBalance() throws IOException {
+                    return 0;
+                }
+
+                @Override
+                public Recorder getRecorder() {
+                    return null;
+                }
+
+                @Override
+                public String getName() {
+                    return "unknown";
+                }
+
+                @Override
+                public HttpClient getHttpClient() {
+                    return null;
+                }
+
+                @Override
+                public String getBuyTokensLink() {
+                    return "";
+                }
+
+                @Override
+                public String getBaseUrl() {
+                    return "";
+                }
+
+                @Override
+                public String getAffiliateLink() {
+                    return "";
+                }
+
+                @Override
+                public boolean credentialsAvailable() {
+                    return false;
+                }
+
+                @Override
+                public Model createModelFromUrl(String url) {
+                    return null;
+                }
+
+                @Override
+                public Model createModel(String name) {
+                    return null;
+                }
+            };
+        }
     }
 }

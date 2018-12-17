@@ -1,5 +1,6 @@
 package ctbrec.ui;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
@@ -15,14 +16,17 @@ public class StreamSourceSelectionDialog {
         Task<List<StreamSource>> selectStreamSource = new Task<List<StreamSource>>() {
             @Override
             protected List<StreamSource> call() throws Exception {
-                return model.getStreamSources();
+                List<StreamSource> sources = model.getStreamSources();
+                Collections.sort(sources);
+                return sources;
             }
         };
         selectStreamSource.setOnSucceeded((e) -> {
             List<StreamSource> sources;
             try {
                 sources = selectStreamSource.get();
-                ChoiceDialog<StreamSource> choiceDialog = new ChoiceDialog<StreamSource>(sources.get(sources.size()-1), sources);
+                int selectedIndex = model.getStreamUrlIndex() > -1 ? Math.min(model.getStreamUrlIndex(), sources.size()-1) : sources.size()-1;
+                ChoiceDialog<StreamSource> choiceDialog = new ChoiceDialog<StreamSource>(sources.get(selectedIndex), sources);
                 choiceDialog.setTitle("Stream Quality");
                 choiceDialog.setHeaderText("Select your preferred stream quality");
                 choiceDialog.setResizable(true);

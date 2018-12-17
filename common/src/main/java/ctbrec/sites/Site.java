@@ -1,6 +1,7 @@
 package ctbrec.sites;
 
 import java.io.IOException;
+import java.util.List;
 
 import ctbrec.Model;
 import ctbrec.io.HttpClient;
@@ -21,8 +22,12 @@ public interface Site {
     public void shutdown();
     public boolean supportsTips();
     public boolean supportsFollow();
+    public boolean supportsSearch();
     public boolean isSiteForModel(Model m);
     public boolean credentialsAvailable();
     public void setEnabled(boolean enabled);
     public boolean isEnabled();
+    public List<Model> search(String q) throws IOException, InterruptedException;
+    public boolean searchRequiresLogin();
+    public Model createModelFromUrl(String url);
 }

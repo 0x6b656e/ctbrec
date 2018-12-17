@@ -8,7 +8,7 @@
 	<parent>
 		<groupId>ctbrec</groupId>
 		<artifactId>master</artifactId>
-		<version>1.10.0</version>
+		<version>1.15.0</version>
 		<relativePath>../master</relativePath>
 	</parent>
 
@@ -118,10 +118,11 @@
 										<addDependencies>false</addDependencies>
 										<preCp>anything</preCp>
 									</classPath>
+									<downloadUrl>https://jdk.java.net/</downloadUrl>
 									<jre>
 										<path>jre</path>
 										<bundledJre64Bit>true</bundledJre64Bit>
-										<minVersion>1.8.0</minVersion>
+										<minVersion>10</minVersion>
 										<maxHeapSize>512</maxHeapSize>
 									</jre>
 									<versionInfo>

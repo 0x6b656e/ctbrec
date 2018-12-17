@@ -49,6 +49,8 @@ public class MyFreeCamsTabProvider extends TabProvider {
         updateService.setPeriod(new Duration(TimeUnit.SECONDS.toMillis(10)));
         tabs.add(pop);
 
+        MyFreeCamsTableTab table = new MyFreeCamsTableTab(myFreeCams);
+        tabs.add(table);
 
         return tabs;
     }

@@ -9,13 +9,9 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.Background;
-import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 
@@ -26,7 +22,6 @@ public class DonateTabFx extends Tab {
         setText("Donate");
         BorderPane container = new BorderPane();
         container.setPadding(new Insets(10));
-        container.setBackground(new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, new Insets(0))));
         setContent(container);
 
         VBox headerVbox = new VBox(10);
@@ -53,21 +48,21 @@ public class DonateTabFx extends Tab {
         tokenDesc.setTextAlignment(TextAlignment.CENTER);
         tokenBox.getChildren().addAll(tokenImage, tokenButton, tokenDesc);
 
-        ImageView coffeeImage = new ImageView(getClass().getResource("/html/buymeacoffee-fancy.png").toString());
+        ImageView coffeeImage = new ImageView(getClass().getResource("/buymeacoffee-round.png").toString());
         Button coffeeButton = new Button("Buy me a coffee");
         coffeeButton.setOnMouseClicked((e) -> { DesktopIntegration.open("https://www.buymeacoffee.com/0xboobface"); });
         VBox buyCoffeeBox = new VBox(5);
         buyCoffeeBox.setAlignment(Pos.TOP_CENTER);
         buyCoffeeBox.getChildren().addAll(coffeeImage, coffeeButton);
 
-        ImageView paypalImage = new ImageView(getClass().getResource("/html/pp196.png").toString());
+        ImageView paypalImage = new ImageView(getClass().getResource("/paypal-round.png").toString());
         Button paypalButton = new Button("PayPal");
         paypalButton.setOnMouseClicked((e) -> { DesktopIntegration.open("https://www.paypal.me/0xb00bface"); });
         VBox paypalBox = new VBox(5);
         paypalBox.setAlignment(Pos.TOP_CENTER);
         paypalBox.getChildren().addAll(paypalImage, paypalButton);
 
-        ImageView patreonImage = new ImageView(getClass().getResource("/html/patreon-logo.png").toString());
+        ImageView patreonImage = new ImageView(getClass().getResource("/patreon-round.png").toString());
         Button patreonButton = new Button("Become a Patron");
         patreonButton.setOnMouseClicked((e) -> { DesktopIntegration.open("https://www.patreon.com/0xb00bface"); });
         VBox patreonBox = new VBox(5);

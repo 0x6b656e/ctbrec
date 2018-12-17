@@ -10,16 +10,29 @@ public class Recording {
     private Instant startDate;
     private String path;
     private boolean hasPlaylist;
-    private STATUS status;
+    private State status = State.UNKNOWN;
     private int progress = -1;
     private long sizeInByte;
 
-    public static enum STATUS {
-        RECORDING,
-        GENERATING_PLAYLIST,
-        FINISHED,
-        DOWNLOADING,
-        MERGING
+    public static enum State {
+        RECORDING("recording"),
+        STOPPED("stopped"),
+        GENERATING_PLAYLIST("generating playlist"),
+        POST_PROCESSING("post-processing"),
+        FINISHED("finished"),
+        DOWNLOADING("downloading"),
+        UNKNOWN("unknown");
+
+        private String desc;
+
+        State(String desc) {
+            this.desc = desc;
+        }
+
+        @Override
+        public String toString() {
+            return desc;
+        }
     }
 
     public Recording() {}
@@ -48,11 +61,11 @@ public class Recording {
         this.startDate = startDate;
     }
 
-    public STATUS getStatus() {
+    public State getStatus() {
         return status;
     }
 
-    public void setStatus(STATUS status) {
+    public void setStatus(State status) {
         this.status = status;
     }
 

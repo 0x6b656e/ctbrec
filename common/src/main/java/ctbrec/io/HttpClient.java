@@ -23,7 +23,6 @@ import ctbrec.Config;
 import ctbrec.Settings.ProxyType;
 import okhttp3.ConnectionPool;
 import okhttp3.Cookie;
-import okhttp3.CookieJar;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 import okhttp3.OkHttpClient.Builder;
@@ -214,8 +213,13 @@ public abstract class HttpClient {
         }
     }
 
-    public CookieJar getCookieJar() {
+    public CookieJarImpl getCookieJar() {
         return cookieJar;
+    }
+
+    public void logout() {
+        getCookieJar().clear();
+        loggedIn = false;
     }
 
     public WebSocket newWebSocket(String url, WebSocketListener l) {

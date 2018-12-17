@@ -36,7 +36,6 @@ public class Fc2Model extends AbstractModel {
     private String id;
     private int viewerCount;
     private boolean online;
-    private String onlineState = "n/a";
     private String version;
 
     @Override
@@ -71,7 +70,7 @@ public class Fc2Model extends AbstractModel {
                 JSONObject data = json.getJSONObject("data");
                 JSONObject channelData = data.getJSONObject("channel_data");
                 online = channelData.optInt("is_publish") == 1;
-                onlineState = online ? "online" : "offline";
+                onlineState = online ? State.ONLINE : State.OFFLINE;
                 version = channelData.optString("version");
             } else {
                 resp.close();
@@ -81,7 +80,7 @@ public class Fc2Model extends AbstractModel {
     }
 
     @Override
-    public String getOnlineState(boolean failFast) throws IOException, ExecutionException {
+    public State getOnlineState(boolean failFast) throws IOException, ExecutionException {
         if(failFast) {
             return onlineState;
         } else if(Objects.equals(onlineState, "n/a")){

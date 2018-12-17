@@ -10,6 +10,7 @@ import com.squareup.moshi.JsonReader;
 import com.squareup.moshi.JsonWriter;
 
 import ctbrec.Model;
+import ctbrec.recorder.download.Download;
 import ctbrec.recorder.download.StreamSource;
 import ctbrec.sites.Site;
 import javafx.beans.property.BooleanProperty;
@@ -211,5 +212,10 @@ public class JavaFxModel implements Model {
     @Override
     public int compareTo(Model o) {
         return delegate.compareTo(o);
+    }
+
+    @Override
+    public Download createDownload() {
+        return delegate.createDownload();
     }
 }

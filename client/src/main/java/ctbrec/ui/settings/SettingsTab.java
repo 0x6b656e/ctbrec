@@ -64,7 +64,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private CheckBox chooseStreamQuality = new CheckBox();
     private CheckBox multiplePlayers = new CheckBox();
     private CheckBox updateThumbnails = new CheckBox();
-    private CheckBox previewInThumbnails = new CheckBox();
+    private CheckBox livePreviews = new CheckBox();
     private CheckBox showPlayerStarting = new CheckBox();
     private RadioButton recordLocal;
     private RadioButton recordRemote;
@@ -462,16 +462,17 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         GridPane.setMargin(updateThumbnails, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(updateThumbnails, 1, row++);
 
-        l = new Label("Preview in thumbnails");
+        l = new Label("Enable live previews (experimental)");
         layout.add(l, 0, row);
-        previewInThumbnails.setSelected(Config.getInstance().getSettings().previewInThumbnails);
-        previewInThumbnails.setOnAction((e) -> {
-            Config.getInstance().getSettings().previewInThumbnails = previewInThumbnails.isSelected();
+        livePreviews.setSelected(Config.getInstance().getSettings().livePreviews);
+        livePreviews.setOnAction((e) -> {
+            Config.getInstance().getSettings().livePreviews = livePreviews.isSelected();
             saveConfig();
+            showRestartRequired();
         });
         GridPane.setMargin(l, new Insets(3, 0, 0, 0));
-        GridPane.setMargin(previewInThumbnails, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
-        layout.add(previewInThumbnails, 1, row++);
+        GridPane.setMargin(livePreviews, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
+        layout.add(livePreviews, 1, row++);
 
         l = new Label("Start Tab");
         layout.add(l, 0, row);
@@ -528,6 +529,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         onlineCheckIntervalInSecs.setDisable(!local);
         leaveSpaceOnDevice.setDisable(!local);
         postProcessing.setDisable(!local);
+        minimumLengthInSecs.setDisable(!local);
     }
 
     @Override

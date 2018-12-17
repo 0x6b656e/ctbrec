@@ -69,7 +69,7 @@ public class Settings {
     public List<Model> models = new ArrayList<>();
     public List<EventHandlerConfiguration> eventHandlers = new ArrayList<>();
     public boolean determineResolution = false;
-    public boolean previewInThumbnails = true;
+    public boolean livePreviews = false;
     public boolean requireAuthentication = false;
     public boolean chooseStreamQuality = false;
     public int maximumResolution = 0;

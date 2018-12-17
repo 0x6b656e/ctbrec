@@ -3,6 +3,7 @@ package ctbrec.ui.controls;
 import java.io.InterruptedIOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -161,8 +162,9 @@ public class StreamPreview extends StackPane {
 
     private void onError(MediaPlayer videoPlayer) {
         LOG.error("Error while starting preview stream", videoPlayer.getError());
-        if(videoPlayer.getError().getCause() != null) {
-            LOG.error("Error while starting preview stream root cause:", videoPlayer.getError().getCause());
+        Optional<Throwable> cause = Optional.ofNullable(videoPlayer).map(v -> v.getError()).map(e -> e.getCause());
+        if(cause.isPresent()) {
+            LOG.error("Error while starting preview stream root cause:", cause.get());
         }
         showTestImage();
     }

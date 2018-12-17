@@ -76,13 +76,13 @@ public class HlsDownload extends AbstractHlsDownload {
                 }
                 int lastSegment = 0;
                 int nextSegment = 0;
-                boolean sleep = true; // this enables sleeping between playlist requests. once we miss a segment, this is set to false, so that no sleeping happens anymore
+                int waitFactor = 1;
                 while(running) {
                     SegmentPlaylist lsp = getNextSegments(segments);
                     if(nextSegment > 0 && lsp.seq > nextSegment) {
                         // TODO switch to a lower bitrate/resolution ?!?
-                        LOG.warn("Missed segments {} < {} in download for {}", nextSegment, lsp.seq, model);
-                        sleep = false;
+                        waitFactor *= 2;
+                        LOG.warn("Missed segments {} < {} in download for {} - setting wait factor to 1/{}", nextSegment, lsp.seq, model, waitFactor);
                     }
                     int skip = nextSegment - lsp.seq;
                     for (String segment : lsp.segments) {
@@ -97,9 +97,9 @@ public class HlsDownload extends AbstractHlsDownload {
                     }
 
                     long wait = 0;
-                    if(sleep && lastSegment == lsp.seq) {
+                    if(lastSegment == lsp.seq) {
                         // playlist didn't change -> wait for at least half the target duration
-                        wait = (long) lsp.targetDuration * 1000 / 2;
+                        wait = (long) lsp.targetDuration * 1000 / waitFactor;
                         LOG.trace("Playlist didn't change... waiting for {}ms", wait);
                     } else {
                         // playlist did change -> wait for at least last segment duration
@@ -115,8 +115,12 @@ public class HlsDownload extends AbstractHlsDownload {
                         }
                     }
 
+                    // this if check makes sure, that we don't decrease nextSegment. for some reason
+                    // streamate playlists sometimes jump back. e.g. max sequence = 79 -> 80 -> 79
                     lastSegment = lsp.seq;
-                    nextSegment = lastSegment + lsp.segments.size();
+                    if(lastSegment + lsp.segments.size() > nextSegment) {
+                        nextSegment = lastSegment + lsp.segments.size();
+                    }
                 }
             } else {
                 throw new IOException("Couldn't determine segments uri");

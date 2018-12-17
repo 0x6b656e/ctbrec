@@ -37,6 +37,7 @@ public class StreamateModel extends AbstractModel {
     private List<StreamSource> streamSources = new ArrayList<>();
     private int[] resolution;
     private Long id;
+    private String streamId;
 
     @Override
     public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException {
@@ -218,6 +219,11 @@ public class StreamateModel extends AbstractModel {
     }
 
     private String getStreamId() throws IOException {
+        loadModelInfo();
+        return streamId;
+    }
+
+    void loadModelInfo() throws IOException {
         String url = "https://hybridclient.naiadsystems.com/api/v1/config/?name=" + getName()
         + "&sabasic=&sakey=&sk=www.streamate.com&userid=0&version=6.3.17&ajax=1";
         Request request = new Request.Builder()
@@ -232,7 +238,9 @@ public class StreamateModel extends AbstractModel {
             if(response.isSuccessful()) {
                 JSONObject json = new JSONObject(response.body().string());
                 JSONObject stream = json.getJSONObject("stream");
-                return stream.getString("streamId");
+                streamId = stream.getString("streamId");
+                JSONObject performer = json.getJSONObject("performer");
+                id = performer.getLong("id");
             } else {
                 throw new HttpException(response.code(), response.message());
             }

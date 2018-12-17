@@ -52,6 +52,9 @@ public abstract class AbstractHlsDownload implements Download {
         Request request = new Request.Builder().url(segmentsUrl).addHeader("connection", "keep-alive").build();
         try(Response response = client.execute(request)) {
             if(response.isSuccessful()) {
+                //                String body = response.body().string();
+                //                InputStream inputStream = new ByteArrayInputStream(body.getBytes("utf-8"));
+                //                LOG.debug("Segments {}", body);
                 InputStream inputStream = response.body().byteStream();
                 PlaylistParser parser = new PlaylistParser(inputStream, Format.EXT_M3U, Encoding.UTF_8, ParsingMode.LENIENT);
                 Playlist playlist = parser.parse();

@@ -9,6 +9,7 @@
   than this value, get deleted automatically.
 * Double-click in Recording tab starts the player
 * Fix: BongaCams friends tab not working
+* Fix: BongaCams search fails with JSON exception
 * Fix: In some cases MFC models got confused
 
 1.15.0

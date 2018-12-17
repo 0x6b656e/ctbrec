@@ -9,6 +9,9 @@ import java.util.concurrent.ExecutionException;
 import com.squareup.moshi.JsonReader;
 import com.squareup.moshi.JsonWriter;
 
+import ctbrec.recorder.download.Download;
+import ctbrec.recorder.download.HlsDownload;
+import ctbrec.recorder.download.MergedHlsDownload;
 import ctbrec.sites.Site;
 
 public abstract class AbstractModel implements Model {
@@ -183,5 +186,14 @@ public abstract class AbstractModel implements Model {
     @Override
     public Site getSite() {
         return site;
+    }
+
+    @Override
+    public Download createDownload() {
+        if(Config.isServerMode()) {
+            return new HlsDownload(getSite().getHttpClient());
+        } else {
+            return new MergedHlsDownload(getSite().getHttpClient());
+        }
     }
 }

@@ -61,8 +61,6 @@ import ctbrec.io.HttpClient;
 import ctbrec.io.StreamRedirectThread;
 import ctbrec.recorder.PlaylistGenerator.InvalidPlaylistException;
 import ctbrec.recorder.download.Download;
-import ctbrec.recorder.download.HlsDownload;
-import ctbrec.recorder.download.MergedHlsDownload;
 
 public class LocalRecorder implements Recorder {
 
@@ -194,13 +192,7 @@ public class LocalRecorder implements Recorder {
         }
 
         LOG.debug("Starting recording for model {}", model.getName());
-        Download download;
-        if (Config.isServerMode()) {
-            download = new HlsDownload(client);
-        } else {
-            download = new MergedHlsDownload(client);
-        }
-
+        Download download = model.createDownload();
         recordingProcesses.put(model, download);
         new Thread() {
             @Override

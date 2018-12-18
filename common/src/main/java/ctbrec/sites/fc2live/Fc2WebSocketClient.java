@@ -42,7 +42,9 @@ public class Fc2WebSocketClient {
                     JSONArray playlists = args.getJSONArray("playlists_high_latency");
                     JSONObject playlist = playlists.getJSONObject(0);
                     playlistUrl = playlist.getString("url");
-                    webSocket.close(1000, "");
+                    synchronized (monitor) {
+                        monitor.notify();
+                    }
                 }
             }
 
@@ -53,9 +55,7 @@ public class Fc2WebSocketClient {
 
             @Override
             public void onClosed(WebSocket webSocket, int code, String reason) {
-                synchronized (monitor) {
-                    monitor.notify();
-                }
+                LOG.debug("ws closed {} - {}", code, reason);
             }
 
             @Override

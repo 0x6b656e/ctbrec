@@ -23,7 +23,7 @@ public class Fc2Live extends AbstractSite {
 
     @Override
     public String getAffiliateLink() {
-        return BASE_URL;
+        return BASE_URL + "/?afid=98987181";
     }
 
     @Override
@@ -41,7 +41,7 @@ public class Fc2Live extends AbstractSite {
 
     @Override
     public String getBuyTokensLink() {
-        return BASE_URL;
+        return getAffiliateLink();
     }
 
     @Override

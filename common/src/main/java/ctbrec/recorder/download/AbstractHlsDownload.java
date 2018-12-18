@@ -29,6 +29,7 @@ import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.io.HttpClient;
 import ctbrec.io.HttpException;
+import ctbrec.sites.fc2live.Fc2Live;
 import okhttp3.Request;
 import okhttp3.Response;
 
@@ -47,9 +48,17 @@ public abstract class AbstractHlsDownload implements Download {
         this.client = client;
     }
 
-    SegmentPlaylist getNextSegments(String segments) throws IOException, ParseException, PlaylistException {
+    protected SegmentPlaylist getNextSegments(String segments) throws IOException, ParseException, PlaylistException {
         URL segmentsUrl = new URL(segments);
-        Request request = new Request.Builder().url(segmentsUrl).addHeader("connection", "keep-alive").build();
+        Request request = new Request.Builder()
+                .url(segmentsUrl)
+                .header("Accept", "*/*")
+                .header("Accept-Language", "en-US,en;q=0.5")
+                .header("User-Agent", Config.getInstance().getSettings().httpUserAgent)
+                .header("Origin", Fc2Live.BASE_URL)
+                .header("Referer", Fc2Live.BASE_URL)
+                .header("Connection", "keep-alive")
+                .build();
         try(Response response = client.execute(request)) {
             if(response.isSuccessful()) {
                 //                String body = response.body().string();
@@ -69,11 +78,11 @@ public abstract class AbstractHlsDownload implements Download {
                         if(!uri.startsWith("http")) {
                             String _url = segmentsUrl.toString();
                             _url = _url.substring(0, _url.lastIndexOf('/') + 1);
-                            String segmentUri = _url + uri;
-                            lsp.totalDuration += trackData.getTrackInfo().duration;
-                            lsp.lastSegDuration = trackData.getTrackInfo().duration;
-                            lsp.segments.add(segmentUri);
+                            uri = _url + uri;
                         }
+                        lsp.totalDuration += trackData.getTrackInfo().duration;
+                        lsp.lastSegDuration = trackData.getTrackInfo().duration;
+                        lsp.segments.add(uri);
                     }
                     return lsp;
                 }
@@ -85,7 +94,7 @@ public abstract class AbstractHlsDownload implements Download {
     }
 
 
-    String getSegmentPlaylistUrl(Model model) throws IOException, ExecutionException, ParseException, PlaylistException {
+    protected String getSegmentPlaylistUrl(Model model) throws IOException, ExecutionException, ParseException, PlaylistException {
         LOG.debug("{} stream idx: {}", model.getName(), model.getStreamUrlIndex());
         List<StreamSource> streamSources = model.getStreamSources();
         Collections.sort(streamSources);

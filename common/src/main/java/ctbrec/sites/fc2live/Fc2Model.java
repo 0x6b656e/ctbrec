@@ -83,7 +83,7 @@ public class Fc2Model extends AbstractModel {
     public State getOnlineState(boolean failFast) throws IOException, ExecutionException {
         if(failFast) {
             return onlineState;
-        } else if(Objects.equals(onlineState, "n/a")){
+        } else if(Objects.equals(onlineState, State.UNKNOWN)){
             loadModelInfo();
         }
         return onlineState;

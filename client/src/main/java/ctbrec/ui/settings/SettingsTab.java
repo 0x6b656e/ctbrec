@@ -57,6 +57,7 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private TextField server;
     private TextField port;
     private TextField onlineCheckIntervalInSecs;
+    private TextField overviewUpdateIntervalInSecs;
     private TextField leaveSpaceOnDevice;
     private TextField minimumLengthInSecs;
     private CheckBox loadResolution;
@@ -451,17 +452,6 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         GridPane.setMargin(chooseStreamQuality, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(chooseStreamQuality, 1, row++);
 
-        l = new Label("Update thumbnails");
-        layout.add(l, 0, row);
-        updateThumbnails.setSelected(Config.getInstance().getSettings().updateThumbnails);
-        updateThumbnails.setOnAction((e) -> {
-            Config.getInstance().getSettings().updateThumbnails = updateThumbnails.isSelected();
-            saveConfig();
-        });
-        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
-        GridPane.setMargin(updateThumbnails, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
-        layout.add(updateThumbnails, 1, row++);
-
         l = new Label("Enable live previews (experimental)");
         layout.add(l, 0, row);
         livePreviews.setSelected(Config.getInstance().getSettings().livePreviews);
@@ -474,6 +464,40 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         GridPane.setMargin(livePreviews, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(livePreviews, 1, row++);
 
+        Tooltip tt = new Tooltip("The overviews will still be updated, but the thumbnails won't be changed. This is useful for less powerful systems.");
+        l = new Label("Update thumbnails");
+        l.setTooltip(tt);
+        layout.add(l, 0, row);
+        updateThumbnails.setTooltip(tt);
+        updateThumbnails.setSelected(Config.getInstance().getSettings().updateThumbnails);
+        updateThumbnails.setOnAction((e) -> {
+            Config.getInstance().getSettings().updateThumbnails = updateThumbnails.isSelected();
+            saveConfig();
+        });
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
+        GridPane.setMargin(updateThumbnails, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
+        layout.add(updateThumbnails, 1, row++);
+
+        tt = new Tooltip("Update the thumbnail overviews every x seconds");
+        l = new Label("Update overview interval (seconds)");
+        l.setTooltip(tt);
+        layout.add(l, 0, row);
+        overviewUpdateIntervalInSecs = new TextField(Integer.toString(Config.getInstance().getSettings().overviewUpdateIntervalInSecs));
+        overviewUpdateIntervalInSecs.setTooltip(tt);
+        overviewUpdateIntervalInSecs.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                overviewUpdateIntervalInSecs.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+            if(!overviewUpdateIntervalInSecs.getText().isEmpty()) {
+                Config.getInstance().getSettings().overviewUpdateIntervalInSecs = Integer.parseInt(overviewUpdateIntervalInSecs.getText());
+                saveConfig();
+                showRestartRequired();
+            }
+        });
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
+        GridPane.setMargin(overviewUpdateIntervalInSecs, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
+        layout.add(overviewUpdateIntervalInSecs, 1, row++);
+
         l = new Label("Start Tab");
         layout.add(l, 0, row);
         startTab = new ComboBox<>();
@@ -482,15 +506,16 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             saveConfig();
         });
         layout.add(startTab, 1, row++);
-        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
-        GridPane.setMargin(startTab, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
+        GridPane.setMargin(l, new Insets(0, 0, 0, 0));
+        GridPane.setMargin(startTab, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        overviewUpdateIntervalInSecs.maxWidthProperty().bind(startTab.widthProperty());
 
         l = new Label("Colors (Base / Accent)");
         layout.add(l, 0, row);
         ColorSettingsPane colorSettingsPane = new ColorSettingsPane(this);
         layout.add(colorSettingsPane, 1, row++);
         GridPane.setMargin(l, new Insets(0, 0, 0, 0));
-        GridPane.setMargin(colorSettingsPane, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
+        GridPane.setMargin(colorSettingsPane, new Insets(0, 0, 0, CHECKBOX_MARGIN));
 
         TitledPane general = new TitledPane("General", layout);
         general.setCollapsible(false);

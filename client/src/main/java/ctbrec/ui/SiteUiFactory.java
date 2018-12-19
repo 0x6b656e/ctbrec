@@ -5,12 +5,14 @@ import ctbrec.sites.bonga.BongaCams;
 import ctbrec.sites.cam4.Cam4;
 import ctbrec.sites.camsoda.Camsoda;
 import ctbrec.sites.chaturbate.Chaturbate;
+import ctbrec.sites.jasmin.LiveJasmin;
 import ctbrec.sites.mfc.MyFreeCams;
 import ctbrec.sites.streamate.Streamate;
 import ctbrec.ui.sites.bonga.BongaCamsSiteUi;
 import ctbrec.ui.sites.cam4.Cam4SiteUi;
 import ctbrec.ui.sites.camsoda.CamsodaSiteUi;
 import ctbrec.ui.sites.chaturbate.ChaturbateSiteUi;
+import ctbrec.ui.sites.jasmin.LiveJasminSiteUi;
 import ctbrec.ui.sites.myfreecams.MyFreeCamsSiteUi;
 import ctbrec.ui.sites.streamate.StreamateSiteUi;
 
@@ -20,6 +22,7 @@ public class SiteUiFactory {
     private static Cam4SiteUi cam4SiteUi;
     private static CamsodaSiteUi camsodaSiteUi;
     private static ChaturbateSiteUi ctbSiteUi;
+    private static LiveJasminSiteUi jasminSiteUi;
     private static MyFreeCamsSiteUi mfcSiteUi;
     private static StreamateSiteUi streamateSiteUi;
 
@@ -54,6 +57,11 @@ public class SiteUiFactory {
                 streamateSiteUi = new StreamateSiteUi((Streamate) site);
             }
             return streamateSiteUi;
+        } else if (site instanceof LiveJasmin) {
+            if (jasminSiteUi == null) {
+                jasminSiteUi = new LiveJasminSiteUi((LiveJasmin) site);
+            }
+            return jasminSiteUi;
         }
         throw new RuntimeException("Unknown site " + site.getName());
     }

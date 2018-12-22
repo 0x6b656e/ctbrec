@@ -32,6 +32,7 @@ public class LiveJasmin extends AbstractSite {
         model.setName(name);
         model.setDescription("");
         model.setSite(this);
+        model.setUrl(getBaseUrl() + "/en/chat/" + name);
         return model;
     }
 
@@ -47,7 +48,7 @@ public class LiveJasmin extends AbstractSite {
 
     @Override
     public boolean login() throws IOException {
-        return false;
+        return getHttpClient().login();
     }
 
     @Override

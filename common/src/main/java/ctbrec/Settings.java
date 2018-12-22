@@ -62,6 +62,9 @@ public class Settings {
     public String camsodaPassword = "";
     public String cam4Username = "";
     public String cam4Password = "";
+    public String livejasminUsername = "";
+    public String livejasminPassword = "";
+    public String livejasminSession = "";
     public String streamateUsername = "";
     public String streamatePassword = "";
     public String lastDownloadDir = "";

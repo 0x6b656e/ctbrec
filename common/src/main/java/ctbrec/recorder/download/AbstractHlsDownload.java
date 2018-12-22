@@ -8,9 +8,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,18 +39,19 @@ public abstract class AbstractHlsDownload implements Download {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(AbstractHlsDownload.class);
 
-    ExecutorService downloadThreadPool = Executors.newFixedThreadPool(5);
-    HttpClient client;
-    volatile boolean running = false;
-    volatile boolean alive = true;
-    Instant startTime;
-    Model model;
+    protected HttpClient client;
+    protected volatile boolean running = false;
+    protected volatile boolean alive = true;
+    protected Instant startTime;
+    protected Model model;
+    protected BlockingQueue<Runnable> downloadQueue = new LinkedBlockingQueue<>(50);
+    protected ExecutorService downloadThreadPool = new ThreadPoolExecutor(5, 5, 2, TimeUnit.MINUTES, downloadQueue);
 
     public AbstractHlsDownload(HttpClient client) {
         this.client = client;
     }
 
-    SegmentPlaylist getNextSegments(String segments) throws IOException, ParseException, PlaylistException {
+    protected SegmentPlaylist getNextSegments(String segments) throws IOException, ParseException, PlaylistException {
         URL segmentsUrl = new URL(segments);
         Request request = new Request.Builder().url(segmentsUrl).addHeader("connection", "keep-alive").build();
         try(Response response = client.execute(request)) {
@@ -85,7 +89,7 @@ public abstract class AbstractHlsDownload implements Download {
     }
 
 
-    String getSegmentPlaylistUrl(Model model) throws IOException, ExecutionException, ParseException, PlaylistException {
+    protected String getSegmentPlaylistUrl(Model model) throws IOException, ExecutionException, ParseException, PlaylistException {
         LOG.debug("{} stream idx: {}", model.getName(), model.getStreamUrlIndex());
         List<StreamSource> streamSources = model.getStreamSources();
         Collections.sort(streamSources);

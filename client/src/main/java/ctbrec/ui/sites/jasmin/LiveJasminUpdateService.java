@@ -65,11 +65,12 @@ public class LiveJasminUpdateService extends PaginatedScheduledService {
                                 model.setId(m.getString("id"));
                                 model.setPreview(m.getString("profilePictureUrl"));
                                 model.setOnline(true);
+                                model.setOnlineState(ctbrec.Model.State.ONLINE);
                                 models.add(model);
                             }
                         } else {
                             LOG.error("Request failed:\n{}", body);
-                            throw new IOException("Response was not successfull");
+                            throw new IOException("Response was not successful");
                         }
                         return models;
                     } else {

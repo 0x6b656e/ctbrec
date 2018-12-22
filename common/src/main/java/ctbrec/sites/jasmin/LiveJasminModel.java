@@ -3,6 +3,7 @@ package ctbrec.sites.jasmin;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -26,6 +27,8 @@ import com.squareup.moshi.JsonWriter;
 import ctbrec.AbstractModel;
 import ctbrec.Config;
 import ctbrec.io.HttpException;
+import ctbrec.recorder.download.Download;
+import ctbrec.recorder.download.HlsDownload;
 import ctbrec.recorder.download.StreamSource;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -35,18 +38,70 @@ public class LiveJasminModel extends AbstractModel {
     private static final transient Logger LOG = LoggerFactory.getLogger(LiveJasminModel.class);
     private String id;
     private boolean online = false;
+    private int[] resolution;
 
     @Override
     public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException {
         if(ignoreCache) {
-            try {
-                getMasterPlaylistUrl();
-                online = true;
-            } catch (Exception e) {
-                online = false;
-            }
+            loadModelInfo();
         }
         return online;
+    }
+
+    protected void loadModelInfo() throws IOException {
+        String url = "https://m.livejasmin.com/en/chat-html5/" + getName();
+        Request req = new Request.Builder().url(url)
+                .header("User-Agent", "Mozilla/5.0 (iPhone; CPU OS 10_14 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1.1 Mobile/14E304 Safari/605.1.15")
+                .header("Accept", "application/json,*/*")
+                .header("Accept-Language", "en")
+                .header("Referer", getSite().getBaseUrl())
+                .header("X-Requested-With", "XMLHttpRequest")
+                .build();
+        try(Response response = getSite().getHttpClient().execute(req)) {
+            if(response.isSuccessful()) {
+                String body = response.body().string();
+                JSONObject json = new JSONObject(body);
+                //LOG.debug(json.toString(2));
+                if(json.optBoolean("success")) {
+                    JSONObject data = json.getJSONObject("data");
+                    JSONObject config = data.getJSONObject("config");
+                    JSONObject chatRoom = config.getJSONObject("chatRoom");
+                    setId(chatRoom.getString("p_id"));
+                    if(chatRoom.has("profile_picture_url")) {
+                        setPreview(chatRoom.getString("profile_picture_url"));
+                    }
+                    int status = chatRoom.optInt("status", -1);
+                    onlineState = mapStatus(status);
+                    if(chatRoom.optInt("is_on_private", 0) == 1) {
+                        onlineState = State.PRIVATE;
+                    }
+                    resolution = new int[2];
+                    resolution[0] = config.optInt("streamWidth");
+                    resolution[1] = config.optInt("streamHeight");
+                    online = onlineState == State.ONLINE;
+                    LOG.trace("{} - status:{} {} {} {}", getName(), online, onlineState, Arrays.toString(resolution), getUrl());
+                } else {
+                    throw new IOException("Response was not successful: " + body);
+                }
+            } else {
+                throw new HttpException(response.code(), response.message());
+            }
+        }
+    }
+
+    private State mapStatus(int status) {
+        switch(status) {
+        case 0:
+            return State.OFFLINE;
+        case 1:
+            return State.ONLINE;
+        case 2:
+        case 3:
+            return State.PRIVATE;
+        default:
+            LOG.debug("Unkown state {} {}", status, getUrl());
+            return State.UNKNOWN;
+        }
     }
 
     @Override
@@ -86,6 +141,7 @@ public class LiveJasminModel extends AbstractModel {
     }
 
     private String getMasterPlaylistUrl() throws IOException {
+        loadModelInfo();
         String url = site.getBaseUrl() + "/en/stream/hls/free/" + getName();
         Request request = new Request.Builder()
                 .url(url)
@@ -99,14 +155,12 @@ public class LiveJasminModel extends AbstractModel {
             if (response.isSuccessful()) {
                 String body = response.body().string();
                 JSONObject json = new JSONObject(body);
-                LOG.debug(json.toString(2));
                 if(json.optBoolean("success")) {
                     JSONObject data = json.getJSONObject("data");
                     JSONObject hlsStream = data.getJSONObject("hls_stream");
                     return hlsStream.getString("url");
                 } else {
-                    LOG.error("Request failed:\n{}", body);
-                    throw new IOException("Response was not successfull");
+                    throw new IOException("Response was not successful: " + url + "\n" + body);
                 }
             } else {
                 throw new HttpException(response.code(), response.message());
@@ -124,7 +178,19 @@ public class LiveJasminModel extends AbstractModel {
 
     @Override
     public int[] getStreamResolution(boolean failFast) throws ExecutionException {
-        return new int[2];
+        if(resolution == null) {
+            if(failFast) {
+                return new int[2];
+            }
+            try {
+                loadModelInfo();
+            } catch (IOException e) {
+                throw new ExecutionException(e);
+            }
+            return resolution;
+        } else {
+            return resolution;
+        }
     }
 
     @Override
@@ -154,17 +220,29 @@ public class LiveJasminModel extends AbstractModel {
     @Override
     public void writeSiteSpecificData(JsonWriter writer) throws IOException {
         if(id == null) {
-            // TODO make sure the id is set
-            //            try {
-            //                loadModelInfo();
-            //            } catch (IOException e) {
-            //                LOG.error("Couldn't load model ID for {}. This can cause problems with saving / loading the model", getName());
-            //            }
+            try {
+                loadModelInfo();
+            } catch (IOException e) {
+                LOG.error("Couldn't load model ID for {}. This can cause problems with saving / loading the model", getName());
+            }
         }
         writer.name("id").value(id);
     }
 
     public void setOnline(boolean online) {
         this.online = online;
+    }
+
+    @Override
+    public Download createDownload() {
+        if(Config.getInstance().getSettings().livejasminSession.isEmpty()) {
+            if(Config.isServerMode()) {
+                return new HlsDownload(getSite().getHttpClient());
+            } else {
+                return new LiveJasminMergedHlsDownload(getSite().getHttpClient());
+            }
+        } else {
+            return new LiveJasminWebSocketDownload(getSite().getHttpClient());
+        }
     }
 }

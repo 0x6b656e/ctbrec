@@ -35,10 +35,10 @@ import okhttp3.WebSocketListener;
 public abstract class HttpClient {
     private static final transient Logger LOG = LoggerFactory.getLogger(HttpClient.class);
 
-    protected  OkHttpClient client;
+    protected OkHttpClient client;
     protected CookieJarImpl cookieJar = new CookieJarImpl();
-    protected  boolean loggedIn = false;
-    protected  int loginTries = 0;
+    protected boolean loggedIn = false;
+    protected int loginTries = 0;
     private String name;
 
     protected HttpClient(String name) {
@@ -93,19 +93,7 @@ public abstract class HttpClient {
         }
     }
 
-    //    public Response execute(Request request) throws IOException {
-    //        Response resp = execute(request, false);
-    //        return resp;
-    //    }
-
-    //    public Response execute(Request req, boolean requiresLogin) throws IOException {
     public Response execute(Request req) throws IOException {
-        //        if(requiresLogin && !loggedIn) {
-        //            loggedIn = login();
-        //            if(!loggedIn) {
-        //                throw new IOException("403 Unauthorized");
-        //            }
-        //        }
         Response resp = client.newCall(req).execute();
         return resp;
     }
@@ -222,8 +210,8 @@ public abstract class HttpClient {
         loggedIn = false;
     }
 
-    public WebSocket newWebSocket(String url, WebSocketListener l) {
-        Request request = new Request.Builder().url(url).build();
+    public WebSocket newWebSocket(Request request, WebSocketListener l) {
+        //Request request = new Request.Builder().url(url).build();
         return client.newWebSocket(request, l);
     }
 }

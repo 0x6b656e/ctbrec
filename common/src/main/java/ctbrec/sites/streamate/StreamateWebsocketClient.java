@@ -6,7 +6,9 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ctbrec.Config;
 import ctbrec.io.HttpClient;
+import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
@@ -27,7 +29,10 @@ public class StreamateWebsocketClient {
     public String getRoomId() throws InterruptedException {
         LOG.debug("Connecting to {}", url);
         Object monitor = new Object();
-        client.newWebSocket(url, new WebSocketListener() {
+        Request request = new Request.Builder()
+                .header("User-Agent", Config.getInstance().getSettings().httpUserAgent)
+                .build();
+        client.newWebSocket(request, new WebSocketListener() {
             @Override
             public void onOpen(WebSocket webSocket, Response response) {
                 response.close();

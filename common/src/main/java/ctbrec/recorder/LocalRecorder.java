@@ -193,6 +193,7 @@ public class LocalRecorder implements Recorder {
 
         LOG.debug("Starting recording for model {}", model.getName());
         Download download = model.createDownload();
+        LOG.debug("Downloading with {}", download.getClass().getSimpleName());
         recordingProcesses.put(model, download);
         new Thread() {
             @Override
@@ -461,7 +462,7 @@ public class LocalRecorder implements Recorder {
     private List<Recording> listMergedRecordings() {
         File recordingsDir = new File(config.getSettings().recordingsDir);
         List<File> possibleRecordings = new LinkedList<>();
-        listRecursively(recordingsDir, possibleRecordings, (dir, name) -> name.matches(".*?_\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}\\.ts"));
+        listRecursively(recordingsDir, possibleRecordings, (dir, name) -> name.matches(".*?_\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}\\.(ts|mp4)"));
         SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
         List<Recording> recordings = new ArrayList<>();
         for (File ts: possibleRecordings) {

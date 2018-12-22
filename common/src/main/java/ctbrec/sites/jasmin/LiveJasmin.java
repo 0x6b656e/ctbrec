@@ -2,6 +2,7 @@ package ctbrec.sites.jasmin;
 
 import java.io.IOException;
 
+import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.io.HttpClient;
 import ctbrec.sites.AbstractSite;
@@ -77,7 +78,7 @@ public class LiveJasmin extends AbstractSite {
 
     @Override
     public boolean supportsFollow() {
-        return false;
+        return true;
     }
 
     @Override
@@ -87,7 +88,7 @@ public class LiveJasmin extends AbstractSite {
 
     @Override
     public boolean credentialsAvailable() {
-        return false;
+        return !Config.getInstance().getSettings().livejasminSession.isEmpty();
     }
 
 }

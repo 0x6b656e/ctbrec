@@ -2,6 +2,7 @@ package ctbrec.sites.jasmin;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.NoSuchElementException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -167,6 +168,15 @@ public class LiveJasminHttpClient extends HttpClient {
             } else {
                 return false;
             }
+        }
+    }
+
+    public String getSessionId() {
+        Cookie sessionCookie = getCookieJar().getCookie(HttpUrl.parse("https://www.livejasmin.com"), "session");
+        if(sessionCookie != null) {
+            return sessionCookie.value();
+        } else {
+            throw new NoSuchElementException("session cookie not found");
         }
     }
 }

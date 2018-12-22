@@ -12,6 +12,7 @@ import javafx.scene.control.Tab;
 public class LiveJasminTabProvider extends TabProvider {
 
     private LiveJasmin liveJasmin;
+    private LiveJasminFollowedTab followedTab;
 
     public LiveJasminTabProvider(LiveJasmin liveJasmin) {
         this.liveJasmin = liveJasmin;
@@ -26,11 +27,16 @@ public class LiveJasminTabProvider extends TabProvider {
         ThumbOverviewTab tab = new ThumbOverviewTab("Girls", s, liveJasmin);
         tab.setRecorder(liveJasmin.getRecorder());
         tabs.add(tab);
+
+        followedTab = new LiveJasminFollowedTab(liveJasmin);
+        followedTab.setRecorder(liveJasmin.getRecorder());
+        tabs.add(followedTab);
+
         return tabs;
     }
 
     @Override
     public Tab getFollowedTab() {
-        return null;
+        return followedTab;
     }
 }

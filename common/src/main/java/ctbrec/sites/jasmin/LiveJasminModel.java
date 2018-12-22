@@ -89,7 +89,7 @@ public class LiveJasminModel extends AbstractModel {
         }
     }
 
-    private State mapStatus(int status) {
+    public static State mapStatus(int status) {
         switch(status) {
         case 0:
             return State.OFFLINE;
@@ -99,9 +99,15 @@ public class LiveJasminModel extends AbstractModel {
         case 3:
             return State.PRIVATE;
         default:
-            LOG.debug("Unkown state {} {}", status, getUrl());
+            LOG.debug("Unkown state {}", status);
             return State.UNKNOWN;
         }
+    }
+
+    @Override
+    public void setOnlineState(State status) {
+        super.setOnlineState(status);
+        online = status == State.ONLINE;
     }
 
     @Override
@@ -195,12 +201,43 @@ public class LiveJasminModel extends AbstractModel {
 
     @Override
     public boolean follow() throws IOException {
-        return false;
+        return follow(true);
     }
 
     @Override
     public boolean unfollow() throws IOException {
-        return false;
+        return follow(false);
+    }
+
+    private boolean follow(boolean follow) throws IOException {
+        if (id == null) {
+            loadModelInfo();
+        }
+
+        String sessionId = ((LiveJasminHttpClient) site.getHttpClient()).getSessionId();
+        String url;
+        if (follow) {
+            url = site.getBaseUrl() + "/en/free/favourite/add-favourite?session=" + sessionId + "&performerId=" + id;
+        } else {
+            url = site.getBaseUrl() + "/en/free/favourite/delete-favourite?session=" + sessionId + "&performerId=" + id;
+        }
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
+                .addHeader("Accept", "*/*")
+                .addHeader("Accept-Language", "en")
+                .addHeader("Referer", getUrl())
+                .addHeader("X-Requested-With", "XMLHttpRequest")
+                .build();
+        try (Response response = site.getHttpClient().execute(request)) {
+            if (response.isSuccessful()) {
+                String body = response.body().string();
+                JSONObject json = new JSONObject(body);
+                return json.optString("status").equalsIgnoreCase("ok");
+            } else {
+                throw new HttpException(response.code(), response.message());
+            }
+        }
     }
 
     public String getId() {

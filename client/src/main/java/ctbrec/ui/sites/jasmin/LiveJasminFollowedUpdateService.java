@@ -19,15 +19,17 @@ import javafx.concurrent.Task;
 import okhttp3.Request;
 import okhttp3.Response;
 
-public class LiveJasminUpdateService extends PaginatedScheduledService {
+public class LiveJasminFollowedUpdateService extends PaginatedScheduledService {
 
-    private static final transient Logger LOG = LoggerFactory.getLogger(LiveJasminUpdateService.class);
-    private String url;
+    private static final transient Logger LOG = LoggerFactory.getLogger(LiveJasminFollowedUpdateService.class);
     private LiveJasmin liveJasmin;
+    private String url;
+    private boolean showOnline = true;
 
-    public LiveJasminUpdateService(LiveJasmin liveJasmin, String url) {
+    public LiveJasminFollowedUpdateService(LiveJasmin liveJasmin) {
         this.liveJasmin = liveJasmin;
-        this.url = url;
+        long ts = System.currentTimeMillis();
+        this.url = liveJasmin.getBaseUrl() + "/en/free/favourite/get-favourite-list?_dc=" + ts;
     }
 
     @Override
@@ -36,25 +38,24 @@ public class LiveJasminUpdateService extends PaginatedScheduledService {
             @Override
             public List<Model> call() throws IOException {
                 //String _url = url + ((page-1) * 36); // TODO find out how to switch pages
-                LOG.debug("Fetching page {}", url);
+                //LOG.debug("Fetching page {}", url);
                 Request request = new Request.Builder()
                         .url(url)
-                        .addHeader("User-Agent", Config.getInstance().getSettings().httpUserAgent)
-                        .addHeader("Accept", "application/json, text/javascript, */*")
-                        .addHeader("Accept-Language", "en")
-                        .addHeader("Referer", liveJasmin.getBaseUrl())
-                        .addHeader("X-Requested-With", "XMLHttpRequest")
+                        .header("User-Agent", Config.getInstance().getSettings().httpUserAgent)
+                        .header("Accept", "*/*")
+                        .header("Accept-Language", "en")
+                        .header("Referer", liveJasmin.getBaseUrl() + "/en/free/favorite")
+                        .header("X-Requested-With", "XMLHttpRequest")
                         .build();
                 try (Response response = liveJasmin.getHttpClient().execute(request)) {
                     if (response.isSuccessful()) {
                         String body = response.body().string();
                         List<Model> models = new ArrayList<>();
                         JSONObject json = new JSONObject(body);
-                        //LOG.debug(json.toString(2));
-                        if(json.optBoolean("success")) {
+                        LOG.debug(json.toString(2));
+                        if(json.has("success")) {
                             JSONObject data = json.getJSONObject("data");
-                            JSONObject content = data.getJSONObject("content");
-                            JSONArray performers = content.getJSONArray("performers");
+                            JSONArray performers = data.getJSONArray("performers");
                             for (int i = 0; i < performers.length(); i++) {
                                 JSONObject m = performers.getJSONObject(i);
                                 String name = m.optString("pid");
@@ -64,8 +65,12 @@ public class LiveJasminUpdateService extends PaginatedScheduledService {
                                 LiveJasminModel model = (LiveJasminModel) liveJasmin.createModel(name);
                                 model.setId(m.getString("id"));
                                 model.setPreview(m.getString("profilePictureUrl"));
-                                model.setOnlineState(LiveJasminModel.mapStatus(m.optInt("status")));
-                                models.add(model);
+                                Model.State onlineState = LiveJasminModel.mapStatus(m.getInt("status"));
+                                boolean online = onlineState == Model.State.ONLINE;
+                                model.setOnlineState(onlineState);
+                                if(online == showOnline) {
+                                    models.add(model);
+                                }
                             }
                         } else {
                             LOG.error("Request failed:\n{}", body);
@@ -78,5 +83,9 @@ public class LiveJasminUpdateService extends PaginatedScheduledService {
                 }
             }
         };
+    }
+
+    public void setShowOnline(boolean showOnline) {
+        this.showOnline = showOnline;
     }
 }

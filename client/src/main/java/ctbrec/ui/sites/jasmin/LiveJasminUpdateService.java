@@ -2,6 +2,7 @@ package ctbrec.ui.sites.jasmin;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.json.JSONArray;
@@ -11,11 +12,14 @@ import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
 import ctbrec.Model;
+import ctbrec.io.CookieJarImpl;
 import ctbrec.io.HttpException;
 import ctbrec.sites.jasmin.LiveJasmin;
 import ctbrec.sites.jasmin.LiveJasminModel;
 import ctbrec.ui.PaginatedScheduledService;
 import javafx.concurrent.Task;
+import okhttp3.Cookie;
+import okhttp3.HttpUrl;
 import okhttp3.Request;
 import okhttp3.Response;
 
@@ -36,6 +40,16 @@ public class LiveJasminUpdateService extends PaginatedScheduledService {
             @Override
             public List<Model> call() throws IOException {
                 //String _url = url + ((page-1) * 36); // TODO find out how to switch pages
+
+                // sort by popularity
+                CookieJarImpl cookieJar = liveJasmin.getHttpClient().getCookieJar();
+                Cookie sortCookie = new Cookie.Builder()
+                        .domain("livejasmin.com")
+                        .name("listPageOrderType")
+                        .value("most_popular")
+                        .build();
+                cookieJar.saveFromResponse(HttpUrl.parse("https://www.livejasmin.com"), Collections.singletonList(sortCookie));
+
                 LOG.debug("Fetching page {}", url);
                 Request request = new Request.Builder()
                         .url(url)

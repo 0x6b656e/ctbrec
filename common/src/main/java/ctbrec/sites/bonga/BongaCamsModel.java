@@ -1,5 +1,7 @@
 package ctbrec.sites.bonga;
 
+import static ctbrec.Model.State.*;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -36,7 +38,6 @@ public class BongaCamsModel extends AbstractModel {
     private static final transient Logger LOG = LoggerFactory.getLogger(BongaCamsModel.class);
 
     private int userId;
-    private String onlineState = "n/a";
     private boolean online = false;
     private List<StreamSource> streamSources = new ArrayList<>();
     private int[] resolution;
@@ -84,11 +85,19 @@ public class BongaCamsModel extends AbstractModel {
     }
 
     @Override
-    public String getOnlineState(boolean failFast) throws IOException, ExecutionException {
-        return onlineState;
+    public State getOnlineState(boolean failFast) throws IOException, ExecutionException {
+        if(failFast) {
+            return onlineState;
+        } else {
+            if(onlineState == UNKNOWN) {
+                return online ? ONLINE : OFFLINE;
+            }
+            return onlineState;
+        }
     }
 
-    public void setOnlineState(String onlineState) {
+    @Override
+    public void setOnlineState(State onlineState) {
         this.onlineState = onlineState;
     }
 

@@ -1,32 +1,32 @@
-package ctbrec.ui;
+package ctbrec.ui.settings;
 
 import static ctbrec.Settings.DirectoryStructure.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
 import ctbrec.Hmac;
-import ctbrec.Settings;
 import ctbrec.Settings.DirectoryStructure;
 import ctbrec.StringUtil;
+import ctbrec.recorder.Recorder;
 import ctbrec.sites.ConfigUI;
 import ctbrec.sites.Site;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
+import ctbrec.ui.SiteUiFactory;
+import ctbrec.ui.TabSelectionListener;
+import ctbrec.ui.controls.DirectorySelectionBox;
+import ctbrec.ui.controls.ProgramSelectionBox;
 import javafx.collections.FXCollections;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Accordion;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -38,19 +38,12 @@ import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.TitledPane;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
-import javafx.scene.layout.Border;
-import javafx.scene.layout.BorderStroke;
-import javafx.scene.layout.BorderStrokeStyle;
-import javafx.scene.layout.BorderWidths;
 import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.stage.DirectoryChooser;
-import javafx.stage.FileChooser;;
+import javafx.scene.text.Font;;
 
 public class SettingsTab extends Tab implements TabSelectionListener {
 
@@ -58,35 +51,38 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private static final int ONE_GiB_IN_BYTES = 1024 * 1024 * 1024;
 
     public static final int CHECKBOX_MARGIN = 6;
-    private TextField recordingsDirectory;
-    private Button recordingsDirectoryButton;
-    private Button postProcessingDirectoryButton;
-    private TextField mediaPlayer;
-    private TextField postProcessing;
+    private DirectorySelectionBox recordingsDirectory;
+    private ProgramSelectionBox mediaPlayer;
+    private ProgramSelectionBox postProcessing;
     private TextField server;
     private TextField port;
     private TextField onlineCheckIntervalInSecs;
+    private TextField overviewUpdateIntervalInSecs;
     private TextField leaveSpaceOnDevice;
+    private TextField minimumLengthInSecs;
     private CheckBox loadResolution;
     private CheckBox secureCommunication = new CheckBox();
     private CheckBox chooseStreamQuality = new CheckBox();
     private CheckBox multiplePlayers = new CheckBox();
     private CheckBox updateThumbnails = new CheckBox();
+    private CheckBox livePreviews = new CheckBox();
     private CheckBox showPlayerStarting = new CheckBox();
     private RadioButton recordLocal;
     private RadioButton recordRemote;
     private ToggleGroup recordLocation;
     private ProxySettingsPane proxySettingsPane;
-    private ComboBox<Integer> maxResolution;
+    private TextField maxResolution;
     private ComboBox<SplitAfterOption> splitAfter;
     private ComboBox<DirectoryStructure> directoryStructure;
     private ComboBox<String> startTab;
     private List<Site> sites;
     private Label restartLabel;
-    private Accordion credentialsAccordion = new Accordion();
+    private Accordion siteConfigAccordion = new Accordion();
+    private Recorder recorder;
 
-    public SettingsTab(List<Site> sites) {
+    public SettingsTab(List<Site> sites, Recorder recorder) {
         this.sites = sites;
+        this.recorder = recorder;
         setText("Settings");
         createGui();
         setClosable(false);
@@ -102,18 +98,26 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         ColumnConstraints cc = new ColumnConstraints();
         cc.setPercentWidth(50);
         mainLayout.getColumnConstraints().setAll(cc, cc);
-        setContent(new ScrollPane(mainLayout));
+        ScrollPane scrollPane = new ScrollPane(mainLayout);
+        setContent(scrollPane);
+        GridPane.setFillHeight(scrollPane, true);
+        GridPane.setFillWidth(scrollPane, true);
+        GridPane.setHgrow(scrollPane, Priority.ALWAYS);
+        GridPane.setVgrow(scrollPane, Priority.ALWAYS);
         VBox leftSide = new VBox(15);
+        leftSide.setFillWidth(true);
         VBox rightSide = new VBox(15);
+        rightSide.setFillWidth(true);
         GridPane.setHgrow(leftSide, Priority.ALWAYS);
         GridPane.setHgrow(rightSide, Priority.ALWAYS);
         GridPane.setFillWidth(leftSide, true);
         GridPane.setFillWidth(rightSide, true);
         mainLayout.add(leftSide, 0, 1);
         mainLayout.add(rightSide, 1, 1);
+        mainLayout.prefWidthProperty().bind(scrollPane.widthProperty());
 
         // restart info label
-        restartLabel = new Label("A restart is required to apply changes you made!");
+        restartLabel = new Label("A restart is required to apply the changes you made!");
         restartLabel.setVisible(false);
         restartLabel.setFont(Font.font(24));
         restartLabel.setTextFill(Color.RED);
@@ -127,8 +131,9 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         leftSide.getChildren().add(createRecordLocationPanel());
 
         //right side
-        rightSide.getChildren().add(createSiteSelectionPanel());
-        rightSide.getChildren().add(credentialsAccordion);
+        rightSide.getChildren().add(siteConfigAccordion);
+        ActionSettingsPanel actions = new ActionSettingsPanel(this, recorder);
+        rightSide.getChildren().add(actions);
         proxySettingsPane = new ProxySettingsPane(this);
         rightSide.getChildren().add(proxySettingsPane);
         for (int i = 0; i < sites.size(); i++) {
@@ -136,39 +141,9 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             ConfigUI siteConfig = SiteUiFactory.getUi(site).getConfigUI();
             if(siteConfig != null) {
                 TitledPane pane = new TitledPane(site.getName(), siteConfig.createConfigPanel());
-                credentialsAccordion.getPanes().add(pane);
+                siteConfigAccordion.getPanes().add(pane);
             }
         }
-        credentialsAccordion.setExpandedPane(credentialsAccordion.getPanes().get(0));
-    }
-
-    private Node createSiteSelectionPanel() {
-        Settings settings = Config.getInstance().getSettings();
-        GridPane layout = createGridLayout();
-
-        int row = 0;
-        for (Site site : sites) {
-            Label l = new Label(site.getName());
-            layout.add(l, 0, row);
-            CheckBox enabled = new CheckBox();
-            enabled.setSelected(!settings.disabledSites.contains(site.getName()));
-            enabled.setOnAction((e) -> {
-                if(enabled.isSelected()) {
-                    settings.disabledSites.remove(site.getName());
-                } else {
-                    settings.disabledSites.add(site.getName());
-                }
-                saveConfig();
-                showRestartRequired();
-            });
-            GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
-            GridPane.setMargin(enabled, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
-            layout.add(enabled, 1, row++);
-        }
-
-        TitledPane siteSelection = new TitledPane("Enabled Sites", layout);
-        siteSelection.setCollapsible(false);
-        return siteSelection;
     }
 
     private Node createRecordLocationPanel() {
@@ -259,28 +234,21 @@ public class SettingsTab extends Tab implements TabSelectionListener {
     private Node createRecorderPanel() {
         int row = 0;
         GridPane layout = createGridLayout();
-        layout.add(new Label("Post-Processing"), 0, row);
-        postProcessing = new TextField(Config.getInstance().getSettings().postProcessing);
-        postProcessing.focusedProperty().addListener(createPostProcessingFocusListener());
-        GridPane.setFillWidth(postProcessing, true);
-        GridPane.setHgrow(postProcessing, Priority.ALWAYS);
-        GridPane.setColumnSpan(postProcessing, 2);
-        GridPane.setMargin(postProcessing, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        layout.add(postProcessing, 1, row);
-        postProcessingDirectoryButton = createPostProcessingBrowseButton();
-        layout.add(postProcessingDirectoryButton, 3, row++);
 
         layout.add(new Label("Recordings Directory"), 0, row);
-        recordingsDirectory = new TextField(Config.getInstance().getSettings().recordingsDir);
-        recordingsDirectory.focusedProperty().addListener(createRecordingsDirectoryFocusListener());
-        recordingsDirectory.setPrefWidth(400);
+        recordingsDirectory = new DirectorySelectionBox(Config.getInstance().getSettings().recordingsDir);
+        recordingsDirectory.prefWidth(400);
+        recordingsDirectory.fileProperty().addListener((obs, o, n) -> {
+            String path = n;
+            if(!Objects.equals(path, Config.getInstance().getSettings().recordingsDir)) {
+                Config.getInstance().getSettings().recordingsDir = path;
+                saveConfig();
+            }
+        });
         GridPane.setFillWidth(recordingsDirectory, true);
         GridPane.setHgrow(recordingsDirectory, Priority.ALWAYS);
-        GridPane.setColumnSpan(recordingsDirectory, 2);
         GridPane.setMargin(recordingsDirectory, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        layout.add(recordingsDirectory, 1, row);
-        recordingsDirectoryButton = createRecordingsBrowseButton();
-        layout.add(recordingsDirectoryButton, 3, row++);
+        layout.add(recordingsDirectory, 1, row++);
 
         layout.add(new Label("Directory Structure"), 0, row);
         List<DirectoryStructure> options = new ArrayList<>();
@@ -293,30 +261,11 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             Config.getInstance().getSettings().recordingsDirStructure = directoryStructure.getValue();
             saveConfig();
         });
-        GridPane.setColumnSpan(directoryStructure, 2);
         GridPane.setMargin(directoryStructure, new Insets(0, 0, 0, CHECKBOX_MARGIN));
         layout.add(directoryStructure, 1, row++);
+        recordingsDirectory.prefWidthProperty().bind(directoryStructure.widthProperty());
 
-        Label l = new Label("Maximum resolution (0 = unlimited)");
-        layout.add(l, 0, row);
-        List<Integer> resolutionOptions = new ArrayList<>();
-        resolutionOptions.add(1080);
-        resolutionOptions.add(720);
-        resolutionOptions.add(600);
-        resolutionOptions.add(480);
-        resolutionOptions.add(0);
-        maxResolution = new ComboBox<>(FXCollections.observableList(resolutionOptions));
-        setMaxResolutionValue();
-        maxResolution.setOnAction((e) -> {
-            Config.getInstance().getSettings().maximumResolution = maxResolution.getSelectionModel().getSelectedItem();
-            saveConfig();
-        });
-        maxResolution.prefWidthProperty().bind(directoryStructure.widthProperty());
-        layout.add(maxResolution, 1, row++);
-        GridPane.setMargin(l, new Insets(0, 0, 0, 0));
-        GridPane.setMargin(maxResolution, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-
-        l = new Label("Split recordings after (minutes)");
+        Label l = new Label("Split recordings after (minutes)");
         layout.add(l, 0, row);
         List<SplitAfterOption> splitOptions = new ArrayList<>();
         splitOptions.add(new SplitAfterOption("disabled", 0));
@@ -340,6 +289,41 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         splitAfter.prefWidthProperty().bind(directoryStructure.widthProperty());
         GridPane.setMargin(l, new Insets(0, 0, 0, 0));
         GridPane.setMargin(splitAfter, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+
+        l = new Label("Maximum resolution (0 = unlimited)");
+        layout.add(l, 0, row);
+        maxResolution = new TextField(Integer.toString(Config.getInstance().getSettings().maximumResolution));
+        maxResolution.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                maxResolution.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+            if (!maxResolution.getText().isEmpty()) {
+                int newRes = Integer.parseInt(maxResolution.getText());
+                if (newRes != Config.getInstance().getSettings().maximumResolution) {
+                    Config.getInstance().getSettings().maximumResolution = newRes;
+                    saveConfig();
+                }
+            }
+        });
+        maxResolution.prefWidthProperty().bind(directoryStructure.widthProperty());
+        layout.add(maxResolution, 1, row++);
+        GridPane.setMargin(l, new Insets(0, 0, 0, 0));
+        GridPane.setMargin(maxResolution, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+
+        layout.add(new Label("Post-Processing"), 0, row);
+        postProcessing = new ProgramSelectionBox(Config.getInstance().getSettings().postProcessing);
+        postProcessing.allowEmptyValue();
+        postProcessing.fileProperty().addListener((obs, o, n) -> {
+            String path = n;
+            if(!Objects.equals(path, Config.getInstance().getSettings().postProcessing)) {
+                Config.getInstance().getSettings().postProcessing = path;
+                saveConfig();
+            }
+        });
+        GridPane.setFillWidth(postProcessing, true);
+        GridPane.setHgrow(postProcessing, Priority.ALWAYS);
+        GridPane.setMargin(postProcessing, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        layout.add(postProcessing, 1, row++);
 
         Tooltip tt = new Tooltip("Check every x seconds, if a model came online");
         l = new Label("Check online state every (seconds)");
@@ -380,6 +364,26 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         GridPane.setMargin(leaveSpaceOnDevice, new Insets(0, 0, 0, CHECKBOX_MARGIN));
         layout.add(leaveSpaceOnDevice, 1, row++);
 
+        tt = new Tooltip("Delete recordings, which are shorter than x seconds. 0 to disable.");
+        l = new Label("Delete recordings shorter than (secs)");
+        l.setTooltip(tt);
+        layout.add(l, 0, row);
+        int minimumLengthInSeconds = Config.getInstance().getSettings().minimumLengthInSeconds;
+        minimumLengthInSecs = new TextField(Integer.toString(minimumLengthInSeconds));
+        minimumLengthInSecs.setTooltip(tt);
+        minimumLengthInSecs.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                minimumLengthInSecs.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+            if(!minimumLengthInSecs.getText().isEmpty()) {
+                int minimumLength = Integer.parseInt(minimumLengthInSecs.getText());
+                Config.getInstance().getSettings().minimumLengthInSeconds = minimumLength;
+                saveConfig();
+            }
+        });
+        GridPane.setMargin(minimumLengthInSecs, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        layout.add(minimumLengthInSecs, 1, row++);
+
         TitledPane locations = new TitledPane("Recorder", layout);
         locations.setCollapsible(false);
         return locations;
@@ -390,14 +394,18 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         int row = 0;
 
         layout.add(new Label("Player"), 0, row);
-        mediaPlayer = new TextField(Config.getInstance().getSettings().mediaPlayer);
-        mediaPlayer.focusedProperty().addListener(createMpvFocusListener());
+        mediaPlayer = new ProgramSelectionBox(Config.getInstance().getSettings().mediaPlayer);
+        mediaPlayer.fileProperty().addListener((obs, o, n) -> {
+            String path = n;
+            if (!Objects.equals(path, Config.getInstance().getSettings().mediaPlayer)) {
+                Config.getInstance().getSettings().mediaPlayer = path;
+                saveConfig();
+            }
+        });
         GridPane.setFillWidth(mediaPlayer, true);
         GridPane.setHgrow(mediaPlayer, Priority.ALWAYS);
-        GridPane.setColumnSpan(mediaPlayer, 2);
         GridPane.setMargin(mediaPlayer, new Insets(0, 0, 0, CHECKBOX_MARGIN));
-        layout.add(mediaPlayer, 1, row);
-        layout.add(createMpvBrowseButton(), 3, row++);
+        layout.add(mediaPlayer, 1, row++);
 
         Label l = new Label("Allow multiple players");
         layout.add(l, 0, row);
@@ -417,10 +425,9 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             Config.getInstance().getSettings().showPlayerStarting = showPlayerStarting.isSelected();
             saveConfig();
         });
-        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
         GridPane.setMargin(showPlayerStarting, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(showPlayerStarting, 1, row++);
-
 
         l = new Label("Display stream resolution in overview");
         layout.add(l, 0, row);
@@ -429,14 +436,10 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         loadResolution.setOnAction((e) -> {
             Config.getInstance().getSettings().determineResolution = loadResolution.isSelected();
             saveConfig();
-            if(!loadResolution.isSelected()) {
-                ThumbOverviewTab.queue.clear();
-            }
         });
-        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
         GridPane.setMargin(loadResolution, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(loadResolution, 1, row++);
-
 
         l = new Label("Manually select stream quality");
         layout.add(l, 0, row);
@@ -445,38 +448,74 @@ public class SettingsTab extends Tab implements TabSelectionListener {
             Config.getInstance().getSettings().chooseStreamQuality = chooseStreamQuality.isSelected();
             saveConfig();
         });
-        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
         GridPane.setMargin(chooseStreamQuality, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(chooseStreamQuality, 1, row++);
 
-        l = new Label("Update thumbnails");
+        l = new Label("Enable live previews (experimental)");
         layout.add(l, 0, row);
+        livePreviews.setSelected(Config.getInstance().getSettings().livePreviews);
+        livePreviews.setOnAction((e) -> {
+            Config.getInstance().getSettings().livePreviews = livePreviews.isSelected();
+            saveConfig();
+            showRestartRequired();
+        });
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
+        GridPane.setMargin(livePreviews, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
+        layout.add(livePreviews, 1, row++);
+
+        Tooltip tt = new Tooltip("The overviews will still be updated, but the thumbnails won't be changed. This is useful for less powerful systems.");
+        l = new Label("Update thumbnails");
+        l.setTooltip(tt);
+        layout.add(l, 0, row);
+        updateThumbnails.setTooltip(tt);
         updateThumbnails.setSelected(Config.getInstance().getSettings().updateThumbnails);
         updateThumbnails.setOnAction((e) -> {
             Config.getInstance().getSettings().updateThumbnails = updateThumbnails.isSelected();
             saveConfig();
         });
-        GridPane.setMargin(l, new Insets(CHECKBOX_MARGIN, 0, 0, 0));
-        GridPane.setMargin(updateThumbnails, new Insets(CHECKBOX_MARGIN, 0, CHECKBOX_MARGIN, CHECKBOX_MARGIN));
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
+        GridPane.setMargin(updateThumbnails, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
         layout.add(updateThumbnails, 1, row++);
+
+        tt = new Tooltip("Update the thumbnail overviews every x seconds");
+        l = new Label("Update overview interval (seconds)");
+        l.setTooltip(tt);
+        layout.add(l, 0, row);
+        overviewUpdateIntervalInSecs = new TextField(Integer.toString(Config.getInstance().getSettings().overviewUpdateIntervalInSecs));
+        overviewUpdateIntervalInSecs.setTooltip(tt);
+        overviewUpdateIntervalInSecs.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                overviewUpdateIntervalInSecs.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+            if(!overviewUpdateIntervalInSecs.getText().isEmpty()) {
+                Config.getInstance().getSettings().overviewUpdateIntervalInSecs = Integer.parseInt(overviewUpdateIntervalInSecs.getText());
+                saveConfig();
+                showRestartRequired();
+            }
+        });
+        GridPane.setMargin(l, new Insets(3, 0, 0, 0));
+        GridPane.setMargin(overviewUpdateIntervalInSecs, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
+        layout.add(overviewUpdateIntervalInSecs, 1, row++);
 
         l = new Label("Start Tab");
         layout.add(l, 0, row);
         startTab = new ComboBox<>();
-        layout.add(startTab, 1, row++);
         startTab.setOnAction((e) -> {
             Config.getInstance().getSettings().startTab = startTab.getSelectionModel().getSelectedItem();
             saveConfig();
         });
+        layout.add(startTab, 1, row++);
         GridPane.setMargin(l, new Insets(0, 0, 0, 0));
         GridPane.setMargin(startTab, new Insets(0, 0, 0, CHECKBOX_MARGIN));
+        overviewUpdateIntervalInSecs.maxWidthProperty().bind(startTab.widthProperty());
 
-        l = new Label("Colors");
+        l = new Label("Colors (Base / Accent)");
         layout.add(l, 0, row);
         ColorSettingsPane colorSettingsPane = new ColorSettingsPane(this);
         layout.add(colorSettingsPane, 1, row++);
         GridPane.setMargin(l, new Insets(0, 0, 0, 0));
-        GridPane.setMargin(colorSettingsPane, new Insets(CHECKBOX_MARGIN, 0, 0, CHECKBOX_MARGIN));
+        GridPane.setMargin(colorSettingsPane, new Insets(0, 0, 0, CHECKBOX_MARGIN));
 
         TitledPane general = new TitledPane("General", layout);
         general.setCollapsible(false);
@@ -488,15 +527,6 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         for (SplitAfterOption option : splitAfter.getItems()) {
             if(option.getValue() == value) {
                 splitAfter.getSelectionModel().select(option);
-            }
-        }
-    }
-
-    private void setMaxResolutionValue() {
-        int value = Config.getInstance().getSettings().maximumResolution;
-        for (Integer option : maxResolution.getItems()) {
-            if(option == value) {
-                maxResolution.getSelectionModel().select(option);
             }
         }
     }
@@ -518,182 +548,13 @@ public class SettingsTab extends Tab implements TabSelectionListener {
         port.setDisable(local);
         secureCommunication.setDisable(local);
         recordingsDirectory.setDisable(!local);
-        recordingsDirectoryButton.setDisable(!local);
         splitAfter.setDisable(!local);
         maxResolution.setDisable(!local);
-        postProcessing.setDisable(!local);
-        postProcessingDirectoryButton.setDisable(!local);
         directoryStructure.setDisable(!local);
         onlineCheckIntervalInSecs.setDisable(!local);
         leaveSpaceOnDevice.setDisable(!local);
-    }
-
-    private ChangeListener<? super Boolean> createRecordingsDirectoryFocusListener() {
-        return new ChangeListener<Boolean>() {
-            @Override
-            public void changed(ObservableValue<? extends Boolean> arg0, Boolean oldPropertyValue, Boolean newPropertyValue) {
-                if (newPropertyValue) {
-                    recordingsDirectory.setBorder(Border.EMPTY);
-                    recordingsDirectory.setTooltip(null);
-                } else {
-                    String input = recordingsDirectory.getText();
-                    File newDir = new File(input);
-                    setRecordingsDir(newDir);
-                }
-            }
-        };
-    }
-
-    private ChangeListener<? super Boolean> createMpvFocusListener() {
-        return new ChangeListener<Boolean>() {
-            @Override
-            public void changed(ObservableValue<? extends Boolean> arg0, Boolean oldPropertyValue, Boolean newPropertyValue) {
-                if (newPropertyValue) {
-                    mediaPlayer.setBorder(Border.EMPTY);
-                    mediaPlayer.setTooltip(null);
-                } else {
-                    String input = mediaPlayer.getText();
-                    File program = new File(input);
-                    setMpv(program);
-                }
-            }
-        };
-    }
-
-    private ChangeListener<? super Boolean> createPostProcessingFocusListener() {
-        return new ChangeListener<Boolean>() {
-            @Override
-            public void changed(ObservableValue<? extends Boolean> arg0, Boolean oldPropertyValue, Boolean newPropertyValue) {
-                if (newPropertyValue) {
-                    postProcessing.setBorder(Border.EMPTY);
-                    postProcessing.setTooltip(null);
-                } else {
-                    String input = postProcessing.getText();
-                    if(!input.trim().isEmpty()) {
-                        File program = new File(input);
-                        setPostProcessing(program);
-                    } else {
-                        Config.getInstance().getSettings().postProcessing = "";
-                        saveConfig();
-                    }
-                }
-            }
-        };
-    }
-
-    private void setMpv(File program) {
-        String msg = validateProgram(program);
-        if (msg != null) {
-            mediaPlayer.setBorder(new Border(new BorderStroke(Color.RED, BorderStrokeStyle.DASHED, new CornerRadii(2), new BorderWidths(2))));
-            mediaPlayer.setTooltip(new Tooltip(msg));
-        } else {
-            Config.getInstance().getSettings().mediaPlayer = mediaPlayer.getText();
-            saveConfig();
-        }
-    }
-
-    private void setPostProcessing(File program) {
-        String msg = validateProgram(program);
-        if (msg != null) {
-            postProcessing.setBorder(new Border(new BorderStroke(Color.RED, BorderStrokeStyle.DASHED, new CornerRadii(2), new BorderWidths(2))));
-            postProcessing.setTooltip(new Tooltip(msg));
-        } else {
-            Config.getInstance().getSettings().postProcessing = postProcessing.getText();
-            saveConfig();
-        }
-    }
-
-    private String validateProgram(File program) {
-        if (program == null || !program.exists()) {
-            return "File does not exist";
-        } else if (!program.isFile() || !program.canExecute()) {
-            return "This is not an executable application";
-        }
-        return null;
-    }
-
-    private Button createRecordingsBrowseButton() {
-        Button button = new Button("Select");
-        button.setOnAction((e) -> {
-            DirectoryChooser chooser = new DirectoryChooser();
-            File currentDir = new File(Config.getInstance().getSettings().recordingsDir);
-            if (currentDir.exists() && currentDir.isDirectory()) {
-                chooser.setInitialDirectory(currentDir);
-            }
-            File selectedDir = chooser.showDialog(null);
-            if(selectedDir != null) {
-                setRecordingsDir(selectedDir);
-            }
-        });
-        return button;
-    }
-
-    private Node createMpvBrowseButton() {
-        Button button = new Button("Select");
-        button.setOnAction((e) -> {
-            FileChooser chooser = new FileChooser();
-            File program = chooser.showOpenDialog(null);
-            if(program != null) {
-                try {
-                    mediaPlayer.setText(program.getCanonicalPath());
-                } catch (IOException e1) {
-                    LOG.error("Couldn't determine path", e1);
-                    Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
-                    alert.setTitle("Whoopsie");
-                    alert.setContentText("Couldn't determine path");
-                    alert.showAndWait();
-                }
-                setMpv(program);
-            }
-        });
-        return button;
-    }
-
-    private Button createPostProcessingBrowseButton() {
-        Button button = new Button("Select");
-        button.setOnAction((e) -> {
-            FileChooser chooser = new FileChooser();
-            File program = chooser.showOpenDialog(null);
-            if(program != null) {
-                try {
-                    postProcessing.setText(program.getCanonicalPath());
-                } catch (IOException e1) {
-                    LOG.error("Couldn't determine path", e1);
-                    Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
-                    alert.setTitle("Whoopsie");
-                    alert.setContentText("Couldn't determine path");
-                    alert.showAndWait();
-                }
-                setPostProcessing(program);
-            }
-        });
-        return button;
-    }
-
-    private void setRecordingsDir(File dir) {
-        if (dir != null && dir.isDirectory()) {
-            try {
-                String path = dir.getCanonicalPath();
-                Config.getInstance().getSettings().recordingsDir = path;
-                recordingsDirectory.setText(path);
-                saveConfig();
-            } catch (IOException e1) {
-                LOG.error("Couldn't determine directory path", e1);
-                Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
-                alert.setTitle("Whoopsie");
-                alert.setContentText("Couldn't determine directory path");
-                alert.showAndWait();
-            }
-        } else {
-            recordingsDirectory.setBorder(new Border(new BorderStroke(Color.RED, BorderStrokeStyle.DASHED, new CornerRadii(2), new BorderWidths(2))));
-            if (!dir.isDirectory()) {
-                recordingsDirectory.setTooltip(new Tooltip("This is not a directory"));
-            }
-            if (!dir.exists()) {
-                recordingsDirectory.setTooltip(new Tooltip("Directory does not exist"));
-            }
-
-        }
+        postProcessing.setDisable(!local);
+        minimumLengthInSecs.setDisable(!local);
     }
 
     @Override

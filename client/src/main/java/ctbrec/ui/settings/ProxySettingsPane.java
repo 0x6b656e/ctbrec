@@ -1,4 +1,4 @@
-package ctbrec.ui;
+package ctbrec.ui.settings;
 import static ctbrec.Settings.ProxyType.*;
 
 import java.util.ArrayList;

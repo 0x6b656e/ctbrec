@@ -38,10 +38,9 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.recorder.Recorder;
-import ctbrec.ui.Player;
+import ctbrec.ui.action.PlayAction;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.event.EventHandler;
@@ -83,16 +82,7 @@ public class SearchPopoverTreeList extends PopoverTreeList<Model> implements Pop
             return;
         }
 
-        setCursor(Cursor.WAIT);
-        new Thread(() -> {
-            Platform.runLater(() -> {
-                boolean started = Player.play(model);
-                if(started && Config.getInstance().getSettings().showPlayerStarting) {
-                    Toast.makeText(getScene(), "Starting Player", 2000, 500, 500);
-                }
-                setCursor(Cursor.DEFAULT);
-            });
-        }).start();
+        new PlayAction(this, model).execute();
     }
 
     @Override

@@ -1,5 +1,7 @@
 package ctbrec.ui.sites.bonga;
 
+import static ctbrec.Model.State.*;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,20 +56,36 @@ public class BongaCamsUpdateService extends PaginatedScheduledService {
                         JSONArray _models = json.getJSONArray("models");
                         for (int i = 0; i < _models.length(); i++) {
                             JSONObject m = _models.getJSONObject(i);
-                            String name = m.getString("username");
+                            String name = m.optString("username");
+                            if(name.isEmpty()) {
+                                continue;
+                            }
                             BongaCamsModel model = (BongaCamsModel) bongaCams.createModel(name);
-                            model.setUserId(m.getInt("user_id"));
                             boolean away = m.optBoolean("is_away");
-                            boolean online = m.optBoolean("online") && !away;
+                            boolean online = m.optBoolean("online");
                             model.setOnline(online);
+
                             if(online) {
+                                model.setOnlineState(ONLINE);
                                 if(away) {
-                                    model.setOnlineState("away");
+                                    model.setOnlineState(AWAY);
                                 } else {
-                                    model.setOnlineState(m.getString("room"));
+                                    switch(m.optString("room")) {
+                                    case "private":
+                                    case "fullprivate":
+                                        model.setOnlineState(PRIVATE);
+                                        break;
+                                    case "group":
+                                    case "public":
+                                        model.setOnlineState(ONLINE);
+                                        break;
+                                    default:
+                                        LOG.debug(m.optString("room"));
+                                        model.setOnlineState(ONLINE);
+                                    }
                                 }
                             } else {
-                                model.setOnlineState("offline");
+                                model.setOnlineState(OFFLINE);
                             }
                             model.setPreview("https:" + m.getString("thumb_image"));
                             if(m.has("display_name")) {

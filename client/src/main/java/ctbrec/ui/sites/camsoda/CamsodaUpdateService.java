@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.json.JSONArray;
@@ -56,28 +58,27 @@ public class CamsodaUpdateService extends PaginatedScheduledService {
                         if (response.isSuccessful()) {
                             JSONObject json = new JSONObject(response.body().string());
                             if(json.has("status") && json.getBoolean("status")) {
+                                JSONArray template = json.getJSONArray("template");
                                 JSONArray results = json.getJSONArray("results");
                                 for (int i = 0; i < results.length(); i++) {
                                     JSONObject result = results.getJSONObject(i);
                                     if(result.has("tpl")) {
                                         JSONArray tpl = result.getJSONArray("tpl");
-                                        String name = tpl.getString(0);
-                                        String displayName = tpl.getString(1);
+                                        String name = tpl.getString(getTemplateIndex(template, "username"));
+                                        String displayName = tpl.getString(getTemplateIndex(template, "display_name"));
                                         // int connections = tpl.getInt(2);
-                                        String streamName = tpl.getString(5);
-                                        String tsize = tpl.getString(6);
-                                        String serverPrefix = tpl.getString(7);
+                                        String streamName = tpl.getString(getTemplateIndex(template, "stream_name"));
+                                        String tsize = tpl.getString(getTemplateIndex(template, "tsize"));
+                                        String serverPrefix = tpl.getString(getTemplateIndex(template, "server_prefix"));
                                         CamsodaModel model = (CamsodaModel) camsoda.createModel(name);
-                                        model.setDescription(tpl.getString(4));
-                                        model.setSortOrder(tpl.getFloat(3));
+                                        model.setDescription(tpl.getString(getTemplateIndex(template, "subject_html")));
+                                        model.setSortOrder(tpl.getFloat(getTemplateIndex(template, "sort_value")));
                                         long unixtime = System.currentTimeMillis() / 1000;
                                         String preview = "https://thumbs-orig.camsoda.com/thumbs/"
                                                 + streamName + '/' + serverPrefix + '/' + tsize + '/' + unixtime + '/' + name + ".jpg?cb=" + unixtime;
                                         model.setPreview(preview);
-                                        if(result.has("edge_servers")) {
-                                            JSONArray edgeServers = result.getJSONArray("edge_servers");
-                                            model.setStreamUrl("https://" + edgeServers.getString(0) + "/cam/mp4:" + streamName + "_h264_aac_480p/playlist.m3u8");
-                                        }
+                                        JSONArray edgeServers = tpl.getJSONArray(getTemplateIndex(template, "edge_servers"));
+                                        model.setStreamUrl("https://" + edgeServers.getString(0) + "/cam/mp4:" + streamName + "_h264_aac_480p/playlist.m3u8");
                                         model.setDisplayName(displayName);
                                         models.add(model);
                                     } else {
@@ -89,7 +90,7 @@ public class CamsodaUpdateService extends PaginatedScheduledService {
                                             model.setSortOrder(result.getFloat("sort_value"));
                                             models.add(model);
                                             if(result.has("status")) {
-                                                model.setOnlineState(result.getString("status"));
+                                                model.setOnlineStateByStatus(result.getString("status"));
                                             }
 
                                             if(result.has("display_name")) {
@@ -124,6 +125,16 @@ public class CamsodaUpdateService extends PaginatedScheduledService {
                         }
                     }
                 }
+            }
+
+            private int getTemplateIndex(JSONArray template, String string) {
+                for (int i = 0; i < template.length(); i++) {
+                    String s = template.getString(i);
+                    if(Objects.equals(s, string)) {
+                        return i;
+                    }
+                }
+                throw new NoSuchElementException(string + " not found in template: " + template.toString());
             }
         };
     }

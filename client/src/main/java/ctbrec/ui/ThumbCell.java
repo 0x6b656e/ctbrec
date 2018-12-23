@@ -7,18 +7,22 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.iheartradio.m3u8.ParseException;
 
 import ctbrec.Config;
 import ctbrec.Model;
 import ctbrec.io.HttpException;
 import ctbrec.recorder.Recorder;
-import ctbrec.ui.controls.Toast;
+import ctbrec.ui.action.PlayAction;
+import ctbrec.ui.controls.StreamPreview;
 import javafx.animation.FadeTransition;
 import javafx.animation.FillTransition;
 import javafx.animation.ParallelTransition;
@@ -40,6 +44,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Polygon;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.Shape;
 import javafx.scene.text.Font;
@@ -55,6 +60,7 @@ public class ThumbCell extends StackPane {
     private static final Duration ANIMATION_DURATION = new Duration(250);
 
     private Model model;
+    private StreamPreview streamPreview;
     private ImageView iv;
     private Rectangle resolutionBackground;
     private final Paint resolutionOnlineColor = new Color(0.22, 0.8, 0.29, 1);
@@ -80,14 +86,25 @@ public class ThumbCell extends StackPane {
     private boolean mouseHovering = false;
     private boolean recording = false;
     private static ExecutorService imageLoadingThreadPool = Executors.newFixedThreadPool(30);
+    private static Cache<Model, int[]> resolutionCache = CacheBuilder.newBuilder()
+            .expireAfterAccess(4, TimeUnit.HOURS)
+            .maximumSize(1000)
+            .build();
+    private ThumbOverviewTab parent;
 
     public ThumbCell(ThumbOverviewTab parent, Model model, Recorder recorder) {
+        this.parent = parent;
         this.thumbCellList = parent.grid.getChildren();
         this.model = model;
         this.recorder = recorder;
         recording = recorder.isRecording(model);
         model.setSuspended(recorder.isSuspended(model));
         this.setStyle("-fx-background-color: -fx-base");
+
+        streamPreview = new StreamPreview();
+        streamPreview.prefWidthProperty().bind(widthProperty());
+        streamPreview.prefHeightProperty().bind(heightProperty());
+        getChildren().add(streamPreview);
 
         iv = new ImageView();
         iv.setSmooth(true);
@@ -157,8 +174,14 @@ public class ThumbCell extends StackPane {
         StackPane.setAlignment(pausedIndicator, Pos.TOP_LEFT);
         getChildren().add(pausedIndicator);
 
+        if(Config.getInstance().getSettings().livePreviews) {
+            getChildren().add(createPreviewTrigger());
+        }
+
         selectionOverlay = new Rectangle();
-        selectionOverlay.setOpacity(0);
+        selectionOverlay.visibleProperty().bind(selectionProperty);
+        selectionOverlay.widthProperty().bind(widthProperty());
+        selectionOverlay.heightProperty().bind(heightProperty());
         StackPane.setAlignment(selectionOverlay, Pos.TOP_LEFT);
         getChildren().add(selectionOverlay);
 
@@ -185,11 +208,51 @@ public class ThumbCell extends StackPane {
         setThumbWidth(Config.getInstance().getSettings().thumbWidth);
 
         setRecording(recording);
-        if(Config.getInstance().getSettings().determineResolution) {
-            determineResolution();
-        }
-
         update();
+    }
+
+    private Node createPreviewTrigger() {
+        int s = 32;
+        StackPane previewTrigger = new StackPane();
+        previewTrigger.setStyle("-fx-background-color: white;");
+        previewTrigger.setOpacity(.8);
+        previewTrigger.setMaxSize(s, s);
+
+        Polygon play = new Polygon(new double[] {
+                16, 8,
+                26, 15,
+                16, 22
+        });
+        StackPane.setMargin(play, new Insets(0, 0, 0, 3));
+        play.setStyle("-fx-background-color: black;");
+        previewTrigger.getChildren().add(play);
+
+        Circle clip = new Circle(s / 2);
+        clip.setTranslateX(clip.getRadius());
+        clip.setTranslateY(clip.getRadius());
+        previewTrigger.setClip(clip);
+        StackPane.setAlignment(previewTrigger, Pos.BOTTOM_LEFT);
+        StackPane.setMargin(previewTrigger, new Insets(0, 0, 24, 4));
+        previewTrigger.setOnMouseEntered(evt -> setPreviewVisible(previewTrigger, true));
+        previewTrigger.setOnMouseExited(evt -> setPreviewVisible(previewTrigger, false));
+        return previewTrigger;
+    }
+
+    private void setPreviewVisible(Node previewTrigger, boolean visible) {
+        parent.suspendUpdates(visible);
+        iv.setVisible(!visible);
+        topic.setVisible(!visible);
+        topicBackground.setVisible(!visible);
+        name.setVisible(!visible);
+        nameBackground.setVisible(!visible);
+        streamPreview.setVisible(visible);
+        streamPreview.startStream(model);
+        recordingIndicator.setVisible(!visible);
+        pausedIndicator.setVisible(!visible);
+        if(!visible) {
+            updateRecordingIndicator();
+        }
+        previewTrigger.setCursor(visible ? Cursor.HAND : Cursor.DEFAULT);
     }
 
     public void setSelected(boolean selected) {
@@ -212,48 +275,60 @@ public class ThumbCell extends StackPane {
             return;
         }
 
-        ThumbOverviewTab.threadPool.submit(() -> {
-            try {
-                ThumbOverviewTab.resolutionProcessing.add(model);
-                int[] resolution = model.getStreamResolution(false);
-                updateResolutionTag(resolution);
-
-                // the model is online, but the resolution is 0. probably something went wrong
-                // when we first requested the stream info, so we remove this invalid value from the "cache"
-                // so that it is requested again
-                if (model.isOnline() && resolution[1] == 0) {
-                    LOG.trace("Removing invalid resolution value for {}", model.getName());
-                    model.invalidateCacheEntries();
-                }
-
-                Thread.sleep(500);
-            } catch (IOException | InterruptedException e1) {
-                LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e1);
-            } catch(ExecutionException e) {
-                if(e.getCause() instanceof EOFException) {
-                    LOG.warn("Couldn't update resolution tag for model {}. Playlist empty", model.getName());
-                } else if(e.getCause() instanceof ParseException) {
-                    LOG.warn("Couldn't update resolution tag for model {} - {}", model.getName(), e.getMessage());
-                } else {
+        int[] resolution = resolutionCache.getIfPresent(model);
+        if(resolution != null) {
+            ThumbOverviewTab.threadPool.submit(() -> {
+                try {
+                    updateResolutionTag(resolution);
+                } catch(Exception e) {
                     LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e);
                 }
-            } finally {
-                ThumbOverviewTab.resolutionProcessing.remove(model);
-            }
-        });
+            });
+        } else {
+            ThumbOverviewTab.threadPool.submit(() -> {
+                try {
+                    ThumbOverviewTab.resolutionProcessing.add(model);
+                    int[] _resolution = model.getStreamResolution(false);
+                    resolutionCache.put(model, _resolution);
+                    updateResolutionTag(_resolution);
+
+                    // the model is online, but the resolution is 0. probably something went wrong
+                    // when we first requested the stream info, so we remove this invalid value from the "cache"
+                    // so that it is requested again
+                    if (model.isOnline() && _resolution[1] == 0) {
+                        LOG.trace("Removing invalid resolution value for {}", model.getName());
+                        model.invalidateCacheEntries();
+                    }
+
+                    Thread.sleep(100);
+                } catch (IOException | InterruptedException e1) {
+                    LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e1);
+                } catch(ExecutionException e) {
+                    if(e.getCause() instanceof EOFException) {
+                        LOG.warn("Couldn't update resolution tag for model {}. Playlist empty", model.getName());
+                    } else if(e.getCause() instanceof ParseException) {
+                        LOG.warn("Couldn't update resolution tag for model {} - {}", model.getName(), e.getMessage());
+                    } else {
+                        LOG.warn("Couldn't update resolution tag for model {}", model.getName(), e);
+                    }
+                } finally {
+                    ThumbOverviewTab.resolutionProcessing.remove(model);
+                }
+            });
+        }
     }
 
     private void updateResolutionTag(int[] resolution) throws IOException, ExecutionException, InterruptedException {
         String _res = "n/a";
         Paint resolutionBackgroundColor = resolutionOnlineColor;
-        String state = model.getOnlineState(false);
+        String state = model.getOnlineState(false).toString();
         if (model.isOnline()) {
             LOG.trace("Model resolution {} {}x{}", model.getName(), resolution[0], resolution[1]);
             LOG.trace("Resolution queue size: {}", ThumbOverviewTab.queue.size());
             final int w = resolution[1];
             _res = w > 0 ? w != Integer.MAX_VALUE ? Integer.toString(w) : "HD" : state;
         } else {
-            _res = model.getOnlineState(false);
+            _res = model.getOnlineState(false).toString();
             resolutionBackgroundColor = resolutionOfflineColor;
         }
         final String resText = _res;
@@ -326,16 +401,7 @@ public class ThumbCell extends StackPane {
     }
 
     void startPlayer() {
-        setCursor(Cursor.WAIT);
-        new Thread(() -> {
-            boolean started = Player.play(model);
-            Platform.runLater(() -> {
-                setCursor(Cursor.DEFAULT);
-                if (started && Config.getInstance().getSettings().showPlayerStarting) {
-                    Toast.makeText(getScene(), "Starting Player", 2000, 500, 500);
-                }
-            });
-        }).start();
+        new PlayAction(this, model).execute();
     }
 
     private void setRecording(boolean recording) {
@@ -348,6 +414,10 @@ public class ThumbCell extends StackPane {
             nameBackground.setFill(c);
         }
 
+        updateRecordingIndicator();
+    }
+
+    private void updateRecordingIndicator() {
         if(recording) {
             recordingIndicator.setVisible(!model.isSuspended());
             pausedIndicator.setVisible(model.isSuspended());
@@ -492,7 +562,7 @@ public class ThumbCell extends StackPane {
         this.model.setPreview(model.getPreview());
         this.model.setTags(model.getTags());
         this.model.setUrl(model.getUrl());
-        this.model.setSuspended(model.isSuspended());
+        this.model.setSuspended(recorder.isSuspended(model));
         update();
     }
 
@@ -566,14 +636,14 @@ public class ThumbCell extends StackPane {
         nameBackground.setWidth(w);
         nameBackground.setHeight(20);
         topicBackground.setWidth(w);
-        topicBackground.setHeight(getHeight()-nameBackground.getHeight());
+        topicBackground.setHeight(h - nameBackground.getHeight());
         topic.prefHeight(getHeight()-25);
         topic.maxHeight(getHeight()-25);
         int margin = 4;
         topic.maxWidth(w-margin*2);
         topic.setWrappingWidth(w-margin*2);
-        selectionOverlay.setWidth(w);
-        selectionOverlay.setHeight(getHeight());
+
+        streamPreview.resizeTo(w, h);
 
         Rectangle clip = new Rectangle(w, h);
         clip.setArcWidth(10);

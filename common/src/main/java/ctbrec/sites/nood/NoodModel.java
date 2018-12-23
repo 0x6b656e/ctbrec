@@ -39,7 +39,7 @@ public class NoodModel extends AbstractModel {
     private int[] resolution;
     private boolean online = false;
     private String streamUrl;
-    private String onlineState;
+    private State onlineState;
 
     @Override
     public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException {
@@ -62,7 +62,7 @@ public class NoodModel extends AbstractModel {
 
                 // online?
                 online = body.contains("data-source");
-                onlineState = online ? "online" : "offline";
+                onlineState = online ? State.ONLINE: State.OFFLINE;
 
                 // stream url
                 Element div = HtmlParser.getTag(body, "div[data-source]");
@@ -83,9 +83,9 @@ public class NoodModel extends AbstractModel {
     }
 
     @Override
-    public String getOnlineState(boolean failFast) throws IOException, ExecutionException {
+    public State getOnlineState(boolean failFast) throws IOException, ExecutionException {
         if(failFast) {
-            return Optional.ofNullable(online).orElse(false) ? "online" : "offline";
+            return Optional.ofNullable(online).orElse(false) ? State.ONLINE : State.OFFLINE;
         } else {
             if(onlineState == null) {
                 loadModelInfo();

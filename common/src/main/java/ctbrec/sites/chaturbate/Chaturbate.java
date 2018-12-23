@@ -105,7 +105,7 @@ public class Chaturbate extends AbstractSite {
     }
 
     @Override
-    public boolean login() throws IOException {
+    public synchronized boolean login() throws IOException {
         return credentialsAvailable() && getHttpClient().login();
     }
 
@@ -189,17 +189,6 @@ public class Chaturbate extends AbstractSite {
                 }
             });
 
-    LoadingCache<String, int[]> streamResolutionCache = CacheBuilder.newBuilder()
-            .initialCapacity(10_000)
-            .maximumSize(10_000)
-            .expireAfterWrite(5, TimeUnit.MINUTES)
-            .build(new CacheLoader<String, int[]> () {
-                @Override
-                public int[] load(String model) throws Exception {
-                    return loadResolution(model);
-                }
-            });
-
     public void sendTip(String name, int tokens) throws IOException {
         if (!Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
             RequestBody body = new FormBody.Builder()
@@ -264,11 +253,9 @@ public class Chaturbate extends AbstractSite {
         }
     }
 
-    public int[] getResolution(String modelName) throws ExecutionException {
-        return streamResolutionCache.get(modelName);
-    }
+    public int[] getResolution(String modelName) throws ExecutionException, IOException, ParseException, PlaylistException, InterruptedException {
+        throttleRequests();
 
-    private int[] loadResolution(String modelName) throws IOException, ParseException, PlaylistException, ExecutionException, InterruptedException {
         int[] res = new int[2];
         StreamInfo streamInfo = getStreamInfo(modelName);
         if(!streamInfo.url.startsWith("http")) {
@@ -303,7 +290,6 @@ public class Chaturbate extends AbstractSite {
             throw ex;
         }
 
-        streamResolutionCache.put(modelName, res);
         return res;
     }
 

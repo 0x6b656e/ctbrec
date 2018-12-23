@@ -1,11 +1,13 @@
 package ctbrec.recorder;
 
-import static ctbrec.Recording.STATUS.*;
+import static ctbrec.Recording.State.*;
+import static ctbrec.event.Event.Type.*;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.net.SocketTimeoutException;
 import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.security.InvalidKeyException;
@@ -25,6 +27,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -32,21 +36,31 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.eventbus.Subscribe;
+import com.iheartradio.m3u8.Encoding;
+import com.iheartradio.m3u8.Format;
 import com.iheartradio.m3u8.ParseException;
+import com.iheartradio.m3u8.ParsingMode;
 import com.iheartradio.m3u8.PlaylistException;
+import com.iheartradio.m3u8.PlaylistParser;
+import com.iheartradio.m3u8.data.MediaPlaylist;
+import com.iheartradio.m3u8.data.Playlist;
+import com.iheartradio.m3u8.data.TrackData;
 
 import ctbrec.Config;
 import ctbrec.Model;
+import ctbrec.MpegUtil;
 import ctbrec.OS;
 import ctbrec.Recording;
-import ctbrec.Recording.STATUS;
+import ctbrec.Recording.State;
+import ctbrec.event.Event;
+import ctbrec.event.EventBusHolder;
+import ctbrec.event.ModelIsOnlineEvent;
+import ctbrec.event.RecordingStateChangedEvent;
 import ctbrec.io.HttpClient;
-import ctbrec.io.HttpException;
 import ctbrec.io.StreamRedirectThread;
 import ctbrec.recorder.PlaylistGenerator.InvalidPlaylistException;
 import ctbrec.recorder.download.Download;
-import ctbrec.recorder.download.HlsDownload;
-import ctbrec.recorder.download.MergedHlsDownload;
 
 public class LocalRecorder implements Recorder {
 
@@ -59,13 +73,13 @@ public class LocalRecorder implements Recorder {
     private Map<File, PlaylistGenerator> playlistGenerators = new HashMap<>();
     private Config config;
     private ProcessMonitor processMonitor;
-    private OnlineMonitor onlineMonitor;
-    private PostProcessingTrigger postProcessingTrigger;
     private volatile boolean recording = true;
     private List<File> deleteInProgress = Collections.synchronizedList(new ArrayList<>());
     private RecorderHttpClient client = new RecorderHttpClient();
     private ReentrantLock lock = new ReentrantLock();
     private long lastSpaceMessage = 0;
+
+    private ExecutorService ppThreadPool = Executors.newFixedThreadPool(2);
 
     public LocalRecorder(Config config) {
         this.config = config;
@@ -80,17 +94,34 @@ public class LocalRecorder implements Recorder {
         recording = true;
         processMonitor = new ProcessMonitor();
         processMonitor.start();
-        onlineMonitor = new OnlineMonitor();
-        onlineMonitor.start();
 
-        postProcessingTrigger = new PostProcessingTrigger();
+        registerEventBusListener();
         if(Config.isServerMode()) {
-            postProcessingTrigger.start();
+            processUnfinishedRecordings();
         }
 
         LOG.debug("Recorder initialized");
         LOG.info("Models to record: {}", models);
         LOG.info("Saving recordings in {}", config.getSettings().recordingsDir);
+    }
+
+    private void registerEventBusListener() {
+        EventBusHolder.BUS.register(new Object() {
+            @Subscribe
+            public void modelEvent(Event e) {
+                try {
+                    if (e.getType() == MODEL_ONLINE) {
+                        ModelIsOnlineEvent evt = (ModelIsOnlineEvent) e;
+                        Model model = evt.getModel();
+                        if(!isSuspended(model) && !recordingProcesses.containsKey(model)) {
+                            startRecordingProcess(model);
+                        }
+                    }
+                } catch (Exception e1) {
+                    LOG.error("Error while handling model state changed event", e);
+                }
+            }
+        });
     }
 
     @Override
@@ -161,12 +192,7 @@ public class LocalRecorder implements Recorder {
         }
 
         LOG.debug("Starting recording for model {}", model.getName());
-        Download download;
-        if (Config.isServerMode()) {
-            download = new HlsDownload(client);
-        } else {
-            download = new MergedHlsDownload(model.getSite().getHttpClient());
-        }
+        Download download = model.createDownload();
 
         recordingProcesses.put(model, download);
         new Thread() {
@@ -183,48 +209,46 @@ public class LocalRecorder implements Recorder {
 
     private void stopRecordingProcess(Model model)  {
         Download download = recordingProcesses.get(model);
-        download.stop();
         recordingProcesses.remove(model);
-        if(!Config.isServerMode()) {
-            postprocess(download);
-        }
+        fireRecordingStateChanged(download.getTarget(), STOPPED, model, download.getStartTime());
+
+        Runnable stopAndThePostProcess = () -> {
+            download.stop();
+            createPostProcessor(download).run();
+        };
+        ppThreadPool.submit(stopAndThePostProcess);
     }
 
     private void postprocess(Download download) {
-        if(!(download instanceof MergedHlsDownload)) {
-            throw new IllegalArgumentException("Download should be of type MergedHlsDownload");
-        }
         String postProcessing = Config.getInstance().getSettings().postProcessing;
         if (postProcessing != null && !postProcessing.isEmpty()) {
-            new Thread(() -> {
-                Runtime rt = Runtime.getRuntime();
-                try {
-                    MergedHlsDownload d = (MergedHlsDownload) download;
-                    String[] args = new String[] {
-                            postProcessing,
-                            d.getTarget().getParentFile().getAbsolutePath(),
-                            d.getTarget().getAbsolutePath(),
-                            d.getModel().getName(),
-                            d.getModel().getSite().getName(),
-                            Long.toString(download.getStartTime().getEpochSecond())
-                    };
-                    LOG.debug("Running {}", Arrays.toString(args));
-                    Process process = rt.exec(args, OS.getEnvironment());
-                    Thread std = new Thread(new StreamRedirectThread(process.getInputStream(), System.out));
-                    std.setName("Process stdout pipe");
-                    std.setDaemon(true);
-                    std.start();
-                    Thread err = new Thread(new StreamRedirectThread(process.getErrorStream(), System.err));
-                    err.setName("Process stderr pipe");
-                    err.setDaemon(true);
-                    err.start();
+            Runtime rt = Runtime.getRuntime();
+            try {
+                String[] args = new String[] {
+                        postProcessing,
+                        download.getTarget().getParentFile().getAbsolutePath(),
+                        download.getTarget().getAbsolutePath(),
+                        download.getModel().getName(),
+                        download.getModel().getSite().getName(),
+                        Long.toString(download.getStartTime().getEpochSecond())
+                };
+                LOG.debug("Running {}", Arrays.toString(args));
+                Process process = rt.exec(args, OS.getEnvironment());
+                // TODO maybe write these to a separate log file, e.g. recname.ts.pp.log
+                Thread std = new Thread(new StreamRedirectThread(process.getInputStream(), System.out));
+                std.setName("Process stdout pipe");
+                std.setDaemon(true);
+                std.start();
+                Thread err = new Thread(new StreamRedirectThread(process.getErrorStream(), System.err));
+                err.setName("Process stderr pipe");
+                err.setDaemon(true);
+                err.start();
 
-                    process.waitFor();
-                    LOG.debug("Process finished.");
-                } catch (Exception e) {
-                    LOG.error("Error in process thread", e);
-                }
-            }).start();
+                process.waitFor();
+                LOG.debug("Process finished.");
+            } catch (Exception e) {
+                LOG.error("Error in process thread", e);
+            }
         }
     }
 
@@ -283,11 +307,10 @@ public class LocalRecorder implements Recorder {
         LOG.info("Shutting down");
         recording = false;
         LOG.debug("Stopping monitor threads");
-        onlineMonitor.running = false;
         processMonitor.running = false;
-        postProcessingTrigger.running = false;
         LOG.debug("Stopping all recording processes");
         stopRecordingProcesses();
+        ppThreadPool.shutdown();
         client.shutdown();
     }
 
@@ -297,12 +320,7 @@ public class LocalRecorder implements Recorder {
             for (Model model : models) {
                 Download recordingProcess = recordingProcesses.get(model);
                 if (recordingProcess != null) {
-                    try {
-                        recordingProcess.stop();
-                        LOG.debug("Stopped recording for {}", model);
-                    } catch (Exception e) {
-                        LOG.error("Couldn't stop recording for model {}", model, e);
-                    }
+                    stopRecordingProcess(model);
                 }
             }
         } finally {
@@ -354,20 +372,14 @@ public class LocalRecorder implements Recorder {
                 for (Iterator<Entry<Model, Download>> iterator = recordingProcesses.entrySet().iterator(); iterator.hasNext();) {
                     Entry<Model, Download> entry = iterator.next();
                     Model m = entry.getKey();
-                    Download d = entry.getValue();
-                    if (!d.isAlive()) {
+                    Download download = entry.getValue();
+                    if (!download.isAlive()) {
                         LOG.debug("Recording terminated for model {}", m.getName());
                         iterator.remove();
                         restart.add(m);
-                        if(Config.isServerMode()) {
-                            try {
-                                finishRecording(d.getTarget());
-                            } catch(Exception e) {
-                                LOG.error("Error while finishing recording for model {}", m.getName(), e);
-                            }
-                        } else {
-                            postprocess(d);
-                        }
+                        fireRecordingStateChanged(download.getTarget(), STOPPED, m, download.getStartTime());
+                        Runnable pp = createPostProcessor(download);
+                        ppThreadPool.submit(pp);
                     }
                 }
                 for (Model m : restart) {
@@ -382,20 +394,6 @@ public class LocalRecorder implements Recorder {
                 }
             }
             LOG.debug(getName() + " terminated");
-        }
-    }
-
-    private void finishRecording(File directory) {
-        if(Config.isServerMode()) {
-            Thread t = new Thread() {
-                @Override
-                public void run() {
-                    generatePlaylist(directory);
-                }
-            };
-            t.setDaemon(true);
-            t.setName("Post-Processing " + directory.toString());
-            t.start();
         }
     }
 
@@ -418,101 +416,37 @@ public class LocalRecorder implements Recorder {
         }
     }
 
-    private class OnlineMonitor extends Thread {
-        private volatile boolean running = false;
-
-        public OnlineMonitor() {
-            setName("OnlineMonitor");
-            setDaemon(true);
-        }
-
-        @Override
-        public void run() {
-            running = true;
-            while (running) {
-                Instant begin = Instant.now();
-                List<Model> models = getModelsRecording();
-                for (Model model : models) {
-                    try {
-                        boolean isOnline = model.isOnline(IGNORE_CACHE);
-                        LOG.trace("Checking online state for {}: {}", model, (isOnline ? "online" : "offline"));
-                        if (isOnline && !isSuspended(model) && !recordingProcesses.containsKey(model)) {
-                            LOG.info("Model {}'s room back to public", model);
-                            startRecordingProcess(model);
-                        }
-                    } catch (HttpException e) {
-                        LOG.error("Couldn't check if model {} is online. HTTP Response: {} - {}",
-                                model.getName(), e.getResponseCode(), e.getResponseMessage());
-                    } catch (SocketTimeoutException e) {
-                        LOG.error("Couldn't check if model {} is online. Request timed out", model.getName());
-                    } catch (Exception e) {
-                        LOG.error("Couldn't check if model {} is online", model.getName(), e);
-                    }
-                }
-                Instant end = Instant.now();
-                Duration timeCheckTook = Duration.between(begin, end);
-                LOG.trace("Online check for {} models took {} seconds", models.size(), timeCheckTook.getSeconds());
-
-                long sleepTime = Config.getInstance().getSettings().onlineCheckIntervalInSecs;
-                if(timeCheckTook.getSeconds() < sleepTime) {
-                    try {
-                        if (running) {
-                            long millis = TimeUnit.SECONDS.toMillis(sleepTime - timeCheckTook.getSeconds());
-                            LOG.trace("Sleeping {}ms", millis);
-                            Thread.sleep(millis);
-                        }
-                    } catch (InterruptedException e) {
-                        LOG.trace("Sleep interrupted");
-                    }
-                }
-            }
-            LOG.debug(getName() + " terminated");
-        }
+    private void fireRecordingStateChanged(File path, Recording.State newState, Model model, Instant startTime) {
+        RecordingStateChangedEvent evt = new RecordingStateChangedEvent(path, newState, model, startTime);
+        EventBusHolder.BUS.post(evt);
     }
 
-    private class PostProcessingTrigger extends Thread {
-        private volatile boolean running = false;
-
-        public PostProcessingTrigger() {
-            setName("PostProcessingTrigger");
-            setDaemon(true);
-        }
-
-        @Override
-        public void run() {
-            running = true;
-            while (running) {
-                try {
-                    List<Recording> recs = getRecordings();
-                    for (Recording rec : recs) {
-                        if (rec.getStatus() == RECORDING) {
-                            boolean recordingProcessFound = false;
-                            File recordingsDir = new File(config.getSettings().recordingsDir);
-                            File recDir = new File(recordingsDir, rec.getPath());
-                            for (Entry<Model, Download> download : recordingProcesses.entrySet()) {
-                                if (download.getValue().getTarget().equals(recDir)) {
-                                    recordingProcessFound = true;
-                                }
-                            }
-                            if (!recordingProcessFound) {
-                                if (deleteInProgress.contains(recDir)) {
-                                    LOG.debug("{} is being deleted. Not going to start post-processing", recDir);
-                                } else {
-                                    finishRecording(recDir);
-                                }
-                            }
+    /**
+     * This is called once at start for server mode. When the server is killed, recordings are
+     * left without playlist. This method creates playlists for them.
+     */
+    private void processUnfinishedRecordings() {
+        try {
+            List<Recording> recs = getRecordings();
+            for (Recording rec : recs) {
+                if (rec.getStatus() == RECORDING) {
+                    boolean recordingProcessFound = false;
+                    File recordingsDir = new File(config.getSettings().recordingsDir);
+                    File recDir = new File(recordingsDir, rec.getPath());
+                    for (Entry<Model, Download> download : recordingProcesses.entrySet()) {
+                        if (download.getValue().getTarget().equals(recDir)) {
+                            recordingProcessFound = true;
                         }
                     }
-
-                    if (running)
-                        Thread.sleep(10000);
-                } catch (InterruptedException e) {
-                    LOG.error("Couldn't sleep", e);
-                } catch (Exception e) {
-                    LOG.error("Unexpected error in playlist trigger thread", e);
+                    if (!recordingProcessFound) {
+                        ppThreadPool.submit(() -> {
+                            generatePlaylist(recDir);
+                        });
+                    }
                 }
             }
-            LOG.debug(getName() + " terminated");
+        } catch (Exception e) {
+            LOG.error("Unexpected error in playlist trigger", e);
         }
     }
 
@@ -554,7 +488,7 @@ public class LocalRecorder implements Recorder {
         return recordings;
     }
 
-    private STATUS getStatus(Recording recording) {
+    private State getStatus(Recording recording) {
         File absolutePath = new File(Config.getInstance().getSettings().recordingsDir, recording.getPath());
 
         PlaylistGenerator playlistGenerator = playlistGenerators.get(absolutePath);
@@ -611,6 +545,10 @@ public class LocalRecorder implements Recorder {
                         }
                         // ignore empty directories
                         if (rec.listFiles().length == 0) {
+                            continue;
+                        }
+                        // don't list recordings, which currently get deleted
+                        if (deleteInProgress.contains(rec)) {
                             continue;
                         }
 
@@ -804,6 +742,81 @@ public class LocalRecorder implements Recorder {
             return true;
         } else {
             return getFreeSpaceBytes() > minimum;
+        }
+    }
+
+    private Runnable createPostProcessor(Download download) {
+        return () -> {
+            LOG.debug("Starting post-processing for {}", download.getTarget());
+            if(Config.isServerMode()) {
+                fireRecordingStateChanged(download.getTarget(), GENERATING_PLAYLIST, download.getModel(), download.getStartTime());
+                generatePlaylist(download.getTarget());
+            }
+            boolean deleted = deleteIfTooShort(download);
+            if(deleted) {
+                // recording was too short. stop here and don't do post-processing
+                return;
+            }
+            fireRecordingStateChanged(download.getTarget(), POST_PROCESSING, download.getModel(), download.getStartTime());
+            postprocess(download);
+            fireRecordingStateChanged(download.getTarget(), FINISHED, download.getModel(), download.getStartTime());
+        };
+    }
+
+
+    // TODO maybe get file size and bitrate and check, if the values are plausible
+    // we could also compare the length with the time elapsed since starting the recording
+    private boolean deleteIfTooShort(Download download) {
+        long minimumLengthInSeconds = Config.getInstance().getSettings().minimumLengthInSeconds;
+        if(minimumLengthInSeconds <= 0) {
+            return false;
+        }
+
+        try {
+            LOG.debug("Determining video length for {}", download.getTarget());
+            File target = download.getTarget();
+            double duration = 0;
+            if(target.isDirectory()) {
+                File playlist = new File(target, "playlist.m3u8");
+                duration = getPlaylistLength(playlist);
+            } else {
+                duration = MpegUtil.getFileDuration(target);
+            }
+            Duration minLength = Duration.ofSeconds(minimumLengthInSeconds);
+            Duration videoLength = Duration.ofSeconds((long) duration);
+            LOG.debug("Recording started at:{}. Video length is {}", download.getStartTime(), videoLength);
+            if(videoLength.minus(minLength).isNegative()) {
+                LOG.debug("Video too short {} {}", videoLength, download.getTarget());
+                LOG.debug("Deleting {}", target);
+                if(target.isDirectory()) {
+                    deleteDirectory(target);
+                    deleteEmptyParents(target);
+                } else {
+                    Files.delete(target.toPath());
+                    deleteEmptyParents(target.getParentFile());
+                }
+                return true;
+            } else {
+                return false;
+            }
+        } catch (Exception e) {
+            LOG.error("Couldn't check video length", e);
+            return false;
+        }
+    }
+
+    private double getPlaylistLength(File playlist) throws IOException, ParseException, PlaylistException {
+        if(playlist.exists()) {
+            PlaylistParser playlistParser = new PlaylistParser(new FileInputStream(playlist), Format.EXT_M3U, Encoding.UTF_8, ParsingMode.LENIENT);
+            Playlist m3u = playlistParser.parse();
+            MediaPlaylist mediaPlaylist = m3u.getMediaPlaylist();
+            double length = 0;
+            for (TrackData trackData : mediaPlaylist.getTracks()) {
+                length += trackData.getTrackInfo().duration;
+            }
+            return length;
+        } else {
+            throw new FileNotFoundException(playlist.getAbsolutePath() + " does not exist");
         }
     }
 }

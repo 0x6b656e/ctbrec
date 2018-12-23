@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import org.jsoup.nodes.Element;
 import org.slf4j.Logger;
@@ -28,6 +29,7 @@ import com.squareup.moshi.JsonReader;
 import com.squareup.moshi.JsonWriter;
 
 import ctbrec.AbstractModel;
+import ctbrec.Config;
 import ctbrec.io.HtmlParser;
 import ctbrec.io.HttpException;
 import ctbrec.recorder.download.StreamSource;
@@ -44,8 +46,8 @@ public class MyFreeCamsModel extends AbstractModel {
     private String hlsUrl;
     private double camScore;
     private int viewerCount;
-    private State state;
-    private int resolution[];
+    private ctbrec.sites.mfc.State state;
+    private int resolution[] = new int[2];
 
     /**
      * This constructor exists only for deserialization. Please don't call it directly
@@ -59,7 +61,7 @@ public class MyFreeCamsModel extends AbstractModel {
     @Override
     public boolean isOnline() throws IOException, ExecutionException, InterruptedException {
         MyFreeCamsClient.getInstance().update(this);
-        return state == State.ONLINE;
+        return state == ctbrec.sites.mfc.State.ONLINE;
     }
 
     @Override
@@ -68,8 +70,29 @@ public class MyFreeCamsModel extends AbstractModel {
     }
 
     @Override
-    public String getOnlineState(boolean failFast) throws IOException, ExecutionException {
-        return state != null ? state.toString() : "offline";
+    public State getOnlineState(boolean failFast) throws IOException, ExecutionException {
+        if(state == null) {
+            return State.UNKNOWN;
+        }
+
+        switch(state) {
+        case ONLINE:
+        case RECORDING:
+            return ctbrec.Model.State.ONLINE;
+        case AWAY:
+            return ctbrec.Model.State.AWAY;
+        case PRIVATE:
+            return ctbrec.Model.State.PRIVATE;
+        case GROUP_SHOW:
+            return ctbrec.Model.State.GROUP;
+        case OFFLINE:
+        case CAMOFF:
+        case UNKNOWN:
+            return ctbrec.Model.State.OFFLINE;
+        default:
+            LOG.debug("State {} is not mapped", this.state);
+            return ctbrec.Model.State.UNKNOWN;
+        }
     }
 
     @Override
@@ -95,7 +118,13 @@ public class MyFreeCamsModel extends AbstractModel {
                 sources.add(src);
             }
         }
-        return sources;
+        if(Config.getInstance().getSettings().mfcIgnoreUpscaled) {
+            return sources.stream()
+                    .filter(src -> src.height != 960)
+                    .collect(Collectors.toList());
+        } else {
+            return sources;
+        }
     }
 
     private MasterPlaylist getMasterPlaylist() throws IOException, ParseException, PlaylistException {
@@ -174,26 +203,19 @@ public class MyFreeCamsModel extends AbstractModel {
 
     @Override
     public int[] getStreamResolution(boolean failFast) throws ExecutionException {
-        if(resolution == null) {
-            if(failFast || hlsUrl == null) {
-                return new int[2];
+        if (!failFast && hlsUrl != null) {
+            try {
+                List<StreamSource> streamSources = getStreamSources();
+                Collections.sort(streamSources);
+                StreamSource best = streamSources.get(streamSources.size() - 1);
+                resolution = new int[] { best.width, best.height };
+            } catch (ParseException | PlaylistException e) {
+                LOG.warn("Couldn't determine stream resolution - {}", e.getMessage());
+            } catch (ExecutionException | IOException e) {
+                LOG.error("Couldn't determine stream resolution", e);
             }
-            MyFreeCamsClient.getInstance().execute(()->{
-                try {
-                    List<StreamSource> streamSources = getStreamSources();
-                    Collections.sort(streamSources);
-                    StreamSource best = streamSources.get(streamSources.size()-1);
-                    resolution = new int[] {best.width, best.height};
-                } catch (ParseException | PlaylistException e) {
-                    LOG.warn("Couldn't determine stream resolution - {}", e.getMessage());
-                } catch (ExecutionException | IOException e) {
-                    LOG.error("Couldn't determine stream resolution", e);
-                }
-            });
-            return new int[2];
-        } else {
-            return resolution;
         }
+        return resolution;
     }
 
     public void setStreamUrl(String hlsUrl) {
@@ -212,7 +234,7 @@ public class MyFreeCamsModel extends AbstractModel {
         this.camScore = camScore;
     }
 
-    public void setState(State state) {
+    public void setMfcState(ctbrec.sites.mfc.State state) {
         this.state = state;
     }
 
@@ -228,7 +250,7 @@ public class MyFreeCamsModel extends AbstractModel {
     public void update(SessionState state, String streamUrl) {
         uid = Integer.parseInt(state.getUid().toString());
         setName(state.getNm());
-        setState(State.of(state.getVs()));
+        setMfcState(ctbrec.sites.mfc.State.of(state.getVs()));
         setStreamUrl(streamUrl);
         Optional<Double> camScore = Optional.ofNullable(state.getM()).map(m -> m.getCamscore());
         setCamScore(camScore.orElse(0.0));
@@ -237,7 +259,7 @@ public class MyFreeCamsModel extends AbstractModel {
         String uid = state.getUid().toString();
         String uidStart = uid.substring(0, 3);
         String previewUrl = "https://img.mfcimg.com/photos2/"+uidStart+'/'+uid+"/avatar.300x300.jpg";
-        if(MyFreeCamsModel.this.state == State.ONLINE) {
+        if(MyFreeCamsModel.this.state == ctbrec.sites.mfc.State.ONLINE) {
             try {
                 previewUrl = getLivePreviewUrl(state);
             } catch(Exception e) {

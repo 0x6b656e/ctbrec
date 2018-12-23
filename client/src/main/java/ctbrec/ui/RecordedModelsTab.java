@@ -3,19 +3,16 @@ package ctbrec.ui;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -28,9 +25,12 @@ import ctbrec.Recording;
 import ctbrec.StringUtil;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
+import ctbrec.ui.action.FollowAction;
+import ctbrec.ui.action.PauseAction;
+import ctbrec.ui.action.PlayAction;
+import ctbrec.ui.action.ResumeAction;
+import ctbrec.ui.action.StopRecordingAction;
 import ctbrec.ui.controls.AutoFillTextField;
-import ctbrec.ui.controls.Toast;
-import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -38,7 +38,6 @@ import javafx.concurrent.ScheduledService;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
-import javafx.scene.Cursor;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
@@ -59,6 +58,7 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
@@ -67,9 +67,6 @@ import javafx.util.Duration;
 
 public class RecordedModelsTab extends Tab implements TabSelectionListener {
     private static final transient Logger LOG = LoggerFactory.getLogger(RecordedModelsTab.class);
-
-    static BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
-    static ExecutorService threadPool = new ThreadPoolExecutor(2, 2, 10, TimeUnit.MINUTES, queue);
 
     private ScheduledService<List<JavaFxModel>> updateService;
     private Recorder recorder;
@@ -121,6 +118,9 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         preview.setCellValueFactory(cdf -> new SimpleStringProperty("  ▶  "));
         preview.setEditable(false);
         preview.setId("preview");
+        if(!Config.getInstance().getSettings().livePreviews) {
+            preview.setVisible(false);
+        }
         TableColumn<JavaFxModel, String> name = new TableColumn<>("Model");
         name.setPrefWidth(200);
         name.setCellValueFactory(new PropertyValueFactory<JavaFxModel, String>("displayName"));
@@ -152,6 +152,14 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
                 popup.show(table, event.getScreenX(), event.getScreenY());
             }
             event.consume();
+        });
+        table.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+            if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
+                JavaFxModel model = table.getSelectionModel().getSelectedItem();
+                if(model != null) {
+                    new PlayAction(table, model).execute();
+                }
+            }
         });
         table.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
             if (popup != null) {
@@ -271,39 +279,11 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
     }
 
     private void pauseAll(ActionEvent evt) {
-        List<Model> models = recorder.getModelsRecording();
-        Consumer<Model> action = (m) -> {
-            try {
-                recorder.suspendRecording(m);
-            } catch(Exception e) {
-                Platform.runLater(() ->
-                showErrorDialog(e, "Couldn't suspend recording of model", "Suspending recording of " + m.getName() + " failed"));
-            }
-        };
-        massEdit(models, action);
+        new PauseAction(getTabPane(), recorder.getModelsRecording(), recorder).execute();
     }
 
     private void resumeAll(ActionEvent evt) {
-        List<Model> models = recorder.getModelsRecording();
-        Consumer<Model> action = (m) -> {
-            try {
-                recorder.resumeRecording(m);
-            } catch(Exception e) {
-                Platform.runLater(() ->
-                showErrorDialog(e, "Couldn't resume recording of model", "Resuming recording of " + m.getName() + " failed"));
-            }
-        };
-        massEdit(models, action);
-    }
-
-    private void massEdit(List<Model> models, Consumer<Model> action) {
-        getTabPane().setCursor(Cursor.WAIT);
-        threadPool.submit(() -> {
-            for (Model model : models) {
-                action.accept(model);
-            }
-            Platform.runLater(() -> getTabPane().setCursor(Cursor.DEFAULT));
-        });
+        new ResumeAction(getTabPane(), recorder.getModelsRecording(), recorder).execute();
     }
 
     void initializeUpdateService() {
@@ -368,7 +348,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
                                 .map(m -> new JavaFxModel(m))
                                 .peek(fxm -> {
                                     for (Recording recording : recordings) {
-                                        if(recording.getStatus() == Recording.STATUS.RECORDING &&
+                                        if(recording.getStatus() == Recording.State.RECORDING &&
                                                 recording.getModelName().equals(fxm.getName()))
                                         {
                                             fxm.getRecordingProperty().set(true);
@@ -443,6 +423,8 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         openInPlayer.setOnAction((e) -> openInPlayer(selectedModels.get(0)));
         MenuItem switchStreamSource = new MenuItem("Switch resolution");
         switchStreamSource.setOnAction((e) -> switchStreamSource(selectedModels.get(0)));
+        MenuItem follow = new MenuItem("Follow");
+        follow.setOnAction((e) -> follow(selectedModels));
 
         ContextMenu menu = new ContextMenu(stop);
         if (selectedModels.size() == 1) {
@@ -450,7 +432,7 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         } else {
             menu.getItems().addAll(resumeRecording, pauseRecording);
         }
-        menu.getItems().addAll(copyUrl, openInPlayer, openInBrowser, switchStreamSource);
+        menu.getItems().addAll(copyUrl, openInPlayer, openInBrowser, switchStreamSource, follow);
 
         if (selectedModels.size() > 1) {
             copyUrl.setDisable(true);
@@ -462,17 +444,12 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
         return menu;
     }
 
+    private void follow(ObservableList<JavaFxModel> selectedModels) {
+        new FollowAction(getTabPane(), new ArrayList<JavaFxModel>(selectedModels)).execute();
+    }
+
     private void openInPlayer(JavaFxModel selectedModel) {
-        table.setCursor(Cursor.WAIT);
-        new Thread(() -> {
-            boolean started = Player.play(selectedModel);
-            Platform.runLater(() -> {
-                if (started && Config.getInstance().getSettings().showPlayerStarting) {
-                    Toast.makeText(getTabPane().getScene(), "Starting Player", 2000, 500, 500);
-                }
-                table.setCursor(Cursor.DEFAULT);
-            });
-        }).start();
+        new PlayAction(getTabPane(), selectedModel).execute();
     }
 
     private void switchStreamSource(JavaFxModel fxModel) {
@@ -524,45 +501,20 @@ public class RecordedModelsTab extends Tab implements TabSelectionListener {
     }
 
     private void stopAction(List<JavaFxModel> selectedModels) {
-        Consumer<Model> action = (m) -> {
-            try {
-                recorder.stopRecording(m);
-                observableModels.remove(m);
-            } catch(Exception e) {
-                Platform.runLater(() ->
-                showErrorDialog(e, "Couldn't stop recording", "Stopping recording of " + m.getName() + " failed"));
-            }
-        };
         List<Model> models = selectedModels.stream().map(jfxm -> jfxm.getDelegate()).collect(Collectors.toList());
-        massEdit(models, action);
+        new StopRecordingAction(getTabPane(), models, recorder).execute((m) -> {
+            observableModels.remove(m);
+        });
     };
 
     private void pauseRecording(List<JavaFxModel> selectedModels) {
-        Consumer<Model> action = (m) -> {
-            try {
-                recorder.suspendRecording(m);
-                m.setSuspended(true);
-            } catch(Exception e) {
-                Platform.runLater(() ->
-                showErrorDialog(e, "Couldn't pause recording of model", "Pausing recording of " + m.getName() + " failed"));
-            }
-        };
         List<Model> models = selectedModels.stream().map(jfxm -> jfxm.getDelegate()).collect(Collectors.toList());
-        massEdit(models, action);
+        new PauseAction(getTabPane(), models, recorder).execute();
     };
 
     private void resumeRecording(List<JavaFxModel> selectedModels) {
-        Consumer<Model> action = (m) -> {
-            try {
-                recorder.resumeRecording(m);
-                m.setSuspended(false);
-            } catch(Exception e) {
-                Platform.runLater(() ->
-                showErrorDialog(e, "Couldn't resume recording of model", "Resuming recording of " + m.getName() + " failed"));
-            }
-        };
         List<Model> models = selectedModels.stream().map(jfxm -> jfxm.getDelegate()).collect(Collectors.toList());
-        massEdit(models, action);
+        new ResumeAction(getTabPane(), models, recorder).execute();
     }
 
     public void saveState() {

@@ -3,11 +3,15 @@ package ctbrec;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 import com.squareup.moshi.JsonReader;
 import com.squareup.moshi.JsonWriter;
 
+import ctbrec.recorder.download.Download;
+import ctbrec.recorder.download.HlsDownload;
+import ctbrec.recorder.download.MergedHlsDownload;
 import ctbrec.sites.Site;
 
 public abstract class AbstractModel implements Model {
@@ -21,6 +25,7 @@ public abstract class AbstractModel implements Model {
     private int streamUrlIndex = -1;
     private boolean suspended = false;
     protected Site site;
+    protected State onlineState = State.UNKNOWN;
 
     @Override
     public boolean isOnline() throws IOException, ExecutionException, InterruptedException {
@@ -122,6 +127,15 @@ public abstract class AbstractModel implements Model {
     }
 
     @Override
+    public State getOnlineState(boolean failFast) throws IOException, ExecutionException {
+        return onlineState;
+    }
+
+    public void setOnlineState(State status) {
+        this.onlineState = status;
+    }
+
+    @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
@@ -153,6 +167,13 @@ public abstract class AbstractModel implements Model {
     }
 
     @Override
+    public int compareTo(Model o) {
+        String thisName = Optional.ofNullable(getDisplayName()).orElse("").toLowerCase();
+        String otherName = Optional.ofNullable(o).map(m -> m.getDisplayName()).orElse("").toLowerCase();
+        return thisName.compareTo(otherName);
+    }
+
+    @Override
     public String toString() {
         return getName();
     }
@@ -165,5 +186,14 @@ public abstract class AbstractModel implements Model {
     @Override
     public Site getSite() {
         return site;
+    }
+
+    @Override
+    public Download createDownload() {
+        if(Config.isServerMode()) {
+            return new HlsDownload(getSite().getHttpClient());
+        } else {
+            return new MergedHlsDownload(getSite().getHttpClient());
+        }
     }
 }

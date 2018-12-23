@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import ctbrec.event.EventHandlerConfiguration;
+
 public class Settings {
 
     public enum ProxyType {
@@ -39,6 +41,7 @@ public class Settings {
     public String recordingsDir = System.getProperty("user.home") + File.separator + "ctbrec";
     public DirectoryStructure recordingsDirStructure = DirectoryStructure.FLAT;
     public long minimumSpaceLeftInBytes = 0;
+    public int minimumLengthInSeconds = 0;
     public String mediaPlayer = "/usr/bin/mpv";
     public String postProcessing = "";
     public String username = ""; // chaturbate username TODO maybe rename this onetime
@@ -49,14 +52,24 @@ public class Settings {
     public String mfcUsername = "";
     public String mfcPassword = "";
     public String mfcBaseUrl = "https://www.myfreecams.com";
+    public String mfcModelsTableSortColumn = "";
+    public String mfcModelsTableSortType = "";
+    public double[] mfcModelsTableColumnWidths = new double[0];
+    public String mfcModelsTableFilter = "";
+    public List<String> mfcDisabledModelsTableColumns = new ArrayList<>();
+    public boolean mfcIgnoreUpscaled = false;
     public String camsodaUsername = "";
     public String camsodaPassword = "";
-    public String cam4Username;
-    public String cam4Password;
+    public String cam4Username = "";
+    public String cam4Password = "";
+    public String streamateUsername = "";
+    public String streamatePassword = "";
     public String lastDownloadDir = "";
 
-    public List<Model> models = new ArrayList<Model>();
+    public List<Model> models = new ArrayList<>();
+    public List<EventHandlerConfiguration> eventHandlers = new ArrayList<>();
     public boolean determineResolution = false;
+    public boolean livePreviews = false;
     public boolean requireAuthentication = false;
     public boolean chooseStreamQuality = false;
     public int maximumResolution = 0;
@@ -79,6 +92,7 @@ public class Settings {
     public String colorBase = "#FFFFFF";
     public String colorAccent = "#FFFFFF";
     public int onlineCheckIntervalInSecs = 60;
+    public int overviewUpdateIntervalInSecs = 10;
     public String recordedModelsSortColumn = "";
     public String recordedModelsSortType = "";
     public double[] recordedModelsColumnWidths = new double[0];

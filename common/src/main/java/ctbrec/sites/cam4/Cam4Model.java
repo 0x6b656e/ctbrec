@@ -1,5 +1,7 @@
 package ctbrec.sites.cam4;
 
+import static ctbrec.Model.State.*;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -26,7 +28,6 @@ import com.iheartradio.m3u8.data.PlaylistData;
 
 import ctbrec.AbstractModel;
 import ctbrec.Config;
-import ctbrec.StringUtil;
 import ctbrec.io.HtmlParser;
 import ctbrec.io.HttpException;
 import ctbrec.recorder.download.StreamSource;
@@ -39,27 +40,19 @@ public class Cam4Model extends AbstractModel {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(Cam4Model.class);
     private String playlistUrl;
-    private String onlineState = "offline";
     private int[] resolution = null;
     private boolean privateRoom = false;
 
     @Override
-    public boolean isOnline() throws IOException, ExecutionException, InterruptedException {
-        return isOnline(false);
-    }
-
-    @Override
     public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException {
-        if(ignoreCache || onlineState == null) {
+        if(ignoreCache || onlineState == UNKNOWN) {
             try {
                 loadModelDetails();
             } catch (ModelDetailsEmptyException e) {
                 return false;
             }
         }
-        return (Objects.equals("NORMAL", onlineState) || Objects.equals("GROUP_SHOW_SELLING_TICKETS", onlineState))
-                && StringUtil.isNotBlank(playlistUrl)
-                && !privateRoom;
+        return onlineState == ONLINE && !privateRoom;
     }
 
     private void loadModelDetails() throws IOException, ModelDetailsEmptyException {
@@ -70,13 +63,17 @@ public class Cam4Model extends AbstractModel {
             if(response.isSuccessful()) {
                 JSONArray json = new JSONArray(response.body().string());
                 if(json.length() == 0) {
-                    onlineState = "offline";
+                    onlineState = OFFLINE;
                     throw new ModelDetailsEmptyException("Model details are empty");
                 }
                 JSONObject details = json.getJSONObject(0);
-                onlineState = details.getString("showType");
+                String showType = details.getString("showType");
+                setOnlineStateByShowType(showType);
                 playlistUrl = details.getString("hlsPreviewUrl");
                 privateRoom = details.getBoolean("privateRoom");
+                if(privateRoom) {
+                    onlineState = PRIVATE;
+                }
                 if(details.has("resolution")) {
                     String res = details.getString("resolution");
                     String[] tokens = res.split(":");
@@ -88,9 +85,42 @@ public class Cam4Model extends AbstractModel {
         }
     }
 
+    public void setOnlineStateByShowType(String showType) {
+        switch(showType) {
+        case "NORMAL":
+        case "GROUP_SHOW_SELLING_TICKETS":
+            onlineState = ONLINE;
+            break;
+        case "PRIVATE_SHOW":
+            onlineState = PRIVATE;
+            break;
+        case "GROUP_SHOW":
+            onlineState = GROUP;
+            break;
+        case "OFFLINE":
+            onlineState = OFFLINE;
+            break;
+        default:
+            LOG.debug("Unknown show type {}", showType);
+            onlineState = UNKNOWN;
+        }
+
+    }
+
     @Override
-    public String getOnlineState(boolean failFast) throws IOException, ExecutionException {
-        return onlineState;
+    public State getOnlineState(boolean failFast) throws IOException, ExecutionException {
+        if(failFast) {
+            return onlineState;
+        } else {
+            if(onlineState == UNKNOWN) {
+                try {
+                    loadModelDetails();
+                } catch (ModelDetailsEmptyException e) {
+                    LOG.warn("Couldn't load model details", e.getMessage());
+                }
+            }
+            return onlineState;
+        }
     }
 
     private String getPlaylistUrl() throws IOException {
@@ -157,7 +187,11 @@ public class Cam4Model extends AbstractModel {
                 return new int[2];
             } else {
                 try {
-                    loadModelDetails();
+                    if(onlineState != OFFLINE) {
+                        loadModelDetails();
+                    } else {
+                        resolution = new int[2];
+                    }
                 } catch (Exception e) {
                     throw new ExecutionException(e);
                 }
@@ -229,10 +263,6 @@ public class Cam4Model extends AbstractModel {
 
     public void setPlaylistUrl(String playlistUrl) {
         this.playlistUrl = playlistUrl;
-    }
-
-    public void setOnlineState(String onlineState) {
-        this.onlineState = onlineState;
     }
 
     public class ModelDetailsEmptyException extends Exception {

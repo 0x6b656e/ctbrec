@@ -1,5 +1,7 @@
 package ctbrec.sites.chaturbate;
 
+import static ctbrec.Model.State.*;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +27,7 @@ import okhttp3.Response;
 public class ChaturbateModel extends AbstractModel {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(ChaturbateModel.class);
+    private int[] resolution = new int[2];
 
     /**
      * This constructor exists only for deserialization. Please don't call it directly
@@ -52,16 +55,16 @@ public class ChaturbateModel extends AbstractModel {
 
     @Override
     public int[] getStreamResolution(boolean failFast) throws ExecutionException {
-        int[] resolution = getChaturbate().streamResolutionCache.getIfPresent(getName());
-        if(resolution != null) {
-            return getChaturbate().getResolution(getName());
-        } else {
-            if(failFast) {
-                return new int[2];
-            } else {
-                return getChaturbate().getResolution(getName());
-            }
+        if(failFast) {
+            return resolution;
         }
+
+        try {
+            resolution = getChaturbate().getResolution(getName());
+        } catch(Exception e) {
+            throw new ExecutionException(e);
+        }
+        return resolution;
     }
 
     /**
@@ -71,17 +74,49 @@ public class ChaturbateModel extends AbstractModel {
     @Override
     public void invalidateCacheEntries() {
         getChaturbate().streamInfoCache.invalidate(getName());
-        getChaturbate().streamResolutionCache.invalidate(getName());
     }
 
-    public String getOnlineState() throws IOException, ExecutionException {
+    public State getOnlineState() throws IOException, ExecutionException {
         return getOnlineState(false);
     }
 
     @Override
-    public String getOnlineState(boolean failFast) throws IOException, ExecutionException {
-        StreamInfo info = getChaturbate().streamInfoCache.getIfPresent(getName());
-        return info != null ? info.room_status : "n/a";
+    public State getOnlineState(boolean failFast) throws IOException, ExecutionException {
+        if(failFast) {
+            StreamInfo info = getChaturbate().streamInfoCache.getIfPresent(getName());
+            setOnlineStateByRoomStatus(info.room_status);
+        } else {
+            StreamInfo info = getChaturbate().streamInfoCache.get(getName());
+            setOnlineStateByRoomStatus(info.room_status);
+        }
+        return onlineState;
+    }
+
+    private void setOnlineStateByRoomStatus(String room_status) {
+        if(room_status != null) {
+            switch(room_status) {
+            case "public":
+                onlineState = ONLINE;
+                break;
+            case "offline":
+                onlineState = OFFLINE;
+                break;
+            case "private":
+            case "hidden":
+            case "password protected":
+                onlineState = PRIVATE;
+                break;
+            case "away":
+                onlineState = AWAY;
+                break;
+            case "group":
+                onlineState = State.GROUP;
+                break;
+            default:
+                LOG.debug("Unknown show type {}", room_status);
+                onlineState = State.UNKNOWN;
+            }
+        }
     }
 
     public StreamInfo getStreamInfo() throws IOException, ExecutionException {

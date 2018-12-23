@@ -43,7 +43,7 @@ public class JavaFxRecording extends Recording {
     }
 
     @Override
-    public STATUS getStatus() {
+    public State getStatus() {
         return delegate.getStatus();
     }
 
@@ -52,7 +52,7 @@ public class JavaFxRecording extends Recording {
     }
 
     @Override
-    public void setStatus(STATUS status) {
+    public void setStatus(State status) {
         delegate.setStatus(status);
         switch(status) {
         case RECORDING:
@@ -67,8 +67,14 @@ public class JavaFxRecording extends Recording {
         case DOWNLOADING:
             statusProperty.set("downloading");
             break;
-        case MERGING:
-            statusProperty.set("merging");
+        case POST_PROCESSING:
+            statusProperty.set("post-processing");
+            break;
+        case STOPPED:
+            statusProperty.set("stopped");
+            break;
+        case UNKNOWN:
+            statusProperty.set("unknown");
             break;
         }
     }
@@ -115,7 +121,7 @@ public class JavaFxRecording extends Recording {
 
     public void update(Recording updated) {
         if(!Config.getInstance().getSettings().localRecording) {
-            if(getStatus() == STATUS.DOWNLOADING && updated.getStatus() != STATUS.DOWNLOADING) {
+            if(getStatus() == State.DOWNLOADING && updated.getStatus() != State.DOWNLOADING) {
                 // ignore, because the the status coming from the server is FINISHED and we are
                 // overriding it with DOWNLOADING
                 return;

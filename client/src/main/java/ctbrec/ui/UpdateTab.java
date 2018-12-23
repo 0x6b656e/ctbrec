@@ -3,6 +3,7 @@ package ctbrec.ui;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ctbrec.Config;
 import ctbrec.ui.CamrecApplication.Release;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -36,6 +37,7 @@ public class UpdateTab extends Tab {
         try {
             WebEngine webEngine = browser.getEngine();
             webEngine.load("https://raw.githubusercontent.com/0xboobface/ctbrec/master/CHANGELOG.md");
+            webEngine.setUserDataDirectory(Config.getInstance().getConfigDir());
             vbox.getChildren().add(browser);
             VBox.setVgrow(browser, Priority.ALWAYS);
         } catch (Exception e) {

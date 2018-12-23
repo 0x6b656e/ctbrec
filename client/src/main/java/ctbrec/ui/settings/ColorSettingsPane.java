@@ -1,30 +1,28 @@
-package ctbrec.ui;
+package ctbrec.ui.settings;
 
 import ctbrec.Config;
 import javafx.scene.control.Button;
 import javafx.scene.control.ColorPicker;
-import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 
 public class ColorSettingsPane extends Pane {
 
-    Label labelBaseColor = new Label("Base");
     ColorPicker baseColor = new ColorPicker();
-    Label labelAccentColor = new Label("Accent");
     ColorPicker accentColor = new ColorPicker();
     Button reset = new Button("Reset");
     Pane foobar = new Pane();
 
     public ColorSettingsPane(SettingsTab settingsTab) {
-        getChildren().add(labelBaseColor);
         getChildren().add(baseColor);
-        getChildren().add(labelAccentColor);
         getChildren().add(accentColor);
         getChildren().add(reset);
 
         baseColor.setValue(Color.web(Config.getInstance().getSettings().colorBase));
+        baseColor.setTooltip(new Tooltip("Base Color"));
         accentColor.setValue(Color.web(Config.getInstance().getSettings().colorAccent));
+        accentColor.setTooltip(new Tooltip("Accent Color"));
 
         baseColor.setOnAction(evt -> {
             Config.getInstance().getSettings().colorBase = toWeb(baseColor.getValue());
@@ -68,16 +66,12 @@ public class ColorSettingsPane extends Pane {
 
     @Override
     protected void layoutChildren() {
-        labelBaseColor.resize(32, 25);
         baseColor.resize(44, 25);
-        labelAccentColor.resize(46, 25);
         accentColor.resize(44, 25);
         reset.resize(60, 25);
 
-        labelBaseColor.setTranslateX(0);
-        baseColor.setTranslateX(labelBaseColor.getWidth() + 10);
-        labelAccentColor.setTranslateX(baseColor.getTranslateX() + baseColor.getWidth() + 15);
-        accentColor.setTranslateX(labelAccentColor.getTranslateX() + labelAccentColor.getWidth() + 10);
-        reset.setTranslateX(accentColor.getTranslateX() + accentColor.getWidth() + 50);
+        baseColor.setTranslateX(0);
+        accentColor.setTranslateX(baseColor.getTranslateX() + baseColor.getWidth() + 10);
+        reset.setTranslateX(accentColor.getTranslateX() + accentColor.getWidth() + 10);
     }
 }

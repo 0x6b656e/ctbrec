@@ -23,13 +23,14 @@ import ctbrec.Config;
 import ctbrec.Settings.ProxyType;
 import okhttp3.ConnectionPool;
 import okhttp3.Cookie;
-import okhttp3.CookieJar;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 import okhttp3.OkHttpClient.Builder;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.Route;
+import okhttp3.WebSocket;
+import okhttp3.WebSocketListener;
 
 public abstract class HttpClient {
     private static final transient Logger LOG = LoggerFactory.getLogger(HttpClient.class);
@@ -212,7 +213,17 @@ public abstract class HttpClient {
         }
     }
 
-    public CookieJar getCookieJar() {
+    public CookieJarImpl getCookieJar() {
         return cookieJar;
+    }
+
+    public void logout() {
+        getCookieJar().clear();
+        loggedIn = false;
+    }
+
+    public WebSocket newWebSocket(String url, WebSocketListener l) {
+        Request request = new Request.Builder().url(url).build();
+        return client.newWebSocket(request, l);
     }
 }

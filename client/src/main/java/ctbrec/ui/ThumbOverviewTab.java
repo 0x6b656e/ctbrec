@@ -1,5 +1,6 @@
 package ctbrec.ui;
 
+import static ctbrec.ui.controls.Dialogs.*;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
@@ -26,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import ctbrec.Config;
 import ctbrec.Model;
+import ctbrec.event.EventBusHolder;
 import ctbrec.recorder.Recorder;
 import ctbrec.sites.Site;
 import ctbrec.sites.mfc.MyFreeCamsClient;
@@ -141,7 +143,6 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                 + "Try \"1080\" or \">720\" or \"public\"");
         filterInput.setTooltip(filterTooltip);
         filterInput.getStyleClass().remove("search-box-icon");
-        BorderPane.setMargin(filterInput, new Insets(5));
 
         SearchBox searchInput = new SearchBox();
         searchInput.setPromptText("Search Model");
@@ -152,7 +153,6 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                 popover.hide();
             }
         });
-        BorderPane.setMargin(searchInput, new Insets(5));
 
         popover = new SearchPopover();
         popover.maxWidthProperty().bind(popover.minWidthProperty());
@@ -168,9 +168,19 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         HBox topBar = new HBox(5);
         HBox.setHgrow(filterInput, Priority.ALWAYS);
         topBar.getChildren().add(filterInput);
+        if (site.supportsTips() && site.credentialsAvailable()) {
+            Button buyTokens = new Button("Buy Tokens");
+            buyTokens.setOnAction((e) -> DesktopIntegration.open(site.getBuyTokensLink()));
+            TokenLabel tokenBalance = new TokenLabel(site);
+            tokenBalance.setAlignment(Pos.CENTER_RIGHT);
+            tokenBalance.prefHeightProperty().bind(buyTokens.heightProperty());
+            topBar.getChildren().addAll(tokenBalance, buyTokens);
+            tokenBalance.loadBalance();
+        }
         if(site.supportsSearch()) {
             topBar.getChildren().add(searchInput);
         }
+        BorderPane.setMargin(topBar, new Insets(0, 5, 0, 5));
 
         scrollPane.setContent(grid);
         scrollPane.setFitToHeight(true);
@@ -328,7 +338,8 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     }
 
     void initializeUpdateService() {
-        updateService.setPeriod(new Duration(TimeUnit.SECONDS.toMillis(10)));
+        int refreshRate = Config.getInstance().getSettings().overviewUpdateIntervalInSecs;
+        updateService.setPeriod(new Duration(TimeUnit.SECONDS.toMillis(refreshRate)));
         updateService.setOnSucceeded((event) -> onSuccess());
         updateService.setOnFailed((event) -> onFail(event));
     }
@@ -339,7 +350,6 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
         }
         List<Model> models = updateService.getValue();
         updateGrid(models);
-
     }
 
     protected void updateGrid(List<? extends Model> models) {
@@ -468,8 +478,9 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                         Map<String, Object> event = new HashMap<>();
                         event.put("event", "tokens.sent");
                         event.put("amount", tokens);
-                        CamrecApplication.bus.post(event);
+                        EventBusHolder.BUS.post(event);
                     } catch (Exception e1) {
+                        LOG.error("An error occured while sending tip", e1);
                         showError("Couldn't send tip", "An error occured while sending tip:", e1);
                     }
                 } else {
@@ -608,7 +619,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
 
     private double getFollowedTabYPosition(Tab followedTab) {
         TabPane tabPane = getTabPane();
-        int idx = tabPane.getTabs().indexOf(followedTab);
+        int idx = Math.max(0, tabPane.getTabs().indexOf(followedTab));
         for (Node node : tabPane.getChildrenUnmodifiable()) {
             Parent p = (Parent) node;
             for (Node child : p.getChildrenUnmodifiable()) {
@@ -773,7 +784,7 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
                         tokensMissing = true;
                     }
                 } else if(token.equals("public")) {
-                    if(!m.getOnlineState(true).equals(token)) {
+                    if(!m.getOnlineState(true).toString().equals(token)) {
                         tokensMissing = true;
                     }
                 } else if(!searchText.toLowerCase().contains(token.toLowerCase())) {
@@ -819,26 +830,6 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     private void removeSelection() {
         while(selectedThumbCells.size() > 0) {
             selectedThumbCells.get(0).setSelected(false);
-        }
-    }
-
-    private void showError(String header, String text, Exception e) {
-        Runnable r = () -> {
-            Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
-            alert.setTitle("Error");
-            alert.setHeaderText(header);
-            String content = text;
-            if(e != null) {
-                content += " " + e.getLocalizedMessage();
-            }
-            alert.setContentText(content);
-            alert.showAndWait();
-        };
-
-        if(Platform.isFxApplicationThread()) {
-            r.run();
-        } else {
-            Platform.runLater(r);
         }
     }
 }

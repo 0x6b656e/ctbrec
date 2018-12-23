@@ -1,3 +1,38 @@
+1.16.0
+========================
+* Thumbnails can show a live preview. Can be switched on in the settings.
+* Live preview is experimental for now, because I noticed some funky behavior
+  of the the internal media player. You can use it on your own risk.
+* Added Streamate (metcams, xhamstercams, pornhublive)
+* Maximum resolution can be an arbitrary value now
+* Added setting for minimal recording length. Recordings, which are shorter
+  than this value, get deleted automatically.
+* Double-click in Recording tab starts the player
+* Fix: BongaCams friends tab not working
+* Fix: BongaCams search fails with JSON exception
+* Fix: In some cases MFC models got confused
+
+1.15.0
+========================
+* Fix: BongaCams overview didn't work anymore
+* Fix: CamSoda overview didn't work anymore
+* Fix: Multi selection of thumbnails didn't work when a tab was opened the
+  first time
+* Fix: Cam4 online detection was to restrictive
+* Added tabular view for MFC, which shows all online models
+
+1.14.0
+========================
+* Added setting for MFC to ignore the upscaled (960p) stream
+* Added event system. You can define to show a notification, play a sound or
+  execute a program, when the state of a model or recording changes
+* Added "follow" menu entry on the Recording tab
+* Fix: Recordings change from suspended to recording by their own when a
+  thumbnail tab is opened and the model is showing
+* Fix: Linux scripts don't work on systems where bash isn't the default shell
+* Improved loading and display of resolution tags. They are not re-loaded
+  everytime you switch between tabs
+
 1.13.0
 ========================
 * Added  possibility to open small live previews of online models

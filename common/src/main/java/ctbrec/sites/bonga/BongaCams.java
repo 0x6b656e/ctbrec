@@ -94,7 +94,7 @@ public class BongaCams extends AbstractSite {
     }
 
     @Override
-    public boolean login() throws IOException {
+    public synchronized boolean login() throws IOException {
         return credentialsAvailable() && getHttpClient().login();
     }
 
@@ -157,15 +157,17 @@ public class BongaCams extends AbstractSite {
                     JSONArray results = json.getJSONArray("models");
                     for (int i = 0; i < results.length(); i++) {
                         JSONObject result = results.getJSONObject(i);
-                        Model model = createModel(result.getString("username"));
-                        String thumb = result.getString("thumb_image");
-                        if(thumb != null) {
-                            model.setPreview("https:" + thumb);
+                        if(result.has("username")) {
+                            Model model = createModel(result.getString("username"));
+                            String thumb = result.getString("thumb_image");
+                            if(thumb != null) {
+                                model.setPreview("https:" + thumb);
+                            }
+                            if(result.has("display_name")) {
+                                model.setDisplayName(result.getString("display_name"));
+                            }
+                            models.add(model);
                         }
-                        if(result.has("display_name")) {
-                            model.setDisplayName(result.getString("display_name"));
-                        }
-                        models.add(model);
                     }
                     return models;
                 } else {

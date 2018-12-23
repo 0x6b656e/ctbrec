@@ -1,19 +1,18 @@
 package ctbrec.sites.camsoda;
 
+import static ctbrec.Model.State.*;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.iheartradio.m3u8.Encoding;
 import com.iheartradio.m3u8.Format;
 import com.iheartradio.m3u8.ParseException;
@@ -39,14 +38,8 @@ public class CamsodaModel extends AbstractModel {
     private static final transient Logger LOG = LoggerFactory.getLogger(CamsodaModel.class);
     private String streamUrl;
     private List<StreamSource> streamSources = null;
-    private String status = "n/a";
     private float sortOrder = 0;
-
-    private static Cache<String, int[]> streamResolutionCache = CacheBuilder.newBuilder()
-            .initialCapacity(10_000)
-            .maximumSize(10_000)
-            .expireAfterWrite(30, TimeUnit.MINUTES)
-            .build();
+    int[] resolution = new int[2];
 
     public String getStreamUrl() throws IOException {
         if(streamUrl == null) {
@@ -64,7 +57,8 @@ public class CamsodaModel extends AbstractModel {
             JSONObject result = new JSONObject(response.body().string());
             if(result.getBoolean("status")) {
                 JSONObject chat = result.getJSONObject("user").getJSONObject("chat");
-                status = chat.getString("status");
+                String status = chat.getString("status");
+                setOnlineStateByStatus(status);
                 if(chat.has("edge_servers")) {
                     String edgeServer = chat.getJSONArray("edge_servers").getString(0);
                     String streamName = chat.getString("stream_name");
@@ -79,28 +73,47 @@ public class CamsodaModel extends AbstractModel {
         }
     }
 
+    public void setOnlineStateByStatus(String status) {
+        switch(status) {
+        case "online":
+            onlineState = ONLINE;
+            break;
+        case "offline":
+            onlineState = OFFLINE;
+            break;
+        case "connected":
+            onlineState = AWAY;
+            break;
+        case "private":
+            onlineState = PRIVATE;
+            break;
+        case "limited":
+            onlineState = GROUP;
+            break;
+        default:
+            LOG.debug("Unknown show type {}", status);
+            onlineState = UNKNOWN;
+        }
+    }
+
     @Override
     public boolean isOnline(boolean ignoreCache) throws IOException, ExecutionException, InterruptedException {
-        if(ignoreCache) {
+        if(ignoreCache || onlineState == UNKNOWN) {
             loadModel();
         }
-        return Objects.equals(status, "online");
+        return onlineState == ONLINE;
     }
 
     @Override
-    public String getOnlineState(boolean failFast) throws IOException, ExecutionException {
+    public State getOnlineState(boolean failFast) throws IOException, ExecutionException {
         if(failFast) {
-            return status;
+            return onlineState;
         } else {
-            if(status.equals("n/a")) {
+            if(onlineState == UNKNOWN) {
                 loadModel();
             }
-            return status;
+            return onlineState;
         }
-    }
-
-    public void setOnlineState(String state) {
-        this.status = state;
     }
 
     @Override
@@ -139,13 +152,11 @@ public class CamsodaModel extends AbstractModel {
     @Override
     public void invalidateCacheEntries() {
         streamSources = null;
-        streamResolutionCache.invalidate(getName());
     }
 
     @Override
     public int[] getStreamResolution(boolean failFast) throws ExecutionException {
-        int[] resolution = streamResolutionCache.getIfPresent(getName());
-        if(resolution != null) {
+        if(failFast) {
             return resolution;
         } else {
             if(failFast) {
@@ -158,7 +169,6 @@ public class CamsodaModel extends AbstractModel {
                     } else {
                         StreamSource src = streamSources.get(0);
                         resolution = new int[] {src.width, src.height};
-                        streamResolutionCache.put(getName(), resolution);
                         return resolution;
                     }
                 } catch (IOException | ParseException | PlaylistException e) {

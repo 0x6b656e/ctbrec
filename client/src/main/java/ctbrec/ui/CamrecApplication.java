@@ -1,5 +1,6 @@
 package ctbrec.ui;
 
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -11,13 +12,11 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.eventbus.AsyncEventBus;
-import com.google.common.eventbus.EventBus;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 import com.squareup.moshi.Types;
@@ -25,8 +24,12 @@ import com.squareup.moshi.Types;
 import ctbrec.Config;
 import ctbrec.StringUtil;
 import ctbrec.Version;
+import ctbrec.event.EventBusHolder;
+import ctbrec.event.EventHandler;
+import ctbrec.event.EventHandlerConfiguration;
 import ctbrec.io.HttpClient;
 import ctbrec.recorder.LocalRecorder;
+import ctbrec.recorder.OnlineMonitor;
 import ctbrec.recorder.Recorder;
 import ctbrec.recorder.RemoteRecorder;
 import ctbrec.sites.Site;
@@ -36,6 +39,8 @@ import ctbrec.sites.camsoda.Camsoda;
 import ctbrec.sites.chaturbate.Chaturbate;
 import ctbrec.sites.mfc.MyFreeCams;
 import ctbrec.sites.nood.Nood;
+import ctbrec.sites.streamate.Streamate;
+import ctbrec.ui.settings.SettingsTab;
 import javafx.application.Application;
 import javafx.application.HostServices;
 import javafx.application.Platform;
@@ -57,12 +62,13 @@ public class CamrecApplication extends Application {
 
     private Config config;
     private Recorder recorder;
+    private OnlineMonitor onlineMonitor;
     static HostServices hostServices;
     private SettingsTab settingsTab;
     private TabPane rootPane = new TabPane();
-    static EventBus bus;
     private List<Site> sites = new ArrayList<>();
     public static HttpClient httpClient;
+    public static String title;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -73,11 +79,14 @@ public class CamrecApplication extends Application {
         sites.add(new Chaturbate());
         sites.add(new MyFreeCams());
         sites.add(new Nood());
+        sites.add(new Streamate());
         loadConfig();
+        registerAlertSystem();
         createHttpClient();
-        bus = new AsyncEventBus(Executors.newSingleThreadExecutor());
         hostServices = getHostServices();
         createRecorder();
+        onlineMonitor = new OnlineMonitor(recorder);
+        onlineMonitor.start();
         for (Site site : sites) {
             if(site.isEnabled()) {
                 try {
@@ -100,7 +109,8 @@ public class CamrecApplication extends Application {
 
     private void createGui(Stage primaryStage) throws IOException {
         LOG.debug("Creating GUI");
-        primaryStage.setTitle("CTB Recorder " + getVersion());
+        CamrecApplication.title = "CTB Recorder " + getVersion();
+        primaryStage.setTitle(title);
         InputStream icon = getClass().getResourceAsStream("/icon.png");
         primaryStage.getIcons().add(new Image(icon));
         int windowWidth = Config.getInstance().getSettings().windowWidth;
@@ -121,7 +131,7 @@ public class CamrecApplication extends Application {
         rootPane.getTabs().add(modelsTab);
         RecordingsTab recordingsTab = new RecordingsTab("Recordings", recorder, config, sites);
         rootPane.getTabs().add(recordingsTab);
-        settingsTab = new SettingsTab(sites);
+        settingsTab = new SettingsTab(sites, recorder);
         rootPane.getTabs().add(settingsTab);
         rootPane.getTabs().add(new DonateTabFx());
 
@@ -132,7 +142,7 @@ public class CamrecApplication extends Application {
             loadStyleSheet(primaryStage, "color.css");
         }
         loadStyleSheet(primaryStage, "style.css");
-        primaryStage.getScene().getStylesheets().add("/ctbrec/ui/ColorSettingsPane.css");
+        primaryStage.getScene().getStylesheets().add("/ctbrec/ui/settings/ColorSettingsPane.css");
         primaryStage.getScene().getStylesheets().add("/ctbrec/ui/ThumbCell.css");
         primaryStage.getScene().getStylesheets().add("/ctbrec/ui/controls/SearchBox.css");
         primaryStage.getScene().getStylesheets().add("/ctbrec/ui/controls/Popover.css");
@@ -160,6 +170,7 @@ public class CamrecApplication extends Application {
                     modelsTab.saveState();
                     recordingsTab.saveState();
                     settingsTab.saveConfig();
+                    onlineMonitor.shutdown();
                     recorder.shutdown();
                     for (Site site : sites) {
                         if(site.isEnabled()) {
@@ -169,9 +180,13 @@ public class CamrecApplication extends Application {
                     try {
                         Config.getInstance().save();
                         LOG.info("Shutdown complete. Goodbye!");
-                        Platform.exit();
-                        // This is needed, because OkHttp?! seems to block the shutdown with its writer threads. They are not daemon threads :(
-                        System.exit(0);
+                        Platform.runLater(() -> {
+                            primaryStage.close();
+                            shutdownInfo.close();
+                            Platform.exit();
+                            // This is needed, because OkHttp?! seems to block the shutdown with its writer threads. They are not daemon threads :(
+                            System.exit(0);
+                        });
                     } catch (IOException e1) {
                         Platform.runLater(() -> {
                             Alert alert = new AutosizeAlert(Alert.AlertType.ERROR);
@@ -197,6 +212,26 @@ public class CamrecApplication extends Application {
                 }
             }
         });
+    }
+
+    private void registerAlertSystem() {
+        new Thread(() -> {
+            try {
+                // don't register before 1 minute has passed, because directly after
+                // the start of ctbrec, an event for every online model would be fired,
+                // which is annoying as f
+                Thread.sleep(TimeUnit.MINUTES.toMillis(1));
+
+                for (EventHandlerConfiguration config : Config.getInstance().getSettings().eventHandlers) {
+                    EventHandler handler = new EventHandler(config);
+                    EventBusHolder.register(handler);
+                    LOG.debug("Registered event handler for {} {}", config.getEvent(), config.getName());
+                }
+                LOG.debug("Alert System registered");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 
     private void writeColorSchemeStyleSheet(Stage primaryStage) {

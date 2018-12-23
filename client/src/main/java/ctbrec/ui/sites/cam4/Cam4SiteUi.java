@@ -30,7 +30,7 @@ public class Cam4SiteUi implements SiteUI {
     public Cam4SiteUi(Cam4 cam4) {
         this.cam4 = cam4;
         tabProvider = new Cam4TabProvider(cam4);
-        configUI = new Cam4ConfigUI();
+        configUI = new Cam4ConfigUI(cam4);
     }
 
     @Override
@@ -44,7 +44,7 @@ public class Cam4SiteUi implements SiteUI {
     }
 
     @Override
-    public boolean login() throws IOException {
+    public synchronized boolean login() throws IOException {
         boolean automaticLogin = cam4.login();
         if(automaticLogin) {
             return true;

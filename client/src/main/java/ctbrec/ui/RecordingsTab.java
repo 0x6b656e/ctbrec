@@ -1,5 +1,6 @@
 package ctbrec.ui;
 
+import static ctbrec.Recording.State.*;
 import static javafx.scene.control.ButtonType.*;
 
 import java.io.File;
@@ -34,7 +35,7 @@ import com.iheartradio.m3u8.PlaylistException;
 
 import ctbrec.Config;
 import ctbrec.Recording;
-import ctbrec.Recording.STATUS;
+import ctbrec.Recording.State;
 import ctbrec.StringUtil;
 import ctbrec.recorder.Recorder;
 import ctbrec.recorder.download.MergedHlsDownload;
@@ -172,7 +173,7 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
                             if(Objects.equals(System.getenv("CTBREC_DEV"), "1")) {
                                 int row = this.getTableRow().getIndex();
                                 JavaFxRecording rec = tableViewProperty().get().getItems().get(row);
-                                if(!rec.valueChanged() && rec.getStatus() == STATUS.RECORDING) {
+                                if(!rec.valueChanged() && rec.getStatus() == State.RECORDING) {
                                     setStyle("-fx-alignment: CENTER-RIGHT; -fx-background-color: red");
                                 }
                             }
@@ -212,11 +213,11 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
             List<JavaFxRecording> recordings = table.getSelectionModel().getSelectedItems();
             if (recordings != null && !recordings.isEmpty()) {
                 if (event.getCode() == KeyCode.DELETE) {
-                    if(recordings.size() > 1 || recordings.get(0).getStatus() == STATUS.FINISHED) {
+                    if(recordings.size() > 1 || recordings.get(0).getStatus() == State.FINISHED) {
                         delete(recordings);
                     }
                 } else if (event.getCode() == KeyCode.ENTER) {
-                    if(recordings.get(0).getStatus() == STATUS.FINISHED) {
+                    if(recordings.get(0).getStatus() == State.FINISHED) {
                         play(recordings.get(0));
                     }
                 }
@@ -376,7 +377,7 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
         openInPlayer.setOnAction((e) -> {
             play(recordings.get(0));
         });
-        if(recordings.get(0).getStatus() == STATUS.FINISHED || Config.getInstance().getSettings().localRecording) {
+        if(recordings.get(0).getStatus() == State.FINISHED || Config.getInstance().getSettings().localRecording) {
             contextMenu.getItems().add(openInPlayer);
         }
 
@@ -398,7 +399,7 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
         deleteRecording.setOnAction((e) -> {
             delete(recordings);
         });
-        if(recordings.get(0).getStatus() == STATUS.FINISHED || recordings.size() > 1) {
+        if(recordings.get(0).getStatus() == State.FINISHED || recordings.size() > 1) {
             contextMenu.getItems().add(deleteRecording);
         }
 
@@ -424,7 +425,7 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
                 LOG.error("Error while downloading recording", e1);
             }
         });
-        if (!Config.getInstance().getSettings().localRecording && recordings.get(0).getStatus() == STATUS.FINISHED) {
+        if (!Config.getInstance().getSettings().localRecording && recordings.get(0).getStatus() == State.FINISHED) {
             contextMenu.getItems().add(downloadRecording);
         }
 
@@ -463,11 +464,11 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
                         download.start(url.toString(), target, (progress) -> {
                             Platform.runLater(() -> {
                                 if (progress == 100) {
-                                    recording.setStatus(STATUS.FINISHED);
+                                    recording.setStatus(FINISHED);
                                     recording.setProgress(-1);
                                     LOG.debug("Download finished for recording {}", recording.getPath());
                                 } else {
-                                    recording.setStatus(STATUS.DOWNLOADING);
+                                    recording.setStatus(DOWNLOADING);
                                     recording.setProgress(progress);
                                 }
                             });
@@ -482,7 +483,7 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
                         Platform.runLater(new Runnable() {
                             @Override
                             public void run() {
-                                recording.setStatus(STATUS.FINISHED);
+                                recording.setStatus(FINISHED);
                                 recording.setProgress(-1);
                             }
                         });
@@ -493,7 +494,7 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
             t.setName("Download Thread " + recording.getPath());
             t.start();
 
-            recording.setStatus(STATUS.DOWNLOADING);
+            recording.setStatus(State.DOWNLOADING);
             recording.setProgress(0);
         }
     }
@@ -563,7 +564,7 @@ public class RecordingsTab extends Tab implements TabSelectionListener {
                         List<Recording> deleted = new ArrayList<>();
                         for (Iterator<JavaFxRecording> iterator = recordings.iterator(); iterator.hasNext();) {
                             JavaFxRecording r =  iterator.next();
-                            if(r.getStatus() != STATUS.FINISHED) {
+                            if(r.getStatus() != FINISHED) {
                                 continue;
                             }
                             try {

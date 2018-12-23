@@ -52,6 +52,7 @@ public class LiveJasmin extends AbstractSite {
 
     @Override
     public Integer getTokenBalance() throws IOException {
+        // https://www.livejasmin.com/en/offline-surprise/get-member-balance?session=m15f0175aa97d2d3c64df8f9bf96e3d8e
         return 0;
     }
 

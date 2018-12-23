@@ -52,7 +52,7 @@ public class LiveJasminFollowedUpdateService extends PaginatedScheduledService {
                         String body = response.body().string();
                         List<Model> models = new ArrayList<>();
                         JSONObject json = new JSONObject(body);
-                        LOG.debug(json.toString(2));
+                        //LOG.debug(json.toString(2));
                         if(json.has("success")) {
                             JSONObject data = json.getJSONObject("data");
                             JSONArray performers = data.getJSONArray("performers");

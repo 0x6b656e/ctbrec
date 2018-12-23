@@ -28,7 +28,6 @@ import ctbrec.AbstractModel;
 import ctbrec.Config;
 import ctbrec.io.HttpException;
 import ctbrec.recorder.download.Download;
-import ctbrec.recorder.download.HlsDownload;
 import ctbrec.recorder.download.StreamSource;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -272,14 +271,15 @@ public class LiveJasminModel extends AbstractModel {
 
     @Override
     public Download createDownload() {
-        if(Config.getInstance().getSettings().livejasminSession.isEmpty()) {
-            if(Config.isServerMode()) {
-                return new HlsDownload(getSite().getHttpClient());
-            } else {
-                return new LiveJasminMergedHlsDownload(getSite().getHttpClient());
-            }
-        } else {
-            return new LiveJasminWebSocketDownload(getSite().getHttpClient());
-        }
+        //        if(Config.getInstance().getSettings().livejasminSession.isEmpty()) {
+        //            if(Config.isServerMode()) {
+        //                return new HlsDownload(getSite().getHttpClient());
+        //            } else {
+        //                return new LiveJasminMergedHlsDownload(getSite().getHttpClient());
+        //            }
+        //        } else {
+        //            return new LiveJasminWebSocketDownload(getSite().getHttpClient());
+        //        }
+        return new LiveJasminChunkedHttpDownload(getSite().getHttpClient());
     }
 }

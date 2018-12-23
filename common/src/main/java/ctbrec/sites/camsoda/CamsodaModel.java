@@ -81,6 +81,9 @@ public class CamsodaModel extends AbstractModel {
         case "offline":
             onlineState = OFFLINE;
             break;
+        case "connected":
+            onlineState = AWAY;
+            break;
         case "private":
             onlineState = PRIVATE;
             break;

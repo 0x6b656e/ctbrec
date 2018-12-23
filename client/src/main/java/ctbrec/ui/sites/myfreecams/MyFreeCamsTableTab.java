@@ -1,6 +1,13 @@
 package ctbrec.ui.sites.myfreecams;
+
+import static java.nio.file.StandardOpenOption.*;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -12,6 +19,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +37,7 @@ import ctbrec.ui.action.PlayAction;
 import ctbrec.ui.action.StartRecordingAction;
 import ctbrec.ui.controls.SearchBox;
 import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.Property;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -51,6 +61,7 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.SortType;
 import javafx.scene.control.TableView;
+import javafx.scene.control.Tooltip;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.ContextMenuEvent;
@@ -58,6 +69,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.stage.FileChooser;
 import javafx.util.Duration;
 
 public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
@@ -73,13 +85,15 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
     private Label count = new Label("models");
     private List<TableColumn<ModelTableRow, ?>> columns = new ArrayList<>();
     private ContextMenu popup;
+    private long lastJsonWrite = 0;
 
     public MyFreeCamsTableTab(MyFreeCams mfc) {
         this.mfc = mfc;
         setText("Tabular");
         setClosable(false);
-        initUpdateService();
         createGui();
+        loadData();
+        initUpdateService();
         restoreState();
         filter(filterInput.getText());
     }
@@ -131,6 +145,12 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
         filteredModels.clear();
         filter(filterInput.getText());
         table.sort();
+
+        long now = System.currentTimeMillis();
+        if( (now - lastJsonWrite) > TimeUnit.SECONDS.toMillis(30)) {
+            lastJsonWrite = now;
+            saveData();
+        }
     }
 
     private void createGui() {
@@ -151,11 +171,15 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
         });
         filterInput.getStyleClass().remove("search-box-icon");
         HBox.setHgrow(filterInput, Priority.ALWAYS);
+        Button export = new Button("⬇");
+        export.setOnAction(this::export);
+        export.setTooltip(new Tooltip("Export data"));
+
         Button columnSelection = new Button("⚙");
-        //Button columnSelection = new Button("⩩");
         columnSelection.setOnAction(this::showColumnSelection);
+        columnSelection.setTooltip(new Tooltip("Select columns"));
         HBox topBar = new HBox(5);
-        topBar.getChildren().addAll(filterInput, count, columnSelection);
+        topBar.getChildren().addAll(filterInput, count, export, columnSelection);
         count.prefHeightProperty().bind(filterInput.heightProperty());
         count.setAlignment(Pos.CENTER);
         layout.setTop(topBar);
@@ -312,8 +336,11 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
             for (int i = 0; i < table.getItems().size(); i++) {
                 StringBuilder sb = new StringBuilder();
                 for (TableColumn<ModelTableRow, ?> tc : table.getColumns()) {
-                    String cellData = tc.getCellData(i).toString();
-                    sb.append(cellData).append(' ');
+                    Object cellData = tc.getCellData(i);
+                    if(cellData != null) {
+                        String content = cellData.toString();
+                        sb.append(content).append(' ');
+                    }
                 }
                 String searchText = sb.toString();
 
@@ -337,6 +364,43 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
             int total = showing + filtered;
             count.setText(showing + "/" + total);
         }
+    }
+
+    private void export(ActionEvent evt) {
+        FileChooser chooser = new FileChooser();
+        File file = chooser.showSaveDialog(getTabPane().getScene().getWindow());
+        if(file != null) {
+            try(FileOutputStream fout = new FileOutputStream(file)) {
+                PrintStream ps = new PrintStream(fout);
+                List<ModelTableRow> union = new ArrayList<>();
+                union.addAll(filteredModels);
+                union.addAll(observableModels);
+                ps.println("\"uid\",\"blurp\",\"camScore\",\"continent\",\"country\",\"ethnic\",\"name\",\"new\",\"occupation\",\"state\",\"tags\",\"topic\"");
+                for (ModelTableRow row : union) {
+                    ps.print("\"" + row.uid + "\""); ps.print(',');
+                    ps.print(escape(row.blurp)); ps.print(',');
+                    ps.print(escape(row.camScore)); ps.print(',');
+                    ps.print(escape(row.continent)); ps.print(',');
+                    ps.print(escape(row.country)); ps.print(',');
+                    ps.print(escape(row.ethnic)); ps.print(',');
+                    ps.print(escape(row.name)); ps.print(',');
+                    ps.print(escape(row.newModel)); ps.print(',');
+                    ps.print(escape(row.occupation)); ps.print(',');
+                    ps.print(escape(row.state)); ps.print(',');
+                    ps.print(escape(row.tags)); ps.print(',');
+                    ps.print(escape(row.topic));
+                    ps.println();
+                }
+            } catch (Exception e) {
+                LOG.debug("Couldn't write mfc models table data: {}", e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private String escape(Property<?> prop) {
+        String value = prop.getValue() != null ? prop.getValue().toString() : "";
+        return "\"" + value.replaceAll("\"", "\"\"") + "\"";
     }
 
     private void showColumnSelection(ActionEvent evt) {
@@ -397,6 +461,68 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
     public void deselected() {
         if(updateService != null) {
             updateService.cancel();
+        }
+        saveData();
+    }
+
+    private void saveData() {
+        try {
+            List<ModelTableRow> union = new ArrayList<>();
+            union.addAll(filteredModels);
+            union.addAll(observableModels);
+            JSONArray data = new JSONArray();
+            for (ModelTableRow row : union) {
+                JSONObject model = new JSONObject();
+                model.put("uid", row.uid);
+                model.put("blurp", row.blurp.get());
+                model.put("camScore", row.camScore.get());
+                model.put("continent", row.continent.get());
+                model.put("country", row.country.get());
+                model.put("ethnic", row.ethnic.get());
+                model.put("name", row.name.get());
+                model.put("newModel", row.newModel.get());
+                model.put("occupation", row.occupation.get());
+                model.put("state", row.state.get());
+                model.put("tags", row.tags.get());
+                model.put("topic", row.topic.get());
+                data.put(model);
+            }
+            File file = new File(Config.getInstance().getConfigDir(), "mfc-models.json");
+            Files.write(file.toPath(), data.toString(2).getBytes("utf-8"), CREATE, WRITE);
+        } catch (Exception e) {
+            LOG.debug("Couldn't write mfc models table data: {}", e.getMessage());
+        }
+    }
+
+    private void loadData() {
+        try {
+            File file = new File(Config.getInstance().getConfigDir(), "mfc-models.json");
+            if(!file.exists()) {
+                return;
+            }
+            String json = new String(Files.readAllBytes(file.toPath()), "utf-8");
+            JSONArray data = new JSONArray(json);
+            for (int i = 0; i < data.length(); i++) {
+                try {
+                    ModelTableRow row = new ModelTableRow();
+                    JSONObject model = data.getJSONObject(i);
+                    row.uid = model.getInt("uid");
+                    row.blurp.set(model.optString("blurp"));
+                    row.camScore.set(model.optDouble("camScore"));
+                    row.continent.set(model.optString("continent"));
+                    row.country.set(model.optString("country"));
+                    row.ethnic.set(model.optString("ethnic"));
+                    row.name.set(model.optString("name"));
+                    row.newModel.set(model.optString("newModel"));
+                    row.occupation.set(model.optString("occupation"));
+                    row.state.set(model.optString("state"));
+                    row.tags.set(model.optString("tags"));
+                    row.topic.set(model.optString("topic"));
+                    observableModels.add(row);
+                } catch (Exception e) {}
+            }
+        } catch (Exception e) {
+            LOG.debug("Couldn't read mfc models table data: {}", e.getMessage());
         }
     }
 
@@ -463,28 +589,31 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
             update(st);
         }
 
+        private ModelTableRow() {
+        }
+
         public void update(SessionState st) {
             uid = st.getUid();
-            name.set(Optional.ofNullable(st.getNm()).orElse("n/a"));
-            state.set(Optional.ofNullable(st.getVs()).map(vs -> ctbrec.sites.mfc.State.of(vs).toString()).orElse("n/a"));
-            camScore.set(Optional.ofNullable(st.getM()).map(m -> m.getCamscore()).orElse(0d));
-            Integer nu = Optional.ofNullable(st.getM()).map(m -> m.getNewModel()).orElse(0);
-            newModel.set(nu == 1 ? "new" : "");
-            ethnic.set(Optional.ofNullable(st.getU()).map(u -> u.getEthnic()).orElse("n/a"));
-            country.set(Optional.ofNullable(st.getU()).map(u -> u.getCountry()).orElse("n/a"));
-            continent.set(Optional.ofNullable(st.getM()).map(m -> m.getContinent()).orElse("n/a"));
-            occupation.set(Optional.ofNullable(st.getU()).map(u -> u.getOccupation()).orElse("n/a"));
+            setProperty(name, Optional.ofNullable(st.getNm()));
+            setProperty(state, Optional.ofNullable(st.getVs()).map(vs -> ctbrec.sites.mfc.State.of(vs).toString()));
+            setProperty(camScore, Optional.ofNullable(st.getM()).map(m -> m.getCamscore()));
+            Optional<Integer> isNew = Optional.ofNullable(st.getM()).map(m -> m.getNewModel());
+            if(isNew.isPresent()) {
+                newModel.set(isNew.get() == 1 ? "new" : "");
+            }
+            setProperty(ethnic, Optional.ofNullable(st.getU()).map(u -> u.getEthnic()));
+            setProperty(country, Optional.ofNullable(st.getU()).map(u -> u.getCountry()));
+            setProperty(continent, Optional.ofNullable(st.getM()).map(m -> m.getContinent()));
+            setProperty(occupation, Optional.ofNullable(st.getU()).map(u -> u.getOccupation()));
             Set<String> tagSet = Optional.ofNullable(st.getM()).map(m -> m.getTags()).orElse(Collections.emptySet());
-            if(tagSet.isEmpty()) {
-                tags.set("");
-            } else {
+            if(!tagSet.isEmpty()) {
                 StringBuilder sb = new StringBuilder();
                 for (String t : tagSet) {
                     sb.append(t).append(',').append(' ');
                 }
                 tags.set(sb.substring(0, sb.length()-2));
             }
-            blurp.set(Optional.ofNullable(st.getU()).map(u -> u.getBlurb()).orElse("n/a"));
+            setProperty(blurp, Optional.ofNullable(st.getU()).map(u -> u.getBlurb()));
             String tpc = Optional.ofNullable(st.getM()).map(m -> m.getTopic()).orElse("n/a");
             try {
                 tpc = URLDecoder.decode(tpc, "utf-8");
@@ -492,6 +621,12 @@ public class MyFreeCamsTableTab extends Tab implements TabSelectionListener {
                 LOG.warn("Couldn't url decode topic", e);
             }
             topic.set(tpc);
+        }
+
+        private <T> void setProperty(Property<T> prop, Optional<T> value) {
+            if(value.isPresent() && !Objects.equals(value.get(), prop.getValue())) {
+                prop.setValue(value.get());
+            }
         }
 
         public StringProperty nameProperty() {

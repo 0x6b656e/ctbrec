@@ -338,7 +338,8 @@ public class ThumbOverviewTab extends Tab implements TabSelectionListener {
     }
 
     void initializeUpdateService() {
-        updateService.setPeriod(new Duration(TimeUnit.SECONDS.toMillis(10)));
+        int refreshRate = Config.getInstance().getSettings().overviewUpdateIntervalInSecs;
+        updateService.setPeriod(new Duration(TimeUnit.SECONDS.toMillis(refreshRate)));
         updateService.setOnSucceeded((event) -> onSuccess());
         updateService.setOnFailed((event) -> onFail(event));
     }

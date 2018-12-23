@@ -92,6 +92,7 @@ public class Settings {
     public String colorBase = "#FFFFFF";
     public String colorAccent = "#FFFFFF";
     public int onlineCheckIntervalInSecs = 60;
+    public int overviewUpdateIntervalInSecs = 10;
     public String recordedModelsSortColumn = "";
     public String recordedModelsSortType = "";
     public double[] recordedModelsColumnWidths = new double[0];

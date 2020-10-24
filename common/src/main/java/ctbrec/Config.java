@@ -86,7 +86,7 @@ public class Config {
             File target = new File(source.getParentFile(), backup);
             Files.copy(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
         } catch(Throwable e) {
-            LOG.error("Couldn't create backup of settings file", e);
+            LOG.error("Couldn't create a valid backup of settings file", e);
         }
     }
 
